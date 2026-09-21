@@ -4,7 +4,9 @@ import SwiftUI
 enum HitRegionKind {
     case edge
     case notch
-    case expanded
+    case content
+    case dragHandle
+    case sensor
 }
 
 struct HitRegionOverlay: View {
@@ -31,7 +33,9 @@ struct HitRegionOverlay: View {
         switch kind {
         case .edge: Color.blue
         case .notch: Color.orange
-        case .expanded: Color.green
+        case .content: Color.green
+        case .dragHandle: Color.pink
+        case .sensor: Color.yellow
         }
     }
 
@@ -39,7 +43,9 @@ struct HitRegionOverlay: View {
         switch kind {
         case .edge: "Edge Hit"
         case .notch: "Notch Hit"
-        case .expanded: "Expanded Hover"
+        case .content: "Panel Content"
+        case .dragHandle: "Drag Handle"
+        case .sensor: "Notch Sensor"
         }
     }
 }

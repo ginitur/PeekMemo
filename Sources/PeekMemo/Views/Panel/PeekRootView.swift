@@ -13,6 +13,8 @@ struct PeekRootView: View {
     var appState: AppState
     var onBeginEdit: () -> Void = {}
     var onEndEdit: () -> Void = {}
+    var onMoreWillOpen: () -> Void = {}
+    var onMoreDidClose: () -> Void = {}
     var handleOffsetInsidePanel: CGFloat = 0
     var stackLength: CGFloat = LayoutMetrics.defaultStackLength
 
@@ -34,7 +36,7 @@ struct PeekRootView: View {
             }
 
             if showHitRegions, isExpanded {
-                HitRegionOverlay(kind: .expanded, edge: edge)
+                HitRegionOverlay(kind: .content, edge: edge)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -45,7 +47,9 @@ struct PeekRootView: View {
             state: appState,
             accent: accent,
             onBeginEdit: onBeginEdit,
-            onEndEdit: onEndEdit
+            onEndEdit: onEndEdit,
+            onMoreWillOpen: onMoreWillOpen,
+            onMoreDidClose: onMoreDidClose
         )
         return Group {
             switch edge {
@@ -93,6 +97,11 @@ struct PeekRootView: View {
                 )
         }
         .frame(width: vertical ? thickness : nil, height: vertical ? nil : thickness)
+        .overlay {
+            if showHitRegions {
+                HitRegionOverlay(kind: .dragHandle, edge: edge)
+            }
+        }
     }
 
 }

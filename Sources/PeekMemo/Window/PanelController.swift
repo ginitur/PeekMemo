@@ -33,6 +33,7 @@ final class PanelController {
             self.motionGeneration += 1
             self.shellExpanded = false
             self.contentOpacity = 1
+            self.notchSensor.hide()
             self.hover.beginDrag()
             self.syncChrome(animated: false)
         }
@@ -386,6 +387,11 @@ final class PanelController {
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
             onEndEdit: { [weak self] in self?.hover.exitEditing() },
+            onMoreWillOpen: { [weak self] in self?.enterKeyMode() },
+            onMoreDidClose: { [weak self] in
+                guard let self, !self.appState.isEditing else { return }
+                self.exitKeyMode()
+            },
             handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? 0,
             stackLength: positionManager.stackLength
         )
@@ -396,50 +402,28 @@ final class PanelController {
         }
         let hosting = NSHostingView(rootView: root)
         hosting.sizingOptions = []
-        hosting.clipsToBounds = true
+        hosting.clipsToBounds = false
         hosting.translatesAutoresizingMaskIntoConstraints = true
         hosting.autoresizingMask = [.width, .height] as NSView.AutoresizingMask
         hosting.frame = hostView.bounds
         hostView.addSubview(hosting, positioned: .below, relativeTo: nil)
-        hostView.clipsToBounds = true
+        hostView.clipsToBounds = false
         hostingView = hosting
     }
 
     private func dragHandleRect(in bounds: CGRect, edge: ScreenEdge, expanded: Bool) -> CGRect? {
         guard expanded else { return nil }
-        let thickness = LayoutMetrics.hoverHitThickness
-        let length = positionManager.stackLength
-        let offset = currentExpansion?.handleOffsetInsidePanel ?? bounds.height / 2
-        switch edge {
-        case .right:
-            return CGRect(
-                x: bounds.width - thickness,
-                y: bounds.height - offset - length / 2,
-                width: thickness,
-                height: length
-            )
-        case .left:
-            return CGRect(
-                x: 0,
-                y: bounds.height - offset - length / 2,
-                width: thickness,
-                height: length
-            )
-        case .top:
-            return CGRect(
-                x: offset - length / 2,
-                y: bounds.height - thickness,
-                width: length,
-                height: thickness
-            )
-        case .bottom:
-            return CGRect(
-                x: offset - length / 2,
-                y: 0,
-                width: length,
-                height: thickness
-            )
-        }
+        let occluded = (anchorPlacement?.isNotchCloak == true)
+            ? (notchOccludedHeight(for: anchorPlacement!))
+            : 0
+        return DragHandleGeometry.rect(
+            in: bounds,
+            edge: edge,
+            isNotchCloak: anchorPlacement?.isNotchCloak == true,
+            notchOccludedHeight: occluded,
+            handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? bounds.height / 2,
+            stackLength: positionManager.stackLength
+        )
     }
 
     private func pointerIsInsideHoverRegion() -> Bool {
@@ -505,7 +489,7 @@ final class PanelController {
     }
 
     private func refreshNotchSensor(anchor: PanelPlacement) {
-        guard anchor.isNotchCloak, !shellExpanded,
+        guard anchor.isNotchCloak, !shellExpanded, !hover.isDragging,
               let screen = screenForAnchor(anchor),
               let notch = NotchGeometry.region(on: screen)
         else {
