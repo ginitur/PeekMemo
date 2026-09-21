@@ -6,67 +6,92 @@ import PeekMemoCore
 @Observable
 @MainActor
 final class AppState {
-    var groups: [MemoGroup]
-    var memos: [Memo]
-    var selectedGroupID: UUID
-    var editingMemoID: UUID?
+    var lists: [UserList]
+    var items: [MemoItem]
+    var selectedListID: UUID
+    var editingItemID: UUID?
+    var composingParentID: UUID?
     var draftText: String = ""
     var isComposing: Bool = false
+    var completedExpanded = false
+    var pendingHideIDs: Set<UUID> = []
 
-    var selectedGroup: MemoGroup? {
-        groups.first(where: { $0.id == selectedGroupID })
+    var selectedList: UserList? {
+        lists.first(where: { $0.id == selectedListID })
     }
 
-    var visibleMemos: [Memo] {
-        memos
-            .filter { $0.groupId == selectedGroupID && !$0.isArchived }
-            .sorted { $0.sortOrder < $1.sortOrder }
+    var openItems: [MemoItem] {
+        TaskHierarchy.openRoots(in: items, listId: selectedListID)
+    }
+
+    var completedItems: [MemoItem] {
+        TaskHierarchy.completedRoots(in: items, listId: selectedListID)
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
     }
 
     var isEditing: Bool {
-        isComposing || editingMemoID != nil
+        isComposing || editingItemID != nil
     }
 
     init() {
         let now = Date()
-        let today = MemoGroup(title: "Today", icon: "sun.max", color: .today, sortOrder: 0, createdAt: now, updatedAt: now)
-        groups = [today]
-        selectedGroupID = today.id
-        memos = [
-            Memo(groupId: today.id, text: "Example task", type: .checklist, sortOrder: 0, createdAt: now, updatedAt: now),
-            Memo(groupId: today.id, text: "Another memo", type: .note, sortOrder: 1, createdAt: now, updatedAt: now),
+        let inbox = UserList(name: "Inbox", icon: "tray", color: .inbox, sortOrder: 0, createdAt: now, updatedAt: now)
+        lists = [inbox]
+        selectedListID = inbox.id
+        let parent = MemoItem(listId: inbox.id, type: .task, title: "Prepare report", sortOrder: 0, createdAt: now, updatedAt: now)
+        items = [
+            parent,
+            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Collect data", isCompleted: true, completedAt: now, sortOrder: 0),
+            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1),
+            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Final review", sortOrder: 2),
+            MemoItem(listId: inbox.id, type: .note, title: "Welcome to PeekMemo", sortOrder: 1),
         ]
     }
 
-    func beginComposing() {
-        editingMemoID = nil
+    func children(of item: MemoItem) -> [MemoItem] {
+        TaskHierarchy.children(of: item.id, in: items)
+    }
+
+    func progress(of item: MemoItem) -> (done: Int, total: Int) {
+        TaskHierarchy.progress(of: item, in: items)
+    }
+
+    func beginComposing(parent: MemoItem? = nil) {
+        editingItemID = nil
         isComposing = true
+        composingParentID = parent?.id
         draftText = ""
     }
 
-    func beginEditing(_ memo: Memo) {
+    func beginEditing(_ item: MemoItem) {
         isComposing = false
-        editingMemoID = memo.id
-        draftText = memo.text
+        composingParentID = nil
+        editingItemID = item.id
+        draftText = item.title
     }
 
     func saveDraft() {
         let text = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parent = composingParentID
         defer { cancelEdit() }
         guard !text.isEmpty else { return }
         let now = Date()
-        if let id = editingMemoID, let index = memos.firstIndex(where: { $0.id == id }) {
-            memos[index].text = text
-            memos[index].updatedAt = now
+        if let id = editingItemID, let index = items.firstIndex(where: { $0.id == id }) {
+            items[index].title = text
+            items[index].updatedAt = now
             return
         }
         if isComposing {
-            let order = (visibleMemos.last?.sortOrder ?? -1) + 1
-            memos.append(
-                Memo(
-                    groupId: selectedGroupID,
-                    text: text,
-                    type: .note,
+            let siblings = parent == nil
+                ? TaskHierarchy.roots(in: items, listId: selectedListID)
+                : TaskHierarchy.children(of: parent!, in: items)
+            let order = (siblings.last?.sortOrder ?? -1) + 1
+            items.append(
+                MemoItem(
+                    listId: selectedListID,
+                    parentId: parent,
+                    type: .task,
+                    title: text,
                     sortOrder: order,
                     createdAt: now,
                     updatedAt: now
@@ -77,22 +102,26 @@ final class AppState {
 
     func cancelEdit() {
         isComposing = false
-        editingMemoID = nil
+        composingParentID = nil
+        editingItemID = nil
         draftText = ""
     }
 
-    func toggleCompleted(_ memo: Memo) {
-        guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return }
-        memos[index].isCompleted.toggle()
-        memos[index].updatedAt = Date()
-        if memos[index].type == .note {
-            memos[index].type = .checklist
+    func toggleCompleted(_ item: MemoItem) {
+        let completing = !item.isCompleted
+        TaskHierarchy.setCompleted(item.id, to: completing, items: &items)
+        if completing, item.parentId == nil {
+            pendingHideIDs.insert(item.id)
         }
     }
 
-    func delete(_ memo: Memo) {
-        memos.removeAll { $0.id == memo.id }
-        if editingMemoID == memo.id {
+    func finishHideAnimation(for id: UUID) {
+        pendingHideIDs.remove(id)
+    }
+
+    func delete(_ item: MemoItem) {
+        items.removeAll { $0.id == item.id || $0.parentId == item.id }
+        if editingItemID == item.id {
             cancelEdit()
         }
     }

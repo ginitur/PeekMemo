@@ -37,6 +37,8 @@ enum PeekMemoCoreTestsMain {
             ("PanelAnimator", PanelAnimatorTests.run),
             ("AnchorPersistence", AnchorPersistenceTests.run),
             ("CornerClampAnchor", CornerClampAnchorTests.run),
+            ("TaskHierarchy", TaskHierarchyTests.run),
+            ("TaskCompletion", TaskCompletionTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
         ]
 

@@ -11,32 +11,30 @@ struct PreviewPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(state.selectedGroup?.title ?? "Today")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
-
-            ForEach(state.visibleMemos) { memo in
-                memoRow(memo)
-            }
-
-            if state.isComposing {
-                editorField(placeholder: "New memo")
-            }
-
-            if !state.isEditing {
-                Button(action: addMemo) {
-                    HStack(spacing: 6) {
+            HStack {
+                Text(state.selectedList?.name ?? "Inbox")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                if !state.isEditing {
+                    Button(action: addRoot) {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("Add Memo")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(accent.color)
                     }
-                    .foregroundStyle(accent.color)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add Memo")
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 4)
-                .accessibilityLabel("Add Memo")
             }
+
+            ForEach(visibleOpenItems) { item in
+                itemBlock(item)
+            }
+
+            if state.isComposing, state.composingParentID == nil {
+                editorField(placeholder: "New task")
+            }
+
+            completedSection
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -48,36 +46,103 @@ struct PreviewPanelView: View {
             )
         }
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(state.selectedGroup?.title ?? "Today") memos")
+    }
+
+    private var visibleOpenItems: [MemoItem] {
+        let pending = state.items.filter { $0.parentId == nil && state.pendingHideIDs.contains($0.id) }
+        var seen = Set<UUID>()
+        return (state.openItems + pending).filter { seen.insert($0.id).inserted }
+    }
+
+    private var completedSection: some View {
+        let count = state.completedItems.count
+        return VStack(alignment: .leading, spacing: 6) {
+            if count > 0 || !state.pendingHideIDs.isEmpty {
+                Button {
+                    state.completedExpanded.toggle()
+                } label: {
+                    HStack {
+                        Text("Completed")
+                        Spacer()
+                        Text("\(count)")
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .rotationEffect(.degrees(state.completedExpanded ? 90 : 0))
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Completed \(count)")
+
+                if state.completedExpanded {
+                    ForEach(state.completedItems) { item in
+                        itemRow(item, indent: 0)
+                    }
+                }
+            }
+        }
+        .padding(.top, 8)
     }
 
     @ViewBuilder
-    private func memoRow(_ memo: Memo) -> some View {
-        if state.editingMemoID == memo.id {
-            editorField(placeholder: "Memo")
+    private func itemBlock(_ item: MemoItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            itemRow(item, indent: 0)
+            let kids = state.children(of: item)
+            let progress = state.progress(of: item)
+            if progress.total > 0 {
+                Text("\(progress.done) / \(progress.total)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 22)
+            }
+            ForEach(kids.filter { !$0.isCompleted || state.completedExpanded }) { child in
+                itemRow(child, indent: 1)
+            }
+            if state.isComposing, state.composingParentID == item.id {
+                editorField(placeholder: "Subtask").padding(.leading, 22)
+            }
+        }
+        .opacity(item.isCompleted && state.pendingHideIDs.contains(item.id) ? 0.35 : 1)
+        .onChange(of: item.isCompleted) { _, completed in
+            guard completed, item.parentId == nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                state.finishHideAnimation(for: item.id)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func itemRow(_ item: MemoItem, indent: Int) -> some View {
+        if state.editingItemID == item.id {
+            editorField(placeholder: "Task").padding(.leading, CGFloat(indent) * 18)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Button(action: { state.toggleCompleted(memo) }) {
-                    Image(systemName: memo.isCompleted ? "checkmark.square.fill" : "square")
+                Button(action: { state.toggleCompleted(item) }) {
+                    Image(systemName: item.isCompleted ? "checkmark.square.fill" : "square")
                         .font(.system(size: 13))
-                        .foregroundStyle(memo.isCompleted ? accent.color : .secondary)
+                        .foregroundStyle(item.isCompleted ? accent.color : .secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(memo.isCompleted ? "Mark incomplete" : "Mark complete")
+                .accessibilityLabel(item.isCompleted ? "Mark incomplete" : "Mark complete")
 
-                Text(memo.text)
+                Text(item.title)
                     .font(.system(size: 12.5))
-                    .foregroundStyle(.primary)
-                    .strikethrough(memo.isCompleted)
+                    .strikethrough(item.isCompleted)
+                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
-                    .onTapGesture { edit(memo) }
-                    .accessibilityAddTraits(.isStaticText)
+                    .onTapGesture { edit(item) }
             }
+            .padding(.leading, CGFloat(indent) * 18)
             .contextMenu {
-                Button("Edit") { edit(memo) }
-                Button("Delete", role: .destructive) { state.delete(memo) }
+                Button("Edit") { edit(item) }
+                if TaskHierarchy.canAddSubtask(item) {
+                    Button("Add Subtask") { addSubtask(item) }
+                }
+                Button("Delete", role: .destructive) { state.delete(item) }
             }
         }
     }
@@ -90,7 +155,6 @@ struct PreviewPanelView: View {
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .focused($editorFocused)
             .onAppear { editorFocused = true }
-            .onSubmit(of: .text) { /* return inserts newline in vertical field */ }
             .onKeyPress(.escape) {
                 cancel()
                 return .handled
@@ -102,16 +166,20 @@ struct PreviewPanelView: View {
                 }
                 return .ignored
             }
-            .accessibilityLabel(placeholder)
     }
 
-    private func addMemo() {
+    private func addRoot() {
         state.beginComposing()
         onBeginEdit()
     }
 
-    private func edit(_ memo: Memo) {
-        state.beginEditing(memo)
+    private func addSubtask(_ parent: MemoItem) {
+        state.beginComposing(parent: parent)
+        onBeginEdit()
+    }
+
+    private func edit(_ item: MemoItem) {
+        state.beginEditing(item)
         onBeginEdit()
     }
 
