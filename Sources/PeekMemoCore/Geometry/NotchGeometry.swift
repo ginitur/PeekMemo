@@ -67,20 +67,20 @@ public enum NotchGeometry: Sendable {
         CGPoint(x: notch.frame.midX, y: notch.frame.midY)
     }
 
-    /// Collapsed window: the physical `notchRect` plus an optional thin underside extension.
-    /// The tab’s visual center sits inside `notchRect` so the housing occludes it.
+    /// Visual collapsed window. Must be fully contained in `notchRect` (100% occluded).
     public static func collapsedWindowFrame(
         for notch: NotchRegion,
-        activationExtension: CGFloat = LayoutMetrics.notchActivationExtension
+        activationExtension: CGFloat = 0
     ) -> CGRect {
-        let n = notch.frame
-        let ext = max(0, activationExtension)
-        return CGRect(
-            x: n.minX,
-            y: n.minY - ext,
-            width: n.width,
-            height: n.height + ext
-        )
+        _ = activationExtension
+        return notch.frame
+    }
+
+    public static func isFullyContained(_ inner: CGRect, in outer: CGRect) -> Bool {
+        inner.minX >= outer.minX
+            && inner.maxX <= outer.maxX
+            && inner.minY >= outer.minY
+            && inner.maxY <= outer.maxY
     }
 
     /// The 2–4 pt strip just below `notchRect.minY`. Empty when extension is 0.

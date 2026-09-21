@@ -24,3 +24,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - EdgeAnchor: the handle center is the stable offset. Expanded panels stay centered on it; near corners the body is clamped and the handle stays put.
 - Tasks can nest one level of subtasks. Completing a parent completes children; completing all children completes the parent. Completed items move into a collapsed Completed section after a short delay.
 - Smart views Today / Inbox / Completed plus custom lists (Work, Personal, Ideas). Default view is Today. New items without a list go to Inbox.
+- Notch cloak visual panel is fully inside `notchRect`. Hit testing is a separate invisible sensor (3 pt fallback strip) plus mouse-location monitors.

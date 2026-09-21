@@ -77,8 +77,8 @@ enum NotchGeometryTests {
         try expect(placement.frame.contains(center))
         try expectEqual(placement.frame.midX, notch.frame.midX)
         try expect(placement.frame.maxY == notch.frame.maxY)
-        try expect(placement.frame.minY <= notch.frame.minY)
-        try expect(placement.frame.minY >= notch.frame.minY - LayoutMetrics.notchActivationExtension - 0.01)
+        try expect(placement.frame.minY == notch.frame.minY)
+        try expect(NotchGeometry.isFullyContained(placement.frame, in: notch.frame))
     }
 
     static func collapsedNotchFrameCoversNotchRect() throws {
@@ -89,7 +89,7 @@ enum NotchGeometryTests {
         try expectEqual(frame.maxY, notch.frame.maxY)
         try expectEqual(frame.minX, notch.frame.minX)
         try expectEqual(frame.maxX, notch.frame.maxX)
-        try expectEqual(frame.height, notch.frame.height + LayoutMetrics.notchActivationExtension)
+        try expectEqual(frame.height, notch.frame.height)
         let inner = notch.frame.insetBy(dx: 1, dy: 1)
         try expect(frame.intersection(inner) == inner)
     }

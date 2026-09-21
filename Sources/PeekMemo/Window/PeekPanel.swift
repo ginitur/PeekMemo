@@ -10,6 +10,9 @@ final class PeekPanel: NSPanel {
         }
     }
 
+    /// When true, AppKit must not shove the frame out of the camera housing.
+    var allowNotchPlacement = false
+
     override var canBecomeKey: Bool { allowsKey }
     override var canBecomeMain: Bool { false }
 
@@ -39,5 +42,12 @@ final class PeekPanel: NSPanel {
         sharingType = .none
         title = "PeekMemo"
         identifier = NSUserInterfaceItemIdentifier("PeekMemo.PeekPanel")
+    }
+
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        if allowNotchPlacement {
+            return frameRect
+        }
+        return super.constrainFrameRect(frameRect, to: screen)
     }
 }

@@ -13,6 +13,7 @@ final class PanelController {
     private var anchorPlacement: PanelPlacement?
     private var screenChangeObserver: (any NSObjectProtocol)?
     private let notchDebugOverlay = NotchDebugOverlay()
+    private let notchSensor = NotchActivationSensor()
     private var shellExpanded = false
     private var contentOpacity: Double = 1
     private var motionGeneration = 0
@@ -63,6 +64,12 @@ final class PanelController {
         }
         panel.contentView = hostView
         panel.allowsKey = false
+        notchSensor.onEnter = { [weak self] in
+            self?.hover.pointerEntered()
+        }
+        notchSensor.onExit = { [weak self] in
+            self?.hover.pointerExited()
+        }
         observeScreenChanges()
     }
 
@@ -283,6 +290,8 @@ final class PanelController {
     ) {
         guard let anchor = anchorPlacement else { return }
         let framePlacement = displayedPlacement(anchor: anchor, expanded: shellExpanded)
+        panel.allowNotchPlacement = anchor.isNotchCloak
+        let requested = framePlacement.frame
         positionManager.apply(
             framePlacement,
             to: panel,
@@ -300,6 +309,8 @@ final class PanelController {
         }
         refreshPresentedContent()
         refreshNotchDebugOverlay()
+        refreshNotchSensor(anchor: anchor)
+        logNotchFrames(requested: requested, anchor: anchor)
         if DebugFlags.showAnchorGeometry, let expansion = currentExpansion {
             print(
                 "[Anchor] offset=\(anchor.offset) point=\(expansion.anchorPoint) panel=\(expansion.panelFrame) handle=\(expansion.handleAttachmentPoint) clamped=\(expansion.wasClamped)"
@@ -491,6 +502,33 @@ final class PanelController {
         else { return }
         NotchHitProbe.record(point: point, notch: notch)
         #endif
+    }
+
+    private func refreshNotchSensor(anchor: PanelPlacement) {
+        guard anchor.isNotchCloak, !shellExpanded,
+              let screen = screenForAnchor(anchor),
+              let notch = NotchGeometry.region(on: screen)
+        else {
+            notchSensor.hide()
+            return
+        }
+        notchSensor.show(notch: notch, useFallbackStrip: true)
+    }
+
+    private func logNotchFrames(requested: CGRect, anchor: PanelPlacement) {
+        guard anchor.isNotchCloak else { return }
+        let actual = panel.frame
+        let contained: Bool
+        if let screen = screenForAnchor(anchor), let notch = NotchGeometry.region(on: screen) {
+            contained = NotchGeometry.isFullyContained(actual, in: notch.frame)
+            print("[Notch] notchRect \(notch.frame)")
+        } else {
+            contained = false
+        }
+        print("[Notch] requested \(requested)")
+        print("[Notch] actual    \(actual)")
+        print("[Notch] AppKit constrained=\(requested != actual) containedInNotch=\(contained)")
+        print("[Notch] activation \(notchSensor.mechanism)")
     }
 
     private func refreshNotchDebugOverlay() {

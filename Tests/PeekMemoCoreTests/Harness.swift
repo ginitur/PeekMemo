@@ -41,6 +41,7 @@ enum PeekMemoCoreTestsMain {
             ("TaskCompletion", TaskCompletionTests.run),
             ("SmartView", SmartViewTests.run),
             ("CompletedFiltering", CompletedFilteringTests.run),
+            ("NotchContainedFrame", NotchContainedFrameTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
         ]
 

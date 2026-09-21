@@ -71,7 +71,8 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] EdgeAnchor: expand/collapse does not change offset; corner clamp keeps handle on the original anchor
 - [x] Hierarchical tasks + completed state
 - [x] Smart views + custom lists
-- [ ] Notch collapsed frame 100% inside notchRect
+- [x] Notch collapsed visual frame 100% inside notchRect; `PeekPanel.constrainFrameRect` can skip AppKit visible-area shove
+- [x] NotchActivationSensor: invisible 3pt fallback strip + local/global mouse-location monitors (not a timer). Native in-cutout hits still PARTIAL until a live mouse enter is logged.
 
 ## Phase 6 — Memo persistence
 
