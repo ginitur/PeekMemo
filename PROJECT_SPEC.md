@@ -108,6 +108,27 @@ Visual thickness and hit thickness are independent constants in `LayoutMetrics`.
 
 Hover is owned by `HoverEngine` (Core) plus an AppKit `HoverController` that feeds pointer enter/exit for the **union** of the edge item and expanded panel (`HoverRegion`, 6 pt padding, 80 ms grace). SwiftUI `onHover` is not the source of truth.
 
+Live drag never cloaks. Notch Cloak is committed only on mouse-up. The Notch sensor is hidden while dragging and sits below the main panel’s window level.
+
+## Daily View
+
+`Today` is the Daily View with `selectedDate` defaulting to the current day.
+
+- `scheduledDate` — the day the user plans to work on the item
+- `dueDate` — deadline; not the same as scheduled
+- `completedAt` — when it was actually finished
+
+Historical daily view is derived from current `scheduledDate` + `completedAt`.
+Full activity history / event log is a future enhancement.
+
+A past day’s completion rate uses `completedAt <= endOfDay(selectedDate)`. Completing a task the next day does not rewrite yesterday’s percentage.
+
+Notes with a `scheduledDate` appear on that day but never enter the task completion ratio.
+
+## Navigation chrome
+
+The expanded panel splits **body** (scroll) from a **fixed bottom navigation**. More uses `NSMenu.popUp` so it opens on the first click of a nonactivating panel and is not clipped by `NSHostingView`.
+
 Collapsed Notch Cloak uses only the underside hit strip (`notchCloakHitThickness`). The housing rectangle is never a drawing surface. Top-edge drag uses `notchSnapThreshold` (26 pt) with a smoothstep pull so cloak does not teleport.
 
 The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI files; SwiftUI also defines `HoverPhase`.

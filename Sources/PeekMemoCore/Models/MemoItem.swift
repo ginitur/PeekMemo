@@ -16,6 +16,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
     public var completedAt: Date?
     public var sortOrder: Int
     public var dueDate: Date?
+    public var scheduledDate: Date?
     public var forToday: Bool
     public var isArchived: Bool
     public var createdAt: Date
@@ -32,6 +33,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
         completedAt: Date? = nil,
         sortOrder: Int,
         dueDate: Date? = nil,
+        scheduledDate: Date? = nil,
         forToday: Bool = false,
         isArchived: Bool = false,
         createdAt: Date = Date(),
@@ -47,6 +49,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
         self.completedAt = completedAt
         self.sortOrder = sortOrder
         self.dueDate = dueDate
+        self.scheduledDate = scheduledDate
         self.forToday = forToday
         self.isArchived = isArchived
         self.createdAt = createdAt

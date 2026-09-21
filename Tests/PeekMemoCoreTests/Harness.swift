@@ -43,6 +43,13 @@ enum PeekMemoCoreTestsMain {
             ("CompletedFiltering", CompletedFilteringTests.run),
             ("NotchContainedFrame", NotchContainedFrameTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
+            ("DailyViewQuery", DailyViewQueryTests.run),
+            ("DailyCompletionAsOf", DailyCompletionAsOfTests.run),
+            ("SelectedDateNavigation", SelectedDateNavigationTests.run),
+            ("ScheduledDate", ScheduledDateTests.run),
+            ("TopEdgeDrag", TopEdgeDragTests.run),
+            ("DragHandleHitRegion", DragHandleHitRegionTests.run),
+            ("MoreMenuInteraction", MoreMenuInteractionStateTests.run),
         ]
 
         var failed = 0

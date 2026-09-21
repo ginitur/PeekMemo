@@ -25,3 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Tasks can nest one level of subtasks. Completing a parent completes children; completing all children completes the parent. Completed items move into a collapsed Completed section after a short delay.
 - Smart views Today / Inbox / Completed plus custom lists (Work, Personal, Ideas). Default view is Today. New items without a list go to Inbox.
 - Notch cloak visual panel is fully inside `notchRect`. Hit testing is a separate invisible sensor (3 pt fallback strip) plus mouse-location monitors.
+- Inline `+ Add subtask` with continuous Enter. Parent rows show disclosure and `1/3`.
+- Bottom nav is a fixed region. More is an AppKit `NSMenu` so it opens on the first click and is not clipped.
+- Dragging never cloaks live; Top can be dragged to other edges. Notch sensor stays below the panel and hides during drag.
+- Daily View: `selectedDate`, `scheduledDate` vs `dueDate` vs `completedAt`. Past completion uses `completedAt <= endOfDay`.

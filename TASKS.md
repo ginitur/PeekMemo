@@ -74,6 +74,14 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Notch collapsed visual frame 100% inside notchRect; `PeekPanel.constrainFrameRect` can skip AppKit visible-area shove
 - [x] NotchActivationSensor: invisible 3pt fallback strip + local/global mouse-location monitors (not a timer). Native in-cutout hits still PARTIAL until a live mouse enter is logged.
 
+## Phase 5.7 — Daily workflow & navigation
+
+- [x] Inline continuous `+ Add subtask` (Enter keeps composing, ⌘↩ / Esc end)
+- [x] Parent disclosure ▸/▾ with progress `1/3` on the row
+- [x] Fixed bottom navigation; More uses `NSMenu.popUp` (first click opens, not clipped)
+- [x] Live drag never cloaks; sensor hidden while dragging; Top→other edges commit on mouse-up
+- [x] Daily View with `selectedDate`, `scheduledDate`, historical completion via `completedAt`
+
 ## Phase 6 — Memo persistence
 
 - [ ] GRDB.swift
