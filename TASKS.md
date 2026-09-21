@@ -63,7 +63,8 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 
 - [x] Notch cloak collapsed frame inside `notchRect` (commit 1)
 - [x] Fixed-edge panel expansion via `PanelAnimator` + `NSAnimationContext` `animator().setFrame` (commit 2)
-- [ ] In-memory interactive memos (commit 3)
+- [x] In-memory interactive memos (Add / Edit / Checkbox / Delete / ⌘↩ / Esc)
+- [x] Peek vs Edit focus: hover stays non-key; Add/Edit calls `makeKey`
 
 ## Phase 6 — Memo persistence
 

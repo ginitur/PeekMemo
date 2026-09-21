@@ -10,6 +10,9 @@ struct PeekRootView: View {
     /// Height of the physical housing, in the expanded window’s top. Content starts below it.
     var notchOccludedHeight: CGFloat = 0
     var contentOpacity: Double = 1
+    var appState: AppState
+    var onBeginEdit: () -> Void = {}
+    var onEndEdit: () -> Void = {}
 
     private var isExpanded: Bool {
         phase == .expanded || phase == .pinned || phase == .editing
@@ -37,7 +40,12 @@ struct PeekRootView: View {
 
     private var expandedBody: some View {
         let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: accent)
-        let preview = PreviewPanelView(accent: accent)
+        let preview = PreviewPanelView(
+            state: appState,
+            accent: accent,
+            onBeginEdit: onBeginEdit,
+            onEndEdit: onEndEdit
+        )
         return Group {
             switch edge {
             case .right:

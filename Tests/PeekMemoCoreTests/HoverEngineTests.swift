@@ -10,6 +10,8 @@ enum HoverEngineTests {
         try pinnedIgnoresPointerExit()
         try doubleClickEntersEditingAndAllowsKey()
         try delaysComeFromSettings()
+        try editingIgnoresPointerExit()
+        try peekDoesNotAllowKey()
     }
 
     static func enterWaitsThenExpands() throws {
@@ -78,9 +80,27 @@ enum HoverEngineTests {
         _ = engine.handle(.pointerExitedRegion)
         try expectEqual(engine.phase, .editing)
 
-        _ = engine.handle(.endEditing)
+        let ended = engine.handle(.endEditing)
+        try expectEqual(ended, .endEditing)
         try expectEqual(engine.phase, .pinned)
         try expect(!engine.allowsKeyWindow)
+    }
+
+    static func editingIgnoresPointerExit() throws {
+        var engine = HoverEngine(phase: .editing)
+        try expect(engine.allowsKeyWindow)
+        let output = engine.handle(.pointerExitedRegion)
+        try expectEqual(output, .none)
+        try expectEqual(engine.phase, .editing)
+    }
+
+    static func peekDoesNotAllowKey() throws {
+        var engine = HoverEngine(phase: .expanded)
+        try expect(!engine.allowsKeyWindow)
+        _ = engine.handle(.click)
+        try expect(!engine.allowsKeyWindow)
+        _ = engine.handle(.doubleClick)
+        try expect(engine.allowsKeyWindow)
     }
 
     static func delaysComeFromSettings() throws {

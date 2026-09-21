@@ -24,7 +24,19 @@ final class EdgeHostView: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        bounds.contains(point) ? self : nil
+        if let dragHandleRect {
+            if dragHandleRect.contains(point) {
+                return self
+            }
+            for subview in subviews.reversed() {
+                let converted = convert(point, to: subview)
+                if let hit = subview.hitTest(converted) {
+                    return hit
+                }
+            }
+            return nil
+        }
+        return bounds.contains(point) ? self : nil
     }
 
     override func updateTrackingAreas() {

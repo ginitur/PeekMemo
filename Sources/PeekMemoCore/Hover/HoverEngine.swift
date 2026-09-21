@@ -33,6 +33,7 @@ public enum HoverOutput: Sendable, Equatable {
     case expand
     case collapse
     case beginEditing
+    case endEditing
 }
 
 /// Pure hover state machine. AppKit supplies events; this type does not read `NSEvent`.
@@ -117,7 +118,7 @@ public struct HoverEngine: Equatable, Sendable {
 
         case (.editing, .endEditing):
             phase = .pinned
-            return .none
+            return .endEditing
 
         case (.editing, _):
             return .none

@@ -17,6 +17,7 @@ final class PanelController {
     private var contentOpacity: Double = 1
     private var motionGeneration = 0
     private var suppressAnimatedCollapse = false
+    private let appState = AppState()
 
     private var previewSize: CGSize {
         CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
@@ -206,8 +207,15 @@ final class PanelController {
 
     private func handleHoverOutput(_ output: HoverOutput) {
         switch output {
-        case .expand, .beginEditing:
+        case .expand:
             expandChrome()
+        case .beginEditing:
+            if !shellExpanded {
+                expandChrome()
+            }
+            enterKeyMode()
+        case .endEditing:
+            exitKeyMode()
         case .collapse:
             if hover.isDragging || suppressAnimatedCollapse {
                 motionGeneration += 1
@@ -291,7 +299,9 @@ final class PanelController {
         }
         refreshPresentedContent()
         refreshNotchDebugOverlay()
-        panel.allowsKey = false
+        if hover.engine.phase != .editing {
+            panel.allowsKey = false
+        }
         if !panel.isVisible {
             panel.orderFrontRegardless()
         }
@@ -352,7 +362,10 @@ final class PanelController {
             accent: .accent,
             showHitRegions: DebugFlags.showHitRegions,
             notchOccludedHeight: notchOccludedHeight,
-            contentOpacity: contentOpacity
+            contentOpacity: contentOpacity,
+            appState: appState,
+            onBeginEdit: { [weak self] in self?.hover.enterEditing() },
+            onEndEdit: { [weak self] in self?.hover.exitEditing() }
         )
         if let hostingView {
             hostingView.rootView = root
@@ -416,6 +429,20 @@ final class PanelController {
     private func screen(for point: CGPoint) -> ScreenGeometry? {
         ScreenMigration.screenContaining(point: point, screens: ScreenManager.allSnapshots())
             ?? ScreenManager.mainSnapshot()
+    }
+
+    private func enterKeyMode() {
+        panel.allowsKey = true
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func exitKeyMode() {
+        panel.allowsKey = false
+        if panel.isKeyWindow {
+            panel.resignKey()
+        }
+        panel.orderFrontRegardless()
     }
 
     private func notchOccludedHeight(for placement: PanelPlacement) -> CGFloat {

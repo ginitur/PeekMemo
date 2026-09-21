@@ -44,6 +44,17 @@ final class HoverController {
         apply(engine.handle(.click))
     }
 
+    func enterEditing() {
+        guard !isDragging else { return }
+        graceWork?.cancel()
+        graceWork = nil
+        apply(engine.handle(.doubleClick))
+    }
+
+    func exitEditing() {
+        apply(engine.handle(.endEditing))
+    }
+
     func beginDrag() {
         isDragging = true
         cancelAll()
@@ -93,7 +104,7 @@ final class HoverController {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
         case .cancelTimers:
             cancelOpenAndClose()
-        case .expand, .collapse, .beginEditing:
+        case .expand, .collapse, .beginEditing, .endEditing:
             cancelOpenAndClose()
         }
         onOutput?(output)
