@@ -157,9 +157,8 @@ enum NotchGeometryTests {
             stackLength: 96,
             grabSize: CGSize(width: 96, height: 14)
         )
-        try expect(live.isNotchCloak)
-        try expectEqual(live.frame.midX, notch.frame.midX)
-        try expect(notch.frame.contains(CGPoint(x: live.frame.midX, y: notch.frame.midY)))
+        try expect(!live.isNotchCloak)
+        try expectEqual(live.edge, .top)
     }
 
     static func enterNotchFromTheRight() throws {

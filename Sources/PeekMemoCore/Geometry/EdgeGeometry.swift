@@ -115,14 +115,8 @@ public enum EdgeGeometry: Sendable {
         magnetRange: CGFloat = LayoutMetrics.magnetRange
     ) -> PanelPlacement {
         let (edge, distance) = nearestEdge(to: pointer, on: screen)
+        // Live drag is always a visible tab. Cloak only commits on mouse-up.
         if distance <= magnetRange {
-            if edge == .top {
-                return draggingOnTopEdge(
-                    pointer: pointer,
-                    screen: screen,
-                    stackLength: stackLength
-                )
-            }
             let offset = offsetAlongEdge(pointer: pointer, edge: edge, stackLength: stackLength, screen: screen)
             return collapsedPlacement(
                 screen: screen,
@@ -246,41 +240,6 @@ public enum EdgeGeometry: Sendable {
         }
     }
 
-    /// Live Top-edge drag: follow the pointer, pull toward the notch, never teleport.
-    private static func draggingOnTopEdge(
-        pointer: CGPoint,
-        screen: ScreenGeometry,
-        stackLength: CGFloat
-    ) -> PanelPlacement {
-        let pull = NotchGeometry.cloakPull(pointer: pointer, screen: screen)
-        let offset = offsetAlongEdge(pointer: pointer, edge: .top, stackLength: stackLength, screen: screen)
-        let normal = collapsedPlacement(
-            screen: screen,
-            edge: .top,
-            offset: offset,
-            stackLength: stackLength,
-            allowNotchCloak: false
-        )
-
-        guard pull > 0, let notch = NotchGeometry.region(on: screen) else {
-            return normal
-        }
-
-        let cloak = notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
-        if pull >= 1 {
-            return cloak
-        }
-
-        return PanelPlacement(
-            displayIdentifier: screen.identifier,
-            edge: .top,
-            offset: offset,
-            frame: mix(normal.frame, cloak.frame, t: pull),
-            isNotchCloak: false,
-            isSnapped: true
-        )
-    }
-
     /// Expanded cloak window keeps `maxY` at the top of the housing and grows downward
     /// so content slides out from behind the notch. The occluded band is `notch.height`.
     public static func expandedNotchFrame(
@@ -317,13 +276,4 @@ public enum EdgeGeometry: Sendable {
         )
     }
 
-    private static func mix(_ a: CGRect, _ b: CGRect, t: CGFloat) -> CGRect {
-        let t = min(max(t, 0), 1)
-        return CGRect(
-            x: a.origin.x + (b.origin.x - a.origin.x) * t,
-            y: a.origin.y + (b.origin.y - a.origin.y) * t,
-            width: a.size.width + (b.size.width - a.size.width) * t,
-            height: a.size.height + (b.size.height - a.size.height) * t
-        )
-    }
 }

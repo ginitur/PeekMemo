@@ -20,7 +20,7 @@ final class NotchActivationSensor {
         panel.alphaValue = 0
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
-        panel.level = .statusBar
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue - 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         host.onEnter = { [weak self] in self?.handleEnter(source: "sensor-window") }
         host.onExit = { [weak self] in self?.handleExit() }
