@@ -1,0 +1,15 @@
+# Changelog
+
+All notable changes to PeekMemo are recorded here.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows the project’s `0.1.0-dev` train until the first tagged release.
+
+## [0.1.0-dev] — unreleased
+
+### Added
+
+- Project bootstrap: repository docs, MIT license, SPM package, CI workflow, release script.
+- `PeekMemoCore` platform-agnostic models, layout metrics, edge geometry, notch detection, screen migration, and hover state machine.
+- Unit tests for geometry, notch cloak ranges, offset clamping, and hover transitions (`swift run PeekMemoCoreTests`).
+- Custom `PeekPanel` accessory window and a collapsed Edge Tab on the right screen edge (4 pt visible / 14 pt hit).
+- Stub menu bar extra so the accessory app can be quit.
