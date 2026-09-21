@@ -125,7 +125,7 @@ public enum NotchGeometry: Sendable {
         guard edge == .top, let notch = region(on: screen) else {
             return false
         }
-        let handleMinX = screen.visibleFrame.minX + offset
+        let handleMinX = screen.visibleFrame.minX + offset - stackLength / 2
         let handle = CGRect(x: handleMinX, y: 0, width: stackLength, height: 1)
         let notchBand = CGRect(x: notch.frame.minX, y: 0, width: notch.frame.width, height: 1)
         let overlap = handle.intersection(notchBand).width

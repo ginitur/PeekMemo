@@ -26,8 +26,11 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         stackLength: CGFloat
     ) -> CGFloat {
-        let maxOffset = max(0, usableSpan(edge: edge, screen: screen) - stackLength)
-        return min(max(offset, 0), maxOffset)
+        let span = usableSpan(edge: edge, screen: screen)
+        let half = stackLength / 2
+        let minOffset = min(half, span / 2)
+        let maxOffset = max(span - half, minOffset)
+        return min(max(offset, minOffset), maxOffset)
     }
 
     /// Outer coordinate of an edge, in screen space.
@@ -189,9 +192,9 @@ public enum EdgeGeometry: Sendable {
         let visible = screen.visibleFrame
         let raw: CGFloat = switch edge {
         case .left, .right:
-            visible.maxY - pointer.y - stackLength / 2
+            visible.maxY - pointer.y
         case .top, .bottom:
-            pointer.x - visible.minX - stackLength / 2
+            pointer.x - visible.minX
         }
         return clampOffset(raw, edge: edge, screen: screen, stackLength: stackLength)
     }
@@ -205,37 +208,14 @@ public enum EdgeGeometry: Sendable {
             return expandedNotchFrame(notch: notch, screen: screen, panelSize: panelSize)
         }
 
-        let origin = collapsed.frame
-        switch collapsed.edge {
-        case .right:
-            return CGRect(
-                x: origin.maxX - panelSize.width,
-                y: origin.maxY - panelSize.height,
-                width: panelSize.width,
-                height: panelSize.height
-            )
-        case .left:
-            return CGRect(
-                x: origin.minX,
-                y: origin.maxY - panelSize.height,
-                width: panelSize.width,
-                height: panelSize.height
-            )
-        case .top:
-            return CGRect(
-                x: origin.minX,
-                y: origin.maxY - panelSize.height,
-                width: panelSize.width,
-                height: panelSize.height
-            )
-        case .bottom:
-            return CGRect(
-                x: origin.minX,
-                y: origin.minY,
-                width: panelSize.width,
-                height: panelSize.height
-            )
-        }
+        let stack = collapsed.edge.isVertical ? collapsed.frame.height : collapsed.frame.width
+        let layout = ExpansionGeometry.layout(
+            anchor: EdgeAnchor.from(collapsed.stored),
+            screen: screen,
+            panelSize: panelSize,
+            stackLength: stack
+        )
+        return layout.panelFrame
     }
 
     private static func collapsedFrame(
@@ -248,33 +228,21 @@ public enum EdgeGeometry: Sendable {
         let outer = outerCoordinate(edge: edge, screen: screen)
         switch edge {
         case .right:
-            return CGRect(
-                x: outer - size.width,
-                y: visible.maxY - offset - size.height,
-                width: size.width,
-                height: size.height
-            )
+            let anchorY = visible.maxY - offset
+            let y = min(max(anchorY - size.height / 2, visible.minY), visible.maxY - size.height)
+            return CGRect(x: outer - size.width, y: y, width: size.width, height: size.height)
         case .left:
-            return CGRect(
-                x: outer,
-                y: visible.maxY - offset - size.height,
-                width: size.width,
-                height: size.height
-            )
+            let anchorY = visible.maxY - offset
+            let y = min(max(anchorY - size.height / 2, visible.minY), visible.maxY - size.height)
+            return CGRect(x: outer, y: y, width: size.width, height: size.height)
         case .top:
-            return CGRect(
-                x: visible.minX + offset,
-                y: outer - size.height,
-                width: size.width,
-                height: size.height
-            )
+            let anchorX = visible.minX + offset
+            let x = min(max(anchorX - size.width / 2, visible.minX), visible.maxX - size.width)
+            return CGRect(x: x, y: outer - size.height, width: size.width, height: size.height)
         case .bottom:
-            return CGRect(
-                x: visible.minX + offset,
-                y: outer,
-                width: size.width,
-                height: size.height
-            )
+            let anchorX = visible.minX + offset
+            let x = min(max(anchorX - size.width / 2, visible.minX), visible.maxX - size.width)
+            return CGRect(x: x, y: outer, width: size.width, height: size.height)
         }
     }
 

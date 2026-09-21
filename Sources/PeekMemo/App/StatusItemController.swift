@@ -10,6 +10,7 @@ final class StatusItemController {
     private let onToggleHitRegions: () -> Void
     private let onToggleNotchGeometry: () -> Void
     private let onMoveToNotch: () -> Void
+    private let onToggleAnchorGeometry: () -> Void
 
     init(
         onShow: @escaping () -> Void,
@@ -17,7 +18,8 @@ final class StatusItemController {
         onReset: @escaping () -> Void,
         onToggleHitRegions: @escaping () -> Void = {},
         onToggleNotchGeometry: @escaping () -> Void = {},
-        onMoveToNotch: @escaping () -> Void = {}
+        onMoveToNotch: @escaping () -> Void = {},
+        onToggleAnchorGeometry: @escaping () -> Void = {}
     ) {
         self.onShow = onShow
         self.onHide = onHide
@@ -25,6 +27,7 @@ final class StatusItemController {
         self.onToggleHitRegions = onToggleHitRegions
         self.onToggleNotchGeometry = onToggleNotchGeometry
         self.onMoveToNotch = onMoveToNotch
+        self.onToggleAnchorGeometry = onToggleAnchorGeometry
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -83,6 +86,15 @@ final class StatusItemController {
         )
         cloak.target = self
         menu.addItem(cloak)
+
+        let anchor = NSMenuItem(
+            title: "Show Anchor Geometry",
+            action: #selector(toggleAnchorGeometry),
+            keyEquivalent: ""
+        )
+        anchor.target = self
+        anchor.state = DebugFlags.showAnchorGeometry ? .on : .off
+        menu.addItem(anchor)
         #endif
 
         menu.addItem(.separator())
@@ -119,6 +131,11 @@ final class StatusItemController {
 
     @objc private func moveToNotch() {
         onMoveToNotch()
+    }
+
+    @objc private func toggleAnchorGeometry() {
+        onToggleAnchorGeometry()
+        item.menu = makeMenu()
     }
     #endif
 }

@@ -18,6 +18,7 @@ final class PanelController {
     private var motionGeneration = 0
     private var suppressAnimatedCollapse = false
     private let appState = AppState()
+    private var currentExpansion: ExpansionLayout?
 
     private var previewSize: CGSize {
         CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
@@ -299,6 +300,11 @@ final class PanelController {
         }
         refreshPresentedContent()
         refreshNotchDebugOverlay()
+        if DebugFlags.showAnchorGeometry, let expansion = currentExpansion {
+            print(
+                "[Anchor] offset=\(anchor.offset) point=\(expansion.anchorPoint) panel=\(expansion.panelFrame) handle=\(expansion.handleAttachmentPoint) clamped=\(expansion.wasClamped)"
+            )
+        }
         if hover.engine.phase != .editing {
             panel.allowsKey = false
         }
@@ -340,12 +346,15 @@ final class PanelController {
         guard expanded, let screen = screenForAnchor(anchor) else {
             return anchor
         }
-        var expanded = anchor
-        expanded.frame = EdgeGeometry.expandedFrame(
-            collapsed: anchor,
+        let layout = ExpansionGeometry.layout(
+            anchor: EdgeAnchor.from(anchor.stored),
             screen: screen,
-            panelSize: previewSize
+            panelSize: previewSize,
+            stackLength: positionManager.stackLength
         )
+        currentExpansion = layout
+        var expanded = anchor
+        expanded.frame = layout.panelFrame
         return expanded
     }
 
@@ -365,7 +374,9 @@ final class PanelController {
             contentOpacity: contentOpacity,
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
-            onEndEdit: { [weak self] in self?.hover.exitEditing() }
+            onEndEdit: { [weak self] in self?.hover.exitEditing() },
+            handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? 0,
+            stackLength: positionManager.stackLength
         )
         if let hostingView {
             hostingView.rootView = root
@@ -386,15 +397,37 @@ final class PanelController {
     private func dragHandleRect(in bounds: CGRect, edge: ScreenEdge, expanded: Bool) -> CGRect? {
         guard expanded else { return nil }
         let thickness = LayoutMetrics.hoverHitThickness
+        let length = positionManager.stackLength
+        let offset = currentExpansion?.handleOffsetInsidePanel ?? bounds.height / 2
         switch edge {
         case .right:
-            return CGRect(x: bounds.width - thickness, y: 0, width: thickness, height: bounds.height)
+            return CGRect(
+                x: bounds.width - thickness,
+                y: bounds.height - offset - length / 2,
+                width: thickness,
+                height: length
+            )
         case .left:
-            return CGRect(x: 0, y: 0, width: thickness, height: bounds.height)
+            return CGRect(
+                x: 0,
+                y: bounds.height - offset - length / 2,
+                width: thickness,
+                height: length
+            )
         case .top:
-            return CGRect(x: 0, y: bounds.height - thickness, width: bounds.width, height: thickness)
+            return CGRect(
+                x: offset - length / 2,
+                y: bounds.height - thickness,
+                width: length,
+                height: thickness
+            )
         case .bottom:
-            return CGRect(x: 0, y: 0, width: bounds.width, height: thickness)
+            return CGRect(
+                x: offset - length / 2,
+                y: 0,
+                width: length,
+                height: thickness
+            )
         }
     }
 

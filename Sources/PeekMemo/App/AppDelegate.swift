@@ -36,6 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onMoveToNotch: { [weak controller] in
                 controller?.moveToNotchCloak()
+            },
+            onToggleAnchorGeometry: { [weak controller] in
+                #if DEBUG
+                DebugFlags.showAnchorGeometry.toggle()
+                controller?.refreshChrome()
+                #endif
             }
         )
         controller.showRestoredOrDefault()

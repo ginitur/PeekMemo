@@ -32,7 +32,7 @@ enum EdgeGeometryTests {
         try expectEqual(placement.frame.maxX, Fixtures.external.frame.maxX)
         try expectEqual(placement.frame.width, LayoutMetrics.hoverHitThickness)
         try expectEqual(placement.frame.height, stack)
-        try expectEqual(placement.frame.maxY, Fixtures.external.visibleFrame.maxY - 120)
+        try expectEqual(placement.frame.midY, Fixtures.external.visibleFrame.maxY - 120)
     }
 
     static func leftEdgeSitsOnPhysicalOuterEdge() throws {
@@ -55,7 +55,7 @@ enum EdgeGeometryTests {
         )
         try expectEqual(placement.frame.maxY, Fixtures.external.visibleFrame.maxY)
         try expectEqual(placement.frame.height, LayoutMetrics.hoverHitThickness)
-        try expectEqual(placement.frame.minX, Fixtures.external.visibleFrame.minX + 200)
+        try expectEqual(placement.frame.midX, Fixtures.external.visibleFrame.minX + 200)
     }
 
     static func bottomEdgeSitsOnPhysicalBottom() throws {
@@ -75,7 +75,7 @@ enum EdgeGeometryTests {
             screen: Fixtures.external,
             stackLength: stack
         )
-        try expectEqual(huge, Fixtures.external.visibleFrame.height - stack)
+        try expectEqual(huge, Fixtures.external.visibleFrame.height - stack / 2)
 
         let negative = EdgeGeometry.clampOffset(
             -40,
@@ -83,7 +83,7 @@ enum EdgeGeometryTests {
             screen: Fixtures.external,
             stackLength: stack
         )
-        try expectEqual(negative, 0)
+        try expectEqual(negative, stack / 2)
     }
 
     static func rightDockUsesVisibleFrameSoTabStaysHittable() throws {
@@ -151,7 +151,7 @@ enum EdgeGeometryTests {
         let collapsed = EdgeGeometry.collapsedPlacement(
             screen: Fixtures.external,
             edge: .right,
-            offset: 100,
+            offset: 500,
             stackLength: stack
         )
         let expanded = EdgeGeometry.expandedFrame(
@@ -160,6 +160,7 @@ enum EdgeGeometryTests {
             panelSize: CGSize(width: 280, height: 360)
         )
         try expectEqual(expanded.maxX, collapsed.frame.maxX)
+        try expectEqual(expanded.midY, collapsed.frame.midY)
         try expectEqual(expanded.width, 280)
         try expectEqual(expanded.height, 360)
     }

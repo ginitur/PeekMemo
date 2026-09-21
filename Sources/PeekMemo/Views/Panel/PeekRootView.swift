@@ -13,6 +13,8 @@ struct PeekRootView: View {
     var appState: AppState
     var onBeginEdit: () -> Void = {}
     var onEndEdit: () -> Void = {}
+    var handleOffsetInsidePanel: CGFloat = 0
+    var stackLength: CGFloat = LayoutMetrics.defaultStackLength
 
     private var isExpanded: Bool {
         phase == .expanded || phase == .pinned || phase == .editing
@@ -39,7 +41,6 @@ struct PeekRootView: View {
     }
 
     private var expandedBody: some View {
-        let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: accent)
         let preview = PreviewPanelView(
             state: appState,
             accent: accent,
@@ -51,11 +52,11 @@ struct PeekRootView: View {
             case .right:
                 HStack(spacing: 0) {
                     preview.opacity(contentOpacity)
-                    handle.frame(width: LayoutMetrics.hoverHitThickness)
+                    handleRail(vertical: true)
                 }
             case .left:
                 HStack(spacing: 0) {
-                    handle.frame(width: LayoutMetrics.hoverHitThickness)
+                    handleRail(vertical: true)
                     preview.opacity(contentOpacity)
                 }
             case .top:
@@ -63,16 +64,35 @@ struct PeekRootView: View {
                     if isNotchCloak, notchOccludedHeight > 0 {
                         Color.clear.frame(height: notchOccludedHeight)
                     }
-                    handle.frame(height: LayoutMetrics.hoverHitThickness)
+                    handleRail(vertical: false)
                     preview.opacity(contentOpacity)
                 }
             case .bottom:
                 VStack(spacing: 0) {
                     preview.opacity(contentOpacity)
-                    handle.frame(height: LayoutMetrics.hoverHitThickness)
+                    handleRail(vertical: false)
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func handleRail(vertical: Bool) -> some View {
+        let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: accent)
+        let thickness = LayoutMetrics.hoverHitThickness
+        ZStack(alignment: vertical ? .top : .leading) {
+            Color.clear
+            handle
+                .frame(
+                    width: vertical ? thickness : stackLength,
+                    height: vertical ? stackLength : thickness
+                )
+                .offset(
+                    x: vertical ? 0 : handleOffsetInsidePanel - stackLength / 2,
+                    y: vertical ? handleOffsetInsidePanel - stackLength / 2 : 0
+                )
+        }
+        .frame(width: vertical ? thickness : nil, height: vertical ? nil : thickness)
     }
 
 }

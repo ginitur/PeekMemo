@@ -21,3 +21,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Notch Cloak collapsed anchor is now inside the physical `notchRect` (occluded by the housing). A 3 pt invisible activation strip sits on the underside as fallback. DEBUG: Show Notch Geometry, Move to Notch Cloak, NotchHitProbe.
 - Panel expansion is a single AppKit `animator().setFrame` with a fixed contact edge (maxX / minX / maxY / minY). Expand 200 ms ease-out, collapse 170 ms. Content fades 40 ms after the shell. Edge Tab default is 3×56 pt.
 - In-memory memo prototype: add, edit, checkbox, delete. Peeking does not take key; editing does. ⌘↩ saves, Esc cancels. Data is not persisted.
+- EdgeAnchor: the handle center is the stable offset. Expanded panels stay centered on it; near corners the body is clamped and the handle stays put.

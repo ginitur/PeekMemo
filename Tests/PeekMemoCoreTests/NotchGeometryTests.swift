@@ -226,14 +226,14 @@ enum NotchGeometryTests {
             screen: Fixtures.notched,
             stackLength: 96
         )
-        try expectEqual(huge, Fixtures.notched.visibleFrame.width - 96)
+        try expectEqual(huge, Fixtures.notched.visibleFrame.width - 48)
         let negative = EdgeGeometry.clampOffset(
             -20,
             edge: .top,
             screen: Fixtures.notched,
             stackLength: 96
         )
-        try expectEqual(negative, 0)
+        try expectEqual(negative, 48)
     }
 
     static func screenSizeChangeKeepsCloakOnDerivedNotch() throws {

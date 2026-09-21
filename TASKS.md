@@ -66,6 +66,13 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] In-memory interactive memos (Add / Edit / Checkbox / Delete / ⌘↩ / Esc)
 - [x] Peek vs Edit focus: hover stays non-key; Add/Edit calls `makeKey`
 
+## Phase 5.6 — Product architecture
+
+- [x] EdgeAnchor: expand/collapse does not change offset; corner clamp keeps handle on the original anchor
+- [ ] Hierarchical tasks + completed state
+- [ ] Smart views + custom lists
+- [ ] Notch collapsed frame 100% inside notchRect
+
 ## Phase 6 — Memo persistence
 
 - [ ] GRDB.swift
