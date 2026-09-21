@@ -128,6 +128,11 @@ final class PanelController {
     }
 
     func moveToNotchCloak() {
+        PlacementPolicy.allowTopEdgeSnap = true
+        PlacementPolicy.allowNotchCloak = true
+        #if DEBUG
+        DebugFlags.experimentalTopEdge = true
+        #endif
         guard let screen = ScreenManager.mainSnapshot(),
               NotchGeometry.region(on: screen) != nil
         else { return }

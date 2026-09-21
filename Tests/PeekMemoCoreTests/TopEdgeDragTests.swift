@@ -7,9 +7,17 @@ enum TopEdgeDragTests {
         try mouseUpOnNotchDoesCloak()
         try dragFromTopTowardRightCommitsRight()
         try dragFromTopTowardBottomUnsnapsThenSnaps()
+        try defaultPolicyDoesNotSnapToTop()
+        try storedTopRestoresToRightWhenExperimentalOff()
     }
 
     static func liveDragAlongTopDoesNotCloak() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        PlacementPolicy.allowNotchCloak = true
+        defer {
+            PlacementPolicy.allowTopEdgeSnap = false
+            PlacementPolicy.allowNotchCloak = false
+        }
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected notch")
         }
@@ -25,6 +33,12 @@ enum TopEdgeDragTests {
     }
 
     static func mouseUpOnNotchDoesCloak() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        PlacementPolicy.allowNotchCloak = true
+        defer {
+            PlacementPolicy.allowTopEdgeSnap = false
+            PlacementPolicy.allowNotchCloak = false
+        }
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected notch")
         }
@@ -62,5 +76,36 @@ enum TopEdgeDragTests {
         let committed = EdgeGeometry.committedPlacement(pointer: far, screen: screen, stackLength: 56)
         try expect(committed.isSnapped)
         try expect(committed.edge == .left || committed.edge == .right || committed.edge == .top || committed.edge == .bottom)
+    }
+
+    static func defaultPolicyDoesNotSnapToTop() throws {
+        PlacementPolicy.allowTopEdgeSnap = false
+        let screen = Fixtures.external
+        let pointer = CGPoint(x: screen.frame.midX, y: screen.frame.maxY - 4)
+        let committed = EdgeGeometry.committedPlacement(
+            pointer: pointer,
+            screen: screen,
+            stackLength: 56
+        )
+        try expect(committed.edge != .top)
+        try expect(!committed.isNotchCloak)
+    }
+
+    static func storedTopRestoresToRightWhenExperimentalOff() throws {
+        PlacementPolicy.allowTopEdgeSnap = false
+        PlacementPolicy.allowNotchCloak = false
+        let stored = DisplayPlacement(
+            displayIdentifier: Fixtures.external.identifier,
+            edge: .top,
+            offset: 200,
+            isNotchCloak: true
+        )
+        let placement = EdgeGeometry.placement(
+            from: stored,
+            screen: Fixtures.external,
+            stackLength: 56
+        )
+        try expectEqual(placement.edge, .right)
+        try expect(!placement.isNotchCloak)
     }
 }

@@ -95,6 +95,15 @@ final class StatusItemController {
         anchor.target = self
         anchor.state = DebugFlags.showAnchorGeometry ? .on : .off
         menu.addItem(anchor)
+
+        let experimental = NSMenuItem(
+            title: "Experimental Top / Notch",
+            action: #selector(toggleExperimentalTop),
+            keyEquivalent: ""
+        )
+        experimental.target = self
+        experimental.state = DebugFlags.experimentalTopEdge ? .on : .off
+        menu.addItem(experimental)
         #endif
 
         menu.addItem(.separator())
@@ -135,6 +144,11 @@ final class StatusItemController {
 
     @objc private func toggleAnchorGeometry() {
         onToggleAnchorGeometry()
+        item.menu = makeMenu()
+    }
+
+    @objc private func toggleExperimentalTop() {
+        DebugFlags.experimentalTopEdge.toggle()
         item.menu = makeMenu()
     }
     #endif

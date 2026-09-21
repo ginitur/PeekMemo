@@ -151,6 +151,8 @@ enum NotchGeometryTests {
         try expect(NotchGeometry.cloakPull(pointer: approaching, screen: Fixtures.notched) < 1)
         try expectEqual(NotchGeometry.cloakPull(pointer: far, screen: Fixtures.notched), 0)
 
+        PlacementPolicy.allowTopEdgeSnap = true
+        defer { PlacementPolicy.allowTopEdgeSnap = false }
         let live = EdgeGeometry.draggingPlacement(
             pointer: justInside,
             screen: Fixtures.notched,
@@ -172,6 +174,12 @@ enum NotchGeometryTests {
         try expect(NotchGeometry.cloakPull(pointer: approaching, screen: Fixtures.notched) > 0)
         try expect(NotchGeometry.cloakPull(pointer: approaching, screen: Fixtures.notched) < 1)
 
+        PlacementPolicy.allowTopEdgeSnap = true
+        PlacementPolicy.allowNotchCloak = true
+        defer {
+            PlacementPolicy.allowTopEdgeSnap = false
+            PlacementPolicy.allowNotchCloak = false
+        }
         let committed = EdgeGeometry.committedPlacement(
             pointer: justInside,
             screen: Fixtures.notched,
@@ -182,6 +190,8 @@ enum NotchGeometryTests {
     }
 
     static func dragOutOfNotchToTheLeft() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        defer { PlacementPolicy.allowTopEdgeSnap = false }
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected a notch region")
         }
@@ -205,6 +215,8 @@ enum NotchGeometryTests {
     }
 
     static func dragOutOfNotchToTheRight() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        defer { PlacementPolicy.allowTopEdgeSnap = false }
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected a notch region")
         }
@@ -236,6 +248,12 @@ enum NotchGeometryTests {
     }
 
     static func screenSizeChangeKeepsCloakOnDerivedNotch() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        PlacementPolicy.allowNotchCloak = true
+        defer {
+            PlacementPolicy.allowTopEdgeSnap = false
+            PlacementPolicy.allowNotchCloak = false
+        }
         let stored = DisplayPlacement(
             displayIdentifier: "notch-1",
             edge: .top,
@@ -262,6 +280,8 @@ enum NotchGeometryTests {
     }
 
     static func noCloakUIOnExternalDisplay() throws {
+        PlacementPolicy.allowTopEdgeSnap = true
+        defer { PlacementPolicy.allowTopEdgeSnap = false }
         let stored = DisplayPlacement(
             displayIdentifier: "ext-1",
             edge: .top,

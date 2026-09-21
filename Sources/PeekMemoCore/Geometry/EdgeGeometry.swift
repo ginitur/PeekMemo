@@ -93,15 +93,21 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        if stored.isNotchCloak, let notch = NotchGeometry.region(on: screen) {
+        if stored.isNotchCloak,
+           PlacementPolicy.allowNotchCloak,
+           let notch = NotchGeometry.region(on: screen)
+        {
             return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
         }
+        let edge: ScreenEdge = (stored.edge == .top && !PlacementPolicy.allowTopEdgeSnap)
+            ? .right
+            : stored.edge
         return collapsedPlacement(
             screen: screen,
-            edge: stored.edge,
+            edge: edge,
             offset: stored.offset,
             stackLength: stackLength,
-            allowNotchCloak: stored.edge == .top
+            allowNotchCloak: edge == .top && PlacementPolicy.allowNotchCloak
         )
     }
 
@@ -114,7 +120,7 @@ public enum EdgeGeometry: Sendable {
         grabSize: CGSize,
         magnetRange: CGFloat = LayoutMetrics.magnetRange
     ) -> PanelPlacement {
-        let (edge, distance) = nearestEdge(to: pointer, on: screen)
+        let (edge, distance) = nearestSnappableEdge(to: pointer, on: screen)
         // Live drag is always a visible tab. Cloak only commits on mouse-up.
         if distance <= magnetRange {
             let offset = offsetAlongEdge(pointer: pointer, edge: edge, stackLength: stackLength, screen: screen)
@@ -150,8 +156,11 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        let (edge, _) = nearestEdge(to: pointer, on: screen)
-        if edge == .top, NotchGeometry.pointerCommitsCloak(pointer, screen: screen) {
+        let (edge, _) = nearestSnappableEdge(to: pointer, on: screen)
+        if edge == .top,
+           PlacementPolicy.allowNotchCloak,
+           NotchGeometry.pointerCommitsCloak(pointer, screen: screen)
+        {
             if let notch = NotchGeometry.region(on: screen) {
                 return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
             }
@@ -167,13 +176,30 @@ public enum EdgeGeometry: Sendable {
     }
 
     public static func nearestEdge(to point: CGPoint, on screen: ScreenGeometry) -> (ScreenEdge, CGFloat) {
+        nearestEdge(to: point, on: screen, excluding: [])
+    }
+
+    public static func nearestSnappableEdge(to point: CGPoint, on screen: ScreenGeometry) -> (ScreenEdge, CGFloat) {
+        var excluded: Set<ScreenEdge> = []
+        if !PlacementPolicy.allowTopEdgeSnap {
+            excluded.insert(.top)
+        }
+        return nearestEdge(to: point, on: screen, excluding: excluded)
+    }
+
+    public static func nearestEdge(
+        to point: CGPoint,
+        on screen: ScreenGeometry,
+        excluding: Set<ScreenEdge>
+    ) -> (ScreenEdge, CGFloat) {
         let frame = screen.frame
-        let candidates: [(ScreenEdge, CGFloat)] = [
+        var candidates: [(ScreenEdge, CGFloat)] = [
             (.left, abs(point.x - frame.minX)),
             (.right, abs(point.x - frame.maxX)),
             (.bottom, abs(point.y - frame.minY)),
             (.top, abs(point.y - frame.maxY)),
         ]
+        candidates.removeAll { excluding.contains($0.0) }
         return candidates.min(by: { $0.1 < $1.1 }) ?? (.right, 0)
     }
 

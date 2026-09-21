@@ -63,3 +63,9 @@ public enum LayoutMetrics: Sendable {
     public static let minimumOpacity: Double = 0.5
     public static let maximumOpacity: Double = 1.0
 }
+
+/// v0.1 snaps to Left / Right / Bottom. Top and Notch remain in code as experimental.
+public enum PlacementPolicy: Sendable {
+    nonisolated(unsafe) public static var allowTopEdgeSnap = false
+    nonisolated(unsafe) public static var allowNotchCloak = false
+}
