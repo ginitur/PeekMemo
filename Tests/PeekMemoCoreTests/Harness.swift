@@ -39,6 +39,8 @@ enum PeekMemoCoreTestsMain {
             ("CornerClampAnchor", CornerClampAnchorTests.run),
             ("TaskHierarchy", TaskHierarchyTests.run),
             ("TaskCompletion", TaskCompletionTests.run),
+            ("SmartView", SmartViewTests.run),
+            ("CompletedFiltering", CompletedFilteringTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
         ]
 

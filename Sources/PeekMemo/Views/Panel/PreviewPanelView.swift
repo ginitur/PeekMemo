@@ -12,10 +12,10 @@ struct PreviewPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(state.selectedList?.name ?? "Inbox")
+                Text(state.viewTitle)
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
-                if !state.isEditing {
+                if !state.isEditing, state.navigation != .smart(.completed) {
                     Button(action: addRoot) {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .semibold))
@@ -35,6 +35,7 @@ struct PreviewPanelView: View {
             }
 
             completedSection
+            viewSwitcher
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -166,6 +167,48 @@ struct PreviewPanelView: View {
                 }
                 return .ignored
             }
+    }
+
+    private var viewSwitcher: some View {
+        HStack(spacing: 8) {
+            switchChip("Today", selected: state.navigation == .smart(.today)) {
+                state.select(.smart(.today))
+            }
+            switchChip("Inbox", selected: state.navigation == .smart(.inbox)) {
+                state.select(.smart(.inbox))
+            }
+            ForEach(state.customLists.prefix(2)) { list in
+                switchChip(list.name, selected: state.navigation == .list(list.id)) {
+                    state.select(.list(list.id))
+                }
+            }
+            Menu("More") {
+                Button("Completed") { state.select(.smart(.completed)) }
+                Divider()
+                ForEach(state.customLists) { list in
+                    Button(list.name) { state.select(.list(list.id)) }
+                }
+                Divider()
+                Button("New List") { state.addList() }
+                if case .list(let id) = state.navigation {
+                    Button("Rename List") { state.renameList(id, to: "Renamed") }
+                    Button("Move Up") { state.moveList(id, by: -1) }
+                    Button("Move Down") { state.moveList(id, by: 1) }
+                    Button("Archive List", role: .destructive) { state.archiveList(id) }
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
+        }
+        .padding(.top, 8)
+    }
+
+    private func switchChip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 11, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? accent.color : .secondary)
+        }
+        .buttonStyle(.plain)
     }
 
     private func addRoot() {

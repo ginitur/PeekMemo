@@ -23,3 +23,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - In-memory memo prototype: add, edit, checkbox, delete. Peeking does not take key; editing does. ⌘↩ saves, Esc cancels. Data is not persisted.
 - EdgeAnchor: the handle center is the stable offset. Expanded panels stay centered on it; near corners the body is clamped and the handle stays put.
 - Tasks can nest one level of subtasks. Completing a parent completes children; completing all children completes the parent. Completed items move into a collapsed Completed section after a short delay.
+- Smart views Today / Inbox / Completed plus custom lists (Work, Personal, Ideas). Default view is Today. New items without a list go to Inbox.
