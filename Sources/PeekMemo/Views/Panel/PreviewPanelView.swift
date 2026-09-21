@@ -7,15 +7,81 @@ struct PreviewPanelView: View {
     var accent: RGBAColor = .accent
     var onBeginEdit: () -> Void
     var onEndEdit: () -> Void
+    var onMoreWillOpen: () -> Void = {}
+    var onMoreDidClose: () -> Void = {}
     @FocusState private var editorFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(visibleOpenItems) { item in
+                        itemBlock(item)
+                    }
+                    if state.isComposing, state.composingParentID == nil {
+                        editorField(placeholder: "New task", isSubtask: false)
+                    }
+                    completedSection
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+            }
+
+            Divider()
+            bottomNavigation
+                .frame(height: BottomNavLayout.height)
+                .padding(.horizontal, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background {
+            VisualEffectView(
+                material: .hudWindow,
+                blendingMode: .behindWindow,
+                cornerRadius: 10
+            )
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                if state.isDailyView {
+                    Button(action: state.goToPreviousDay) {
+                        Image(systemName: "chevron.left")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Previous day")
+
+                    DatePicker(
+                        "",
+                        selection: Binding(
+                            get: { state.selectedDate },
+                            set: { state.selectedDate = DailyView.startOfDay($0); state.navigation = .smart(.today) }
+                        ),
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+
+                    Button(action: state.goToNextDay) {
+                        Image(systemName: "chevron.right")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Next day")
+                }
+
                 Text(state.viewTitle)
                     .font(.system(size: 13, weight: .semibold))
-                Spacer()
-                if !state.isEditing, state.navigation != .smart(.completed) {
+                    .lineLimit(1)
+                    .frame(maxWidth: state.isDailyView ? nil : .infinity, alignment: .leading)
+
+                if !state.isDailyView, !state.isEditing, state.navigation != .smart(.completed) {
                     Button(action: addRoot) {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .semibold))
@@ -26,27 +92,31 @@ struct PreviewPanelView: View {
                 }
             }
 
-            ForEach(visibleOpenItems) { item in
-                itemBlock(item)
+            if state.isDailyView {
+                HStack {
+                    let stats = state.dailyStats
+                    Text("\(stats.completed) / \(stats.total) completed")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if !DailyView.isSameDay(state.selectedDate, Date()) {
+                        Button("今天", action: state.goToToday)
+                            .font(.system(size: 11, weight: .medium))
+                            .buttonStyle(.plain)
+                            .foregroundStyle(accent.color)
+                    }
+                    if !state.isEditing {
+                        Button(action: addRoot) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(accent.color)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add Task")
+                    }
+                }
             }
-
-            if state.isComposing, state.composingParentID == nil {
-                editorField(placeholder: "New task")
-            }
-
-            completedSection
-            viewSwitcher
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background {
-            VisualEffectView(
-                material: .hudWindow,
-                blendingMode: .behindWindow,
-                cornerRadius: 10
-            )
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private var visibleOpenItems: [MemoItem] {
@@ -89,21 +159,46 @@ struct PreviewPanelView: View {
 
     @ViewBuilder
     private func itemBlock(_ item: MemoItem) -> some View {
+        let kids = state.children(of: item)
+        let expanded = state.isTaskExpanded(item.id) || kids.isEmpty == false && state.composingParentID == item.id
+        let showBody = kids.isEmpty ? true : state.isTaskExpanded(item.id)
         VStack(alignment: .leading, spacing: 4) {
-            itemRow(item, indent: 0)
-            let kids = state.children(of: item)
-            let progress = state.progress(of: item)
-            if progress.total > 0 {
-                Text("\(progress.done) / \(progress.total)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 22)
-            }
-            ForEach(kids.filter { !$0.isCompleted || state.completedExpanded }) { child in
-                itemRow(child, indent: 1)
-            }
-            if state.isComposing, state.composingParentID == item.id {
-                editorField(placeholder: "Subtask").padding(.leading, 22)
+            parentRow(item, childCount: kids.count)
+            if showBody || expanded {
+                let progress = state.progress(of: item)
+                if progress.total > 0, state.isTaskExpanded(item.id) {
+                    ForEach(kids.filter { !$0.isCompleted || state.completedExpanded }) { child in
+                        itemRow(child, indent: 1)
+                    }
+                    if TaskHierarchy.canAddSubtask(item), !item.isCompleted {
+                        if state.isComposing, state.composingParentID == item.id {
+                            editorField(placeholder: "Subtask", isSubtask: true)
+                                .padding(.leading, 22)
+                        } else if !state.isEditing || state.composingParentID == item.id {
+                            Button(action: { addSubtask(item) }) {
+                                Text("+ Add subtask")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(accent.color)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.leading, 22)
+                            .accessibilityLabel("Add subtask")
+                        }
+                    }
+                } else if TaskHierarchy.canAddSubtask(item), state.isTaskExpanded(item.id), !item.isCompleted {
+                    if state.isComposing, state.composingParentID == item.id {
+                        editorField(placeholder: "Subtask", isSubtask: true)
+                            .padding(.leading, 22)
+                    } else if !state.isEditing {
+                        Button(action: { addSubtask(item) }) {
+                            Text("+ Add subtask")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(accent.color)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 22)
+                    }
+                }
             }
         }
         .opacity(item.isCompleted && state.pendingHideIDs.contains(item.id) ? 0.35 : 1)
@@ -115,10 +210,34 @@ struct PreviewPanelView: View {
         }
     }
 
+    private func parentRow(_ item: MemoItem, childCount: Int) -> some View {
+        let progress = state.progress(of: item)
+        return HStack(alignment: .center, spacing: 6) {
+            if childCount > 0 || TaskHierarchy.canAddSubtask(item) {
+                Button {
+                    state.toggleTaskExpanded(item.id)
+                } label: {
+                    Image(systemName: state.isTaskExpanded(item.id) ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 12)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(state.isTaskExpanded(item.id) ? "Collapse" : "Expand")
+            }
+            itemRow(item, indent: 0)
+            if progress.total > 0 {
+                Text("\(progress.done)/\(progress.total)")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder
     private func itemRow(_ item: MemoItem, indent: Int) -> some View {
         if state.editingItemID == item.id {
-            editorField(placeholder: "Task").padding(.leading, CGFloat(indent) * 18)
+            editorField(placeholder: "Task", isSubtask: false).padding(.leading, CGFloat(indent) * 18)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Button(action: { state.toggleCompleted(item) }) {
@@ -140,22 +259,31 @@ struct PreviewPanelView: View {
             .padding(.leading, CGFloat(indent) * 18)
             .contextMenu {
                 Button("Edit") { edit(item) }
-                if TaskHierarchy.canAddSubtask(item) {
-                    Button("Add Subtask") { addSubtask(item) }
-                }
                 Button("Delete", role: .destructive) { state.delete(item) }
             }
         }
     }
 
-    private func editorField(placeholder: String) -> some View {
-        TextField(placeholder, text: $state.draftText, axis: .vertical)
+    private func editorField(placeholder: String, isSubtask: Bool) -> some View {
+        TextField(placeholder, text: $state.draftText)
             .textFieldStyle(.plain)
             .font(.system(size: 12.5))
             .padding(6)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .focused($editorFocused)
             .onAppear { editorFocused = true }
+            .onSubmit {
+                if isSubtask {
+                    let keep = state.saveDraft(continueSubtask: true)
+                    if keep {
+                        editorFocused = true
+                    } else {
+                        onEndEdit()
+                    }
+                } else {
+                    save()
+                }
+            }
             .onKeyPress(.escape) {
                 cancel()
                 return .handled
@@ -167,39 +295,39 @@ struct PreviewPanelView: View {
                 }
                 return .ignored
             }
+            .onChange(of: editorFocused) { _, focused in
+                if !focused, state.isComposing {
+                    state.commitComposerIfNeeded()
+                    onEndEdit()
+                }
+            }
     }
 
-    private var viewSwitcher: some View {
-        HStack(spacing: 8) {
+    private var bottomNavigation: some View {
+        HStack(spacing: 10) {
             switchChip("Today", selected: state.navigation == .smart(.today)) {
-                state.select(.smart(.today))
+                state.goToToday()
             }
             switchChip("Inbox", selected: state.navigation == .smart(.inbox)) {
                 state.select(.smart(.inbox))
             }
-            ForEach(state.customLists.prefix(2)) { list in
+            let listCount = BottomNavLayout.visibleCustomListCount(panelWidth: LayoutMetrics.previewPanelWidth)
+            ForEach(state.customLists.prefix(listCount)) { list in
                 switchChip(list.name, selected: state.navigation == .list(list.id)) {
                     state.select(.list(list.id))
                 }
             }
-            Menu("More") {
-                Button("Completed") { state.select(.smart(.completed)) }
-                Divider()
-                ForEach(state.customLists) { list in
-                    Button(list.name) { state.select(.list(list.id)) }
-                }
-                Divider()
-                Button("New List") { state.addList() }
-                if case .list(let id) = state.navigation {
-                    Button("Rename List") { state.renameList(id, to: "Renamed") }
-                    Button("Move Up") { state.moveList(id, by: -1) }
-                    Button("Move Down") { state.moveList(id, by: 1) }
-                    Button("Archive List", role: .destructive) { state.archiveList(id) }
-                }
-            }
-            .font(.system(size: 11, weight: .medium))
+            MoreMenuButton(
+                lists: state.customLists,
+                onSelect: { state.select($0) },
+                onNewList: { state.addList() },
+                onWillOpen: onMoreWillOpen,
+                onDidClose: onMoreDidClose
+            )
+            .frame(width: 40, height: 18)
+            .accessibilityLabel("More")
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func switchChip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -207,6 +335,7 @@ struct PreviewPanelView: View {
             Text(title)
                 .font(.system(size: 11, weight: selected ? .semibold : .regular))
                 .foregroundStyle(selected ? accent.color : .secondary)
+                .lineLimit(1)
         }
         .buttonStyle(.plain)
     }
@@ -227,7 +356,7 @@ struct PreviewPanelView: View {
     }
 
     private func save() {
-        state.saveDraft()
+        state.saveDraft(continueSubtask: false)
         onEndEdit()
     }
 

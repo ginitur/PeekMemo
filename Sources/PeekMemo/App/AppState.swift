@@ -16,6 +16,8 @@ final class AppState {
     var isComposing: Bool = false
     var completedExpanded = false
     var pendingHideIDs: Set<UUID> = []
+    var expandedTaskIDs: Set<UUID> = []
+    var selectedDate: Date = Calendar.current.startOfDay(for: Date())
 
     var selectedList: UserList? {
         switch navigation {
@@ -30,11 +32,30 @@ final class AppState {
 
     var viewTitle: String {
         switch navigation {
-        case .smart(.today): "Today"
+        case .smart(.today): dailyTitle
         case .smart(.inbox): "Inbox"
         case .smart(.completed): "Completed"
         case .list(let id): lists.first(where: { $0.id == id })?.name ?? "List"
         }
+    }
+
+    var isDailyView: Bool { navigation == .smart(.today) }
+
+    var dailyTitle: String {
+        let calendar = Calendar.current
+        let day = DailyView.startOfDay(selectedDate, calendar: calendar)
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        if DailyView.isSameDay(day, Date(), calendar: calendar) {
+            formatter.dateFormat = "M月d日"
+            return "\(formatter.string(from: day)) · 今天"
+        }
+        formatter.dateFormat = "M月d日 · EEE"
+        return formatter.string(from: day)
+    }
+
+    var dailyStats: (completed: Int, total: Int) {
+        DailyView.rootTaskStats(in: items, on: selectedDate)
     }
 
     var customLists: [UserList] {
@@ -44,7 +65,7 @@ final class AppState {
     var openItems: [MemoItem] {
         switch navigation {
         case .smart(.today):
-            SmartViews.todayRoots(in: items)
+            DailyView.openScheduledRoots(in: items, on: selectedDate)
         case .smart(.inbox):
             SmartViews.inboxRoots(in: items, inboxID: inboxID)
         case .smart(.completed):
@@ -61,8 +82,7 @@ final class AppState {
         case .smart(.inbox):
             TaskHierarchy.completedRoots(in: items, listId: inboxID)
         case .smart(.today):
-            items.filter { $0.parentId == nil && $0.isCompleted && SmartViews.isDueToday($0) }
-                .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+            DailyView.completedRoots(in: items, on: selectedDate)
         case .list(let id):
             TaskHierarchy.completedRoots(in: items, listId: id)
         }
@@ -73,7 +93,12 @@ final class AppState {
     }
 
     init() {
+        let calendar = Calendar.current
         let now = Date()
+        let today = DailyView.startOfDay(now, calendar: calendar)
+        let yesterday = DailyView.shiftDay(today, by: -1, calendar: calendar)
+        let tomorrow = DailyView.shiftDay(today, by: 1, calendar: calendar)
+        selectedDate = today
         let inbox = UserList(name: "Inbox", icon: "tray", color: .inbox, sortOrder: 0, createdAt: now, updatedAt: now)
         let work = UserList(name: "Work", icon: "briefcase", color: .today, sortOrder: 1, createdAt: now, updatedAt: now)
         let personal = UserList(name: "Personal", icon: "house", color: RGBAColor(red: 0.2, green: 0.7, blue: 0.45), sortOrder: 2, createdAt: now, updatedAt: now)
@@ -81,15 +106,46 @@ final class AppState {
         lists = [inbox, work, personal, ideas]
         inboxID = inbox.id
         navigation = .smart(.today)
-        let parent = MemoItem(listId: inbox.id, type: .task, title: "Prepare report", sortOrder: 0, forToday: true, createdAt: now, updatedAt: now)
+        let parent = MemoItem(
+            listId: inbox.id,
+            type: .task,
+            title: "Prepare report",
+            sortOrder: 0,
+            scheduledDate: today,
+            forToday: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        let yesterdayDone = MemoItem(
+            listId: work.id,
+            type: .task,
+            title: "Ship yesterday's notes",
+            isCompleted: true,
+            completedAt: yesterday.addingTimeInterval(15 * 3600),
+            sortOrder: 0,
+            scheduledDate: yesterday
+        )
+        let yesterdayLate = MemoItem(
+            listId: work.id,
+            type: .task,
+            title: "Finish slides (done next day)",
+            isCompleted: true,
+            completedAt: today.addingTimeInterval(10 * 3600),
+            sortOrder: 1,
+            scheduledDate: yesterday
+        )
         items = [
             parent,
             MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Collect data", isCompleted: true, completedAt: now, sortOrder: 0),
             MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1),
             MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Final review", sortOrder: 2),
-            MemoItem(listId: work.id, type: .task, title: "Review pull request", sortOrder: 0, forToday: true),
-            MemoItem(listId: ideas.id, type: .note, title: "Welcome to PeekMemo", sortOrder: 0),
+            MemoItem(listId: work.id, type: .task, title: "Review pull request", sortOrder: 0, scheduledDate: today, forToday: true),
+            MemoItem(listId: ideas.id, type: .note, title: "Welcome to PeekMemo", sortOrder: 0, scheduledDate: today),
+            yesterdayDone,
+            yesterdayLate,
+            MemoItem(listId: personal.id, type: .task, title: "Call the accountant", sortOrder: 0, scheduledDate: tomorrow),
         ]
+        expandedTaskIDs = [parent.id]
     }
 
     func children(of item: MemoItem) -> [MemoItem] {
@@ -105,6 +161,21 @@ final class AppState {
         isComposing = true
         composingParentID = parent?.id
         draftText = ""
+        if let parent {
+            expandedTaskIDs.insert(parent.id)
+        }
+    }
+
+    func isTaskExpanded(_ id: UUID) -> Bool {
+        expandedTaskIDs.contains(id)
+    }
+
+    func toggleTaskExpanded(_ id: UUID) {
+        if expandedTaskIDs.contains(id) {
+            expandedTaskIDs.remove(id)
+        } else {
+            expandedTaskIDs.insert(id)
+        }
     }
 
     func beginEditing(_ item: MemoItem) {
@@ -114,16 +185,22 @@ final class AppState {
         draftText = item.title
     }
 
-    func saveDraft() {
+    /// Returns `true` when a subtask composer should stay open for the next item.
+    @discardableResult
+    func saveDraft(continueSubtask: Bool = false) -> Bool {
         let text = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
         let parent = composingParentID
-        defer { cancelEdit() }
-        guard !text.isEmpty else { return }
+        if text.isEmpty {
+            if continueSubtask, parent != nil { return true }
+            cancelEdit()
+            return false
+        }
         let now = Date()
         if let id = editingItemID, let index = items.firstIndex(where: { $0.id == id }) {
             items[index].title = text
             items[index].updatedAt = now
-            return
+            cancelEdit()
+            return false
         }
         if isComposing {
             let listID = targetListID(for: parent)
@@ -131,6 +208,7 @@ final class AppState {
                 ? TaskHierarchy.roots(in: items, listId: listID)
                 : TaskHierarchy.children(of: parent!, in: items)
             let order = (siblings.last?.sortOrder ?? -1) + 1
+            let schedule: Date? = isDailyView ? DailyView.startOfDay(selectedDate) : nil
             items.append(
                 MemoItem(
                     listId: listID,
@@ -138,12 +216,49 @@ final class AppState {
                     type: .task,
                     title: text,
                     sortOrder: order,
-                    forToday: navigation == .smart(.today),
+                    scheduledDate: schedule,
+                    forToday: isDailyView && DailyView.isSameDay(selectedDate, Date()),
                     createdAt: now,
                     updatedAt: now
                 )
             )
+            if let parent {
+                expandedTaskIDs.insert(parent)
+            }
+            if continueSubtask, parent != nil {
+                draftText = ""
+                isComposing = true
+                composingParentID = parent
+                editingItemID = nil
+                return true
+            }
         }
+        cancelEdit()
+        return false
+    }
+
+    func commitComposerIfNeeded() {
+        let text = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            cancelEdit()
+        } else {
+            saveDraft(continueSubtask: false)
+        }
+    }
+
+    func goToPreviousDay() {
+        selectedDate = DailyView.shiftDay(selectedDate, by: -1)
+        navigation = .smart(.today)
+    }
+
+    func goToNextDay() {
+        selectedDate = DailyView.shiftDay(selectedDate, by: 1)
+        navigation = .smart(.today)
+    }
+
+    func goToToday() {
+        selectedDate = DailyView.startOfDay(Date())
+        navigation = .smart(.today)
     }
 
     func cancelEdit() {
@@ -167,6 +282,9 @@ final class AppState {
 
     func select(_ target: NavigationID) {
         navigation = target
+        if target == .smart(.today) {
+            selectedDate = DailyView.startOfDay(Date())
+        }
         completedExpanded = (target == .smart(.completed))
         cancelEdit()
     }
