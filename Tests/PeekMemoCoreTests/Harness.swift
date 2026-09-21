@@ -34,6 +34,7 @@ enum PeekMemoCoreTestsMain {
             ("ScreenMigration", ScreenMigrationTests.run),
             ("HoverEngine", HoverEngineTests.run),
             ("HoverRegion", HoverRegionTests.run),
+            ("PanelAnimator", PanelAnimatorTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
         ]
 

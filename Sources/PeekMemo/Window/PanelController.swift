@@ -13,6 +13,10 @@ final class PanelController {
     private var anchorPlacement: PanelPlacement?
     private var screenChangeObserver: (any NSObjectProtocol)?
     private let notchDebugOverlay = NotchDebugOverlay()
+    private var shellExpanded = false
+    private var contentOpacity: Double = 1
+    private var motionGeneration = 0
+    private var suppressAnimatedCollapse = false
 
     private var previewSize: CGSize {
         CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
@@ -22,8 +26,12 @@ final class PanelController {
         hostView.wantsLayer = true
         hostView.layer?.backgroundColor = NSColor.clear.cgColor
         hostView.onDragBegan = { [weak self] in
-            self?.hover.beginDrag()
-            self?.syncChrome(animated: false)
+            guard let self else { return }
+            self.motionGeneration += 1
+            self.shellExpanded = false
+            self.contentOpacity = 1
+            self.hover.beginDrag()
+            self.syncChrome(animated: false)
         }
         hostView.onDrag = { [weak self] point in
             self?.handleDrag(at: point)
@@ -85,7 +93,9 @@ final class PanelController {
         guard let screen = ScreenManager.mainSnapshot() else {
             return
         }
+        suppressAnimatedCollapse = true
         hover.forceCollapse()
+        suppressAnimatedCollapse = false
         let stored = DisplayPlacement(
             displayIdentifier: screen.identifier,
             edge: .right,
@@ -111,7 +121,9 @@ final class PanelController {
         guard let screen = ScreenManager.mainSnapshot(),
               NotchGeometry.region(on: screen) != nil
         else { return }
+        suppressAnimatedCollapse = true
         hover.forceCollapse()
+        suppressAnimatedCollapse = false
         let stored = DisplayPlacement(
             displayIdentifier: screen.identifier,
             edge: .top,
@@ -194,10 +206,52 @@ final class PanelController {
 
     private func handleHoverOutput(_ output: HoverOutput) {
         switch output {
-        case .expand, .collapse, .beginEditing:
-            syncChrome(animated: !hover.isDragging)
+        case .expand, .beginEditing:
+            expandChrome()
+        case .collapse:
+            if hover.isDragging || suppressAnimatedCollapse {
+                motionGeneration += 1
+                shellExpanded = false
+                contentOpacity = 1
+                syncChrome(animated: false)
+            } else {
+                collapseChrome()
+            }
         case .none, .scheduleOpen, .scheduleClose, .cancelTimers:
             break
+        }
+    }
+
+    private func expandChrome() {
+        motionGeneration += 1
+        let generation = motionGeneration
+        shellExpanded = true
+        contentOpacity = 0
+        syncChrome(
+            animated: !hover.isDragging,
+            expanding: true,
+            duration: LayoutMetrics.expandDuration
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeDelay) { [weak self] in
+            guard let self, self.motionGeneration == generation else { return }
+            self.contentOpacity = 1
+            self.refreshPresentedContent()
+        }
+    }
+
+    private func collapseChrome() {
+        motionGeneration += 1
+        let generation = motionGeneration
+        contentOpacity = 0
+        refreshPresentedContent()
+        DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeOutDuration) { [weak self] in
+            guard let self, self.motionGeneration == generation else { return }
+            self.shellExpanded = false
+            self.syncChrome(
+                animated: !self.hover.isDragging,
+                expanding: false,
+                duration: LayoutMetrics.collapseDuration
+            )
         }
     }
 
@@ -213,41 +267,67 @@ final class PanelController {
         syncChrome(animated: animated)
     }
 
-    private func syncChrome(animated: Bool) {
+    private func syncChrome(
+        animated: Bool,
+        expanding: Bool = true,
+        duration: TimeInterval = LayoutMetrics.expandDuration
+    ) {
         guard let anchor = anchorPlacement else { return }
-        let phase = hover.engine.phase
-        let framePlacement = displayedPlacement(anchor: anchor, phase: phase)
-        positionManager.apply(framePlacement, to: panel, animated: animated)
-        installContent(
-            edge: anchor.edge,
-            isNotchCloak: anchor.isNotchCloak,
-            phase: phase,
-            notchOccludedHeight: notchOccludedHeight(for: anchor)
+        let framePlacement = displayedPlacement(anchor: anchor, expanded: shellExpanded)
+        positionManager.apply(
+            framePlacement,
+            to: panel,
+            animated: animated,
+            expanding: expanding,
+            duration: duration
         )
+        if animated {
+            let wait = duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+                self?.finishFrameAnimation()
+            }
+        } else {
+            finishFrameAnimation()
+        }
+        refreshPresentedContent()
         refreshNotchDebugOverlay()
-        hostView.dragHandleRect = dragHandleRect(
-            in: hostView.bounds,
-            edge: anchor.edge,
-            expanded: phase.isVisuallyExpanded
-        )
         panel.allowsKey = false
         if !panel.isVisible {
             panel.orderFrontRegardless()
         }
-        if animated {
-            DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.panelAnimationDuration) { [weak self] in
-                guard let self, let anchor = self.anchorPlacement else { return }
-                self.hostView.dragHandleRect = self.dragHandleRect(
-                    in: self.hostView.bounds,
-                    edge: anchor.edge,
-                    expanded: self.hover.engine.phase.isVisuallyExpanded
-                )
-            }
-        }
     }
 
-    private func displayedPlacement(anchor: PanelPlacement, phase: PeekMemoCore.HoverPhase) -> PanelPlacement {
-        guard phase.isVisuallyExpanded, let screen = screenForAnchor(anchor) else {
+    private var presentedPhase: PeekMemoCore.HoverPhase {
+        if hover.engine.phase == .editing { return .editing }
+        if hover.engine.phase == .pinned { return shellExpanded ? .pinned : .collapsed }
+        return shellExpanded ? .expanded : .collapsed
+    }
+
+    private func refreshPresentedContent() {
+        guard let anchor = anchorPlacement else { return }
+        installContent(
+            edge: anchor.edge,
+            isNotchCloak: anchor.isNotchCloak,
+            phase: presentedPhase,
+            notchOccludedHeight: notchOccludedHeight(for: anchor)
+        )
+        hostView.dragHandleRect = dragHandleRect(
+            in: hostView.bounds,
+            edge: anchor.edge,
+            expanded: shellExpanded
+        )
+    }
+
+    private func finishFrameAnimation() {
+        hostView.dragHandleRect = dragHandleRect(
+            in: hostView.bounds,
+            edge: anchorPlacement?.edge ?? .right,
+            expanded: shellExpanded
+        )
+    }
+
+    private func displayedPlacement(anchor: PanelPlacement, expanded: Bool) -> PanelPlacement {
+        guard expanded, let screen = screenForAnchor(anchor) else {
             return anchor
         }
         var expanded = anchor
@@ -271,7 +351,8 @@ final class PanelController {
             phase: phase,
             accent: .accent,
             showHitRegions: DebugFlags.showHitRegions,
-            notchOccludedHeight: notchOccludedHeight
+            notchOccludedHeight: notchOccludedHeight,
+            contentOpacity: contentOpacity
         )
         if let hostingView {
             hostingView.rootView = root
@@ -279,10 +360,13 @@ final class PanelController {
             return
         }
         let hosting = NSHostingView(rootView: root)
+        hosting.sizingOptions = []
+        hosting.clipsToBounds = true
         hosting.translatesAutoresizingMaskIntoConstraints = true
         hosting.autoresizingMask = [.width, .height] as NSView.AutoresizingMask
         hosting.frame = hostView.bounds
         hostView.addSubview(hosting, positioned: .below, relativeTo: nil)
+        hostView.clipsToBounds = true
         hostingView = hosting
     }
 

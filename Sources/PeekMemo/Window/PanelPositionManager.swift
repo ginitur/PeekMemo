@@ -4,6 +4,7 @@ import PeekMemoCore
 @MainActor
 struct PanelPositionManager {
     var stackLength: CGFloat = LayoutMetrics.defaultStackLength
+    private let animator = WindowFrameAnimator()
 
     func collapsedPlacement(
         edge: ScreenEdge,
@@ -18,16 +19,22 @@ struct PanelPositionManager {
         )
     }
 
-    func apply(_ placement: PanelPlacement, to panel: NSPanel, animated: Bool = false) {
+    func apply(
+        _ placement: PanelPlacement,
+        to panel: NSPanel,
+        animated: Bool = false,
+        expanding: Bool = true,
+        duration: TimeInterval = LayoutMetrics.expandDuration
+    ) {
         if animated {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = LayoutMetrics.panelAnimationDuration
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                context.allowsImplicitAnimation = true
-                panel.animator().setFrame(placement.frame, display: true)
-            }
+            animator.animate(
+                panel: panel,
+                to: placement.frame,
+                duration: duration,
+                expanding: expanding
+            )
         } else {
-            panel.setFrame(placement.frame, display: true)
+            animator.snap(panel, to: placement.frame)
         }
     }
 }

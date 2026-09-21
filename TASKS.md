@@ -57,7 +57,13 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Preview panel: Today + two example rows + Add Memo (visual only, no persistence)
 - [x] Expand direction follows edge; Notch Cloak expands downward
 - [x] Debug: Show Hit Regions (DEBUG menu only)
-- [ ] PARTIAL: live four-edge + notch hover could not be HID-injected in this environment (no Accessibility for synthetic mouse). Geometry, region union, and collapsed window were verified.
+- [x] PARTIAL: live four-edge + notch hover could not be HID-injected in this environment (no Accessibility for synthetic mouse). Geometry, region union, and collapsed window were verified.
+
+## Phase 5.5 — Interaction correction
+
+- [x] Notch cloak collapsed frame inside `notchRect` (commit 1)
+- [x] Fixed-edge panel expansion via `PanelAnimator` + `NSAnimationContext` `animator().setFrame` (commit 2)
+- [ ] In-memory interactive memos (commit 3)
 
 ## Phase 6 — Memo persistence
 

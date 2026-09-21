@@ -9,6 +9,7 @@ struct PeekRootView: View {
     var showHitRegions: Bool = false
     /// Height of the physical housing, in the expanded window’s top. Content starts below it.
     var notchOccludedHeight: CGFloat = 0
+    var contentOpacity: Double = 1
 
     private var isExpanded: Bool {
         phase == .expanded || phase == .pinned || phase == .editing
@@ -18,7 +19,6 @@ struct PeekRootView: View {
         ZStack {
             if isExpanded {
                 expandedBody
-                    .transition(.opacity)
             } else {
                 CollapsedEdgeView(
                     edge: edge,
@@ -32,9 +32,7 @@ struct PeekRootView: View {
                 HitRegionOverlay(kind: .expanded, edge: edge)
             }
         }
-        .scaleEffect(isExpanded ? 1 : 0.98, anchor: scaleAnchor)
-        .animation(motion, value: isExpanded)
-        .animation(motion, value: phase)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var expandedBody: some View {
@@ -44,13 +42,13 @@ struct PeekRootView: View {
             switch edge {
             case .right:
                 HStack(spacing: 0) {
-                    preview
+                    preview.opacity(contentOpacity)
                     handle.frame(width: LayoutMetrics.hoverHitThickness)
                 }
             case .left:
                 HStack(spacing: 0) {
                     handle.frame(width: LayoutMetrics.hoverHitThickness)
-                    preview
+                    preview.opacity(contentOpacity)
                 }
             case .top:
                 VStack(spacing: 0) {
@@ -58,30 +56,17 @@ struct PeekRootView: View {
                         Color.clear.frame(height: notchOccludedHeight)
                     }
                     handle.frame(height: LayoutMetrics.hoverHitThickness)
-                    preview
+                    preview.opacity(contentOpacity)
                 }
             case .bottom:
                 VStack(spacing: 0) {
-                    preview
+                    preview.opacity(contentOpacity)
                     handle.frame(height: LayoutMetrics.hoverHitThickness)
                 }
             }
         }
     }
 
-    private var scaleAnchor: UnitPoint {
-        if isNotchCloak { return .top }
-        switch edge {
-        case .right: return .trailing
-        case .left: return .leading
-        case .top: return .top
-        case .bottom: return .bottom
-        }
-    }
-
-    private var motion: Animation {
-        .easeInOut(duration: LayoutMetrics.panelAnimationDuration)
-    }
 }
 
 struct DragHandleView: View {
