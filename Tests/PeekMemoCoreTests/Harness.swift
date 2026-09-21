@@ -33,6 +33,7 @@ enum PeekMemoCoreTestsMain {
             ("NotchGeometry", NotchGeometryTests.run),
             ("ScreenMigration", ScreenMigrationTests.run),
             ("HoverEngine", HoverEngineTests.run),
+            ("HoverRegion", HoverRegionTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
         ]
 

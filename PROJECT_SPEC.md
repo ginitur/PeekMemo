@@ -106,7 +106,11 @@ Visual thickness and hit thickness are independent constants in `LayoutMetrics`.
 - `collectionBehavior` includes `.canJoinAllSpaces` and `.fullScreenAuxiliary`
 - activation policy: `.accessory` (no Dock icon)
 
-Hover is owned by `HoverEngine` (Core) plus an AppKit `HoverController` that feeds pointer enter/exit for the **union** of the edge item and expanded panel. SwiftUI `onHover` is not the source of truth.
+Hover is owned by `HoverEngine` (Core) plus an AppKit `HoverController` that feeds pointer enter/exit for the **union** of the edge item and expanded panel (`HoverRegion`, 6 pt padding, 80 ms grace). SwiftUI `onHover` is not the source of truth.
+
+Collapsed Notch Cloak uses only the underside hit strip (`notchCloakHitThickness`). The housing rectangle is never a drawing surface. Top-edge drag uses `notchSnapThreshold` (26 pt) with a smoothstep pull so cloak does not teleport.
+
+The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI files; SwiftUI also defines `HoverPhase`.
 
 ## Persistence (Phase 6)
 

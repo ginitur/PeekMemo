@@ -43,15 +43,19 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] No Notch Cloak UI on screens without a notch
 - [x] Escape hatches: drag out of the notch, Reset Position
 - [x] Geometry tests: no notch, notch, enter L/R, exit L/R, offset clamp, screen size change
-- [ ] Drag handle after hover — Phase 5 (cloak collapsed has no handle until hover)
+- [x] Drag handle after hover — shown on the expanded panel (Phase 5)
 
 ## Phase 5 — Hover expansion
 
-- [ ] `HoverEngine` wired to AppKit tracking
-- [ ] Open / close delays from settings
-- [ ] Edge item + expanded panel are one region
-- [ ] Click pin / unpin, double-click edit
-- [ ] Peek does not steal key focus; edit may become key
+- [x] `HoverEngine` wired through AppKit `HoverController` + `NSTrackingArea` (not SwiftUI `onHover`)
+- [x] Open delay 160 ms, close delay 350 ms, 80 ms exit grace period
+- [x] Edge Tab + Expanded Panel are one `HoverRegion` (union + 6 pt padding)
+- [x] Click pins; second click collapses; pinned ignores pointer exit
+- [x] Peek does not become key (`allowsKey = false`). Editing key window is Phase 7
+- [x] Preview panel: Today + two example rows + Add Memo (visual only, no persistence)
+- [x] Expand direction follows edge; Notch Cloak expands downward
+- [x] Debug: Show Hit Regions (DEBUG menu only)
+- [ ] PARTIAL: live four-edge + notch hover could not be HID-injected in this environment (no Accessibility for synthetic mouse). Geometry, region union, and collapsed window were verified.
 
 ## Phase 6 — Memo persistence
 

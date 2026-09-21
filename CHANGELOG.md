@@ -17,3 +17,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Per-display `{edge, offset}` saved in UserDefaults (SQLite arrives in Phase 6).
 - Menu Bar: Show, Hide, Reset Position, Quit.
 - Notch Cloak: Top-edge drag into the notch range hides the tab in the camera housing. The window sits on a 14 pt underside hit strip (1 pt hairline). Dragging out restores a normal Edge Tab. Reset Position still works.
+- Hover reveal: 160 ms open / 350 ms close, 80 ms grace across the tab–panel gap. Click pins; second click collapses. Preview panel is a local Today list (no database). Peeking never becomes the key window.

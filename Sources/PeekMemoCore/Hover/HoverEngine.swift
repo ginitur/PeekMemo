@@ -6,6 +6,13 @@ public enum HoverPhase: String, Sendable, Equatable {
     case expanded
     case pinned
     case editing
+
+    public var isVisuallyExpanded: Bool {
+        switch self {
+        case .expanded, .pinned, .editing: true
+        case .collapsed, .hovering: false
+        }
+    }
 }
 
 public enum HoverInput: Sendable, Equatable {
@@ -45,14 +52,15 @@ public struct HoverEngine: Equatable, Sendable {
     }
 
     public var isVisuallyExpanded: Bool {
-        switch phase {
-        case .expanded, .pinned, .editing: true
-        case .collapsed, .hovering: false
-        }
+        phase.isVisuallyExpanded
     }
 
     public var allowsKeyWindow: Bool {
         phase == .editing
+    }
+
+    public mutating func resetToCollapsed() {
+        phase = .collapsed
     }
 
     @discardableResult
@@ -97,8 +105,8 @@ public struct HoverEngine: Equatable, Sendable {
             return .beginEditing
 
         case (.pinned, .click):
-            phase = .expanded
-            return .none
+            phase = .collapsed
+            return .collapse
 
         case (.pinned, .doubleClick):
             phase = .editing

@@ -41,6 +41,8 @@ public enum LayoutMetrics: Sendable {
 
     public static let defaultPanelWidth: CGFloat = 280
     public static let defaultPanelHeight: CGFloat = 360
+    public static let previewPanelWidth: CGFloat = 260
+    public static let previewPanelHeight: CGFloat = 228
 
     public static let defaultStackLength: CGFloat = 96
     public static let defaultOpacity: Double = 0.92
