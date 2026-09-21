@@ -2,32 +2,46 @@ import AppKit
 import PeekMemoCore
 import SwiftUI
 
-/// Owns the floating edge panel. Phase 1 shows a collapsed tab on the right edge.
+/// Owns the floating edge panel. Dragging snaps to Left / Right / Top / Bottom.
 @MainActor
 final class PanelController {
     private let panel = PeekPanel()
     private let positionManager = PanelPositionManager()
+    private let hostView = EdgeHostView()
     private var hostingView: NSHostingView<CollapsedEdgeView>?
     private var currentPlacement: PanelPlacement?
-    private var screenChangeObserver: NSObjectProtocol?
+    private var screenChangeObserver: (any NSObjectProtocol)?
 
     init() {
-        panel.contentView = NSView(frame: .zero)
-        panel.contentView?.wantsLayer = true
-        panel.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
+        hostView.wantsLayer = true
+        hostView.layer?.backgroundColor = NSColor.clear.cgColor
+        hostView.onDrag = { [weak self] point in
+            self?.handleDrag(at: point)
+        }
+        hostView.onDragEnded = { [weak self] point in
+            self?.handleDragEnded(at: point)
+        }
+        panel.contentView = hostView
         observeScreenChanges()
     }
 
-    func showCollapsed(edge: ScreenEdge, offset: CGFloat) {
+    func showRestoredOrDefault() {
         guard let screen = ScreenManager.mainSnapshot() else {
             return
         }
-        let placement = positionManager.collapsedPlacement(
-            edge: edge,
-            offset: offset,
-            screen: screen
+        let stored = PlacementStore.placement(for: screen.identifier)
+            ?? DisplayPlacement(
+                displayIdentifier: screen.identifier,
+                edge: AppSettings.default.selectedEdge,
+                offset: AppSettings.default.edgeOffset
+            )
+        apply(
+            EdgeGeometry.placement(
+                from: stored,
+                screen: screen,
+                stackLength: positionManager.stackLength
+            )
         )
-        apply(placement)
         panel.orderFrontRegardless()
     }
 
@@ -35,55 +49,113 @@ final class PanelController {
         panel.orderOut(nil)
     }
 
-    func reposition() {
-        guard let current = currentPlacement else {
-            showCollapsed(edge: .right, offset: AppSettings.default.edgeOffset)
+    func resetPosition() {
+        guard let screen = ScreenManager.mainSnapshot() else {
             return
         }
+        let stored = DisplayPlacement(
+            displayIdentifier: screen.identifier,
+            edge: .right,
+            offset: AppSettings.default.edgeOffset
+        )
+        PlacementStore.upsert(stored)
+        apply(
+            EdgeGeometry.placement(
+                from: stored,
+                screen: screen,
+                stackLength: positionManager.stackLength
+            )
+        )
+        panel.orderFrontRegardless()
+    }
+
+    func reposition() {
         let screens = ScreenManager.allSnapshots()
-        let mainID = ScreenManager.mainSnapshot()?.identifier ?? screens.first?.identifier ?? current.displayIdentifier
+        guard let main = ScreenManager.mainSnapshot() ?? screens.first else {
+            hide()
+            return
+        }
+        let saved = currentPlacement?.stored
+            ?? PlacementStore.placement(for: main.identifier)
+            ?? DisplayPlacement(
+                displayIdentifier: main.identifier,
+                edge: .right,
+                offset: AppSettings.default.edgeOffset
+            )
         let resolved = ScreenMigration.resolve(
-            saved: current.stored,
+            saved: saved,
             screens: screens,
-            mainScreenID: mainID
+            mainScreenID: main.identifier
         )
         guard let screen = resolved.screen else {
             hide()
             return
         }
-        let placement = EdgeGeometry.placement(
-            from: resolved.placement,
+        apply(
+            EdgeGeometry.placement(
+                from: resolved.placement,
+                screen: screen,
+                stackLength: positionManager.stackLength
+            )
+        )
+        PlacementStore.upsert(resolved.placement)
+    }
+
+    private func handleDrag(at point: CGPoint) {
+        guard let screen = screen(for: point) else { return }
+        let grab = currentPlacement?.frame.size
+            ?? EdgeGeometry.collapsedWindowSize(edge: .right, stackLength: positionManager.stackLength)
+        let placement = EdgeGeometry.draggingPlacement(
+            pointer: point,
+            screen: screen,
+            stackLength: positionManager.stackLength,
+            grabSize: grab
+        )
+        apply(placement, persist: false)
+    }
+
+    private func handleDragEnded(at point: CGPoint) {
+        guard let screen = screen(for: point) else { return }
+        let placement = EdgeGeometry.committedPlacement(
+            pointer: point,
             screen: screen,
             stackLength: positionManager.stackLength
         )
-        apply(placement)
+        apply(placement, persist: true)
     }
 
-    private func apply(_ placement: PanelPlacement) {
+    private func apply(_ placement: PanelPlacement, persist: Bool = false) {
+        let edgeChanged = currentPlacement?.edge != placement.edge
         currentPlacement = placement
         positionManager.apply(placement, to: panel)
-        installContent(edge: placement.edge)
+        if edgeChanged || hostingView == nil {
+            installContent(edge: placement.edge)
+        }
+        if persist {
+            PlacementStore.upsert(placement.stored)
+        }
     }
 
     private func installContent(edge: ScreenEdge) {
         let root = CollapsedEdgeView(edge: edge)
         if let hostingView {
             hostingView.rootView = root
+            hostingView.frame = hostView.bounds
             return
         }
         let hosting = NSHostingView(rootView: root)
         hosting.translatesAutoresizingMaskIntoConstraints = true
         hosting.autoresizingMask = [.width, .height]
-        hosting.frame = panel.contentView?.bounds ?? placementFallbackBounds
-        panel.contentView = hosting
+        hosting.frame = hostView.bounds
+        // SwiftUI view is visual only; mouse events stay on EdgeHostView.
+        hosting.isHidden = false
+        hostView.addSubview(hosting, positioned: .below, relativeTo: nil)
         hostingView = hosting
     }
 
-    private var placementFallbackBounds: NSRect {
-        NSRect(
-            origin: .zero,
-            size: EdgeGeometry.collapsedWindowSize(edge: .right, stackLength: LayoutMetrics.defaultStackLength)
-        )
+    private func screen(for point: CGPoint) -> ScreenGeometry? {
+        ScreenMigration.screenContaining(point: point, screens: ScreenManager.allSnapshots())
+            ?? ScreenManager.mainSnapshot()
     }
 
     private func observeScreenChanges() {

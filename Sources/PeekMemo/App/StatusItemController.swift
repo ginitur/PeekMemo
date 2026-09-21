@@ -1,11 +1,21 @@
 import AppKit
 
-/// Minimal accessory-app status item. Full menu lands in Phase 9.
+/// Accessory-app status item. Expanded in Phase 9.
 @MainActor
 final class StatusItemController {
     private let item: NSStatusItem
+    private let onShow: () -> Void
+    private let onHide: () -> Void
+    private let onReset: () -> Void
 
-    init() {
+    init(
+        onShow: @escaping () -> Void,
+        onHide: @escaping () -> Void,
+        onReset: @escaping () -> Void
+    ) {
+        self.onShow = onShow
+        self.onHide = onHide
+        self.onReset = onReset
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -15,22 +25,46 @@ final class StatusItemController {
             button.image?.isTemplate = true
             button.toolTip = "PeekMemo"
         }
+        item.menu = makeMenu()
+    }
 
+    private func makeMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(Self.headerItem())
+        let header = NSMenuItem(title: "PeekMemo", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
         menu.addItem(.separator())
-        let quit = NSMenuItem(
+
+        let show = NSMenuItem(title: "Show PeekMemo", action: #selector(showPanel), keyEquivalent: "")
+        show.target = self
+        menu.addItem(show)
+
+        let hide = NSMenuItem(title: "Hide PeekMemo", action: #selector(hidePanel), keyEquivalent: "")
+        hide.target = self
+        menu.addItem(hide)
+
+        let reset = NSMenuItem(title: "Reset Position", action: #selector(resetPosition), keyEquivalent: "")
+        reset.target = self
+        menu.addItem(reset)
+
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(
             title: "Quit PeekMemo",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
-        )
-        menu.addItem(quit)
-        item.menu = menu
+        ))
+        return menu
     }
 
-    private static func headerItem() -> NSMenuItem {
-        let item = NSMenuItem(title: "PeekMemo", action: nil, keyEquivalent: "")
-        item.isEnabled = false
-        return item
+    @objc private func showPanel() {
+        onShow()
+    }
+
+    @objc private func hidePanel() {
+        onHide()
+    }
+
+    @objc private func resetPosition() {
+        onReset()
     }
 }

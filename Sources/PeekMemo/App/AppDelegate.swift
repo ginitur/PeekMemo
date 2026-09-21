@@ -10,20 +10,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        statusItemController = StatusItemController()
         let controller = PanelController()
         panelController = controller
-        controller.showCollapsed(
-            edge: AppSettings.default.selectedEdge,
-            offset: AppSettings.default.edgeOffset
+        statusItemController = StatusItemController(
+            onShow: { [weak controller] in
+                controller?.showRestoredOrDefault()
+            },
+            onHide: { [weak controller] in
+                controller?.hide()
+            },
+            onReset: { [weak controller] in
+                controller?.resetPosition()
+            }
         )
+        controller.showRestoredOrDefault()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        panelController?.showCollapsed(
-            edge: AppSettings.default.selectedEdge,
-            offset: AppSettings.default.edgeOffset
-        )
+        panelController?.showRestoredOrDefault()
         return false
     }
 }

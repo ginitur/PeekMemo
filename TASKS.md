@@ -23,16 +23,17 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 
 ## Phase 2 — Four-edge placement
 
-- [ ] Left / Right / Top / Bottom collapsed frames
-- [ ] Expand direction follows the edge
-- [ ] Offset clamping against `visibleFrame`
+- [x] Left / Right / Top / Bottom collapsed frames (`EdgeGeometry` + Edge Tab shape)
+- [x] Expand direction follows the edge (Core; UI expand is Phase 5)
+- [x] Offset clamping against `visibleFrame`
 
 ## Phase 3 — Dragging + magnetic snapping
 
-- [ ] Drag whole stack with 6 pt threshold
-- [ ] Live follow, 24 pt magnet
-- [ ] Mouse-up snaps to nearest legal edge
-- [ ] Persist `{display, edge, offset}`
+- [x] Drag whole stack with 6 pt threshold (`EdgeHostView`)
+- [x] Live follow, 24 pt magnet
+- [x] Mouse-up snaps to nearest legal edge
+- [x] Persist `{display, edge, offset}` (UserDefaults for now; SQLite in Phase 6)
+- [x] Menu Bar: Show / Hide / Reset Position
 
 ## Phase 4 — Notch Cloak positioning
 

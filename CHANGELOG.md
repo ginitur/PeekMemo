@@ -13,3 +13,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Unit tests for geometry, notch cloak ranges, offset clamping, and hover transitions (`swift run PeekMemoCoreTests`).
 - Custom `PeekPanel` accessory window and a collapsed Edge Tab on the right screen edge (4 pt visible / 14 pt hit).
 - Stub menu bar extra so the accessory app can be quit.
+- Drag the Edge Tab to Left / Right / Top / Bottom with 6 pt drag threshold and 24 pt magnetic snap.
+- Per-display `{edge, offset}` saved in UserDefaults (SQLite arrives in Phase 6).
+- Menu Bar: Show, Hide, Reset Position, Quit.
