@@ -202,15 +202,7 @@ public enum EdgeGeometry: Sendable {
         panelSize: CGSize
     ) -> CGRect {
         if collapsed.isNotchCloak, let notch = NotchGeometry.region(on: screen) {
-            let width = min(panelSize.width, screen.visibleFrame.width)
-            let x = notch.frame.midX - width / 2
-            let clampedX = min(max(x, screen.visibleFrame.minX), screen.visibleFrame.maxX - width)
-            return CGRect(
-                x: clampedX,
-                y: notch.frame.minY - panelSize.height,
-                width: width,
-                height: panelSize.height
-            )
+            return expandedNotchFrame(notch: notch, screen: screen, panelSize: panelSize)
         }
 
         let origin = collapsed.frame
@@ -308,21 +300,7 @@ public enum EdgeGeometry: Sendable {
 
         let cloak = notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
         if pull >= 1 {
-            let hit = NotchGeometry.undersideHitRect(for: notch)
-            let width = max(stackLength, 48)
-            let x = min(
-                max(pointer.x - width / 2, notch.frame.minX),
-                notch.frame.maxX - width
-            )
-            let frame = CGRect(x: x, y: hit.minY, width: width, height: hit.height)
-            return PanelPlacement(
-                displayIdentifier: screen.identifier,
-                edge: .top,
-                offset: NotchGeometry.cloakOffset(stackLength: stackLength, screen: screen),
-                frame: frame,
-                isNotchCloak: true,
-                isSnapped: true
-            )
+            return cloak
         }
 
         return PanelPlacement(
@@ -335,13 +313,31 @@ public enum EdgeGeometry: Sendable {
         )
     }
 
+    /// Expanded cloak window keeps `maxY` at the top of the housing and grows downward
+    /// so content slides out from behind the notch. The occluded band is `notch.height`.
+    public static func expandedNotchFrame(
+        notch: NotchRegion,
+        screen: ScreenGeometry,
+        panelSize: CGSize
+    ) -> CGRect {
+        let width = min(max(panelSize.width, notch.frame.width), screen.visibleFrame.width)
+        let x = notch.frame.midX - width / 2
+        let clampedX = min(max(x, screen.visibleFrame.minX), screen.visibleFrame.maxX - width)
+        let height = notch.frame.height + panelSize.height
+        return CGRect(
+            x: clampedX,
+            y: notch.frame.maxY - height,
+            width: width,
+            height: height
+        )
+    }
+
     private static func notchCloakPlacement(
         screen: ScreenGeometry,
         notch: NotchRegion,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        // Window sits on the underside only. The housing itself has no drawable pixels.
-        let frame = NotchGeometry.undersideHitRect(for: notch)
+        let frame = NotchGeometry.collapsedWindowFrame(for: notch)
         let offset = NotchGeometry.cloakOffset(stackLength: stackLength, screen: screen)
         return PanelPlacement(
             displayIdentifier: screen.identifier,

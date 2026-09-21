@@ -3,6 +3,9 @@ import Foundation
 
 /// Derives the camera-housing / notch rectangle from portable screen metrics.
 /// Never uses a Mac model name or a hard-coded resolution.
+///
+/// AppKit screen space: origin at bottom-left, `maxY` is the top of the display.
+/// `notchRect.minY` is the underside of the housing; `notchRect.maxY` is the top of the screen.
 public enum NotchGeometry: Sendable {
     /// Horizontal overlap ratio at which a stored top-edge drop is treated as Notch Cloak.
     public static let cloakOverlapRatio: CGFloat = 0.5
@@ -59,14 +62,57 @@ public enum NotchGeometry: Sendable {
         return 0
     }
 
-    /// Transparent tracking strip on the notch underside. Does not cover the housing itself.
-    public static func undersideHitRect(for notch: NotchRegion) -> CGRect {
-        CGRect(
-            x: notch.frame.minX,
-            y: notch.frame.minY - LayoutMetrics.notchCloakHitThickness,
-            width: notch.frame.width,
-            height: LayoutMetrics.notchCloakHitThickness
+    /// Center of the cloak anchor — the middle of the physical housing.
+    public static func anchorCenter(for notch: NotchRegion) -> CGPoint {
+        CGPoint(x: notch.frame.midX, y: notch.frame.midY)
+    }
+
+    /// Collapsed window: the physical `notchRect` plus an optional thin underside extension.
+    /// The tab’s visual center sits inside `notchRect` so the housing occludes it.
+    public static func collapsedWindowFrame(
+        for notch: NotchRegion,
+        activationExtension: CGFloat = LayoutMetrics.notchActivationExtension
+    ) -> CGRect {
+        let n = notch.frame
+        let ext = max(0, activationExtension)
+        return CGRect(
+            x: n.minX,
+            y: n.minY - ext,
+            width: n.width,
+            height: n.height + ext
         )
+    }
+
+    /// The 2–4 pt strip just below `notchRect.minY`. Empty when extension is 0.
+    public static func activationExtensionRect(
+        for notch: NotchRegion,
+        activationExtension: CGFloat = LayoutMetrics.notchActivationExtension
+    ) -> CGRect {
+        let ext = max(0, activationExtension)
+        guard ext > 0 else { return .null }
+        return CGRect(
+            x: notch.frame.minX,
+            y: notch.frame.minY - ext,
+            width: notch.frame.width,
+            height: ext
+        )
+    }
+
+    public enum HitZone: String, Sendable, Equatable {
+        case notchRect
+        case activationExtension
+        case outside
+    }
+
+    public static func hitZone(
+        of point: CGPoint,
+        notch: NotchRegion,
+        activationExtension: CGFloat = LayoutMetrics.notchActivationExtension
+    ) -> HitZone {
+        if notch.frame.contains(point) { return .notchRect }
+        let strip = activationExtensionRect(for: notch, activationExtension: activationExtension)
+        if !strip.isNull, strip.contains(point) { return .activationExtension }
+        return .outside
     }
 
     /// True when a top-edge stack at `offset` overlaps the notch enough to cloak.

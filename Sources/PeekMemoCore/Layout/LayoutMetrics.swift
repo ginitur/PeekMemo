@@ -18,11 +18,12 @@ public enum LayoutMetrics: Sendable {
     /// Horizontal distance from the notch at which Top-edge drag starts pulling toward cloak.
     public static let notchSnapThreshold: CGFloat = 26
 
-    /// Hairline drawn on the notch underside. Keep at 0–1 pt.
-    public static let notchCloakVisibleThickness: CGFloat = 1
+    /// Notch Cloak draws nothing. The housing occludes the window.
+    public static let notchCloakVisibleThickness: CGFloat = 0
 
-    /// Transparent tracking strip under the notch. Keep at 10–16 pt.
-    public static let notchCloakHitThickness: CGFloat = 14
+    /// If native hit-testing inside the cutout fails, extend this many points below `notchRect.minY`.
+    /// Keep at 2–4 pt. Never a 14 pt underside bar.
+    public static let notchActivationExtension: CGFloat = 3
 
     /// Extra padding around the union of tab + panel so a 1–2 px animation gap does not collapse hover.
     public static let hoverRegionPadding: CGFloat = 6

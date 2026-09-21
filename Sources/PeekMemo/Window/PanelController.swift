@@ -12,6 +12,7 @@ final class PanelController {
     private var hostingView: NSHostingView<PeekRootView>?
     private var anchorPlacement: PanelPlacement?
     private var screenChangeObserver: (any NSObjectProtocol)?
+    private let notchDebugOverlay = NotchDebugOverlay()
 
     private var previewSize: CGSize {
         CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
@@ -34,10 +35,15 @@ final class PanelController {
             self?.hover.click()
         }
         hostView.onPointerEntered = { [weak self] in
+            self?.probeNotchHit(at: NSEvent.mouseLocation)
             self?.hover.pointerEntered()
         }
         hostView.onPointerExited = { [weak self] in
+            self?.probeNotchHit(at: NSEvent.mouseLocation)
             self?.hover.pointerExited()
+        }
+        hostView.onPointerMoved = { [weak self] point in
+            self?.probeNotchHit(at: point)
         }
         hover.regionContainsPointer = { [weak self] in
             self?.pointerIsInsideHoverRegion() ?? false
@@ -99,6 +105,32 @@ final class PanelController {
 
     func refreshChrome() {
         syncChrome(animated: false)
+    }
+
+    func moveToNotchCloak() {
+        guard let screen = ScreenManager.mainSnapshot(),
+              NotchGeometry.region(on: screen) != nil
+        else { return }
+        hover.forceCollapse()
+        let stored = DisplayPlacement(
+            displayIdentifier: screen.identifier,
+            edge: .top,
+            offset: NotchGeometry.cloakOffset(
+                stackLength: positionManager.stackLength,
+                screen: screen
+            ),
+            isNotchCloak: true
+        )
+        PlacementStore.upsert(stored)
+        setAnchor(
+            EdgeGeometry.placement(
+                from: stored,
+                screen: screen,
+                stackLength: positionManager.stackLength
+            ),
+            persist: false
+        )
+        panel.orderFrontRegardless()
     }
 
     func reposition() {
@@ -189,8 +221,10 @@ final class PanelController {
         installContent(
             edge: anchor.edge,
             isNotchCloak: anchor.isNotchCloak,
-            phase: phase
+            phase: phase,
+            notchOccludedHeight: notchOccludedHeight(for: anchor)
         )
+        refreshNotchDebugOverlay()
         hostView.dragHandleRect = dragHandleRect(
             in: hostView.bounds,
             edge: anchor.edge,
@@ -225,13 +259,19 @@ final class PanelController {
         return expanded
     }
 
-    private func installContent(edge: ScreenEdge, isNotchCloak: Bool, phase: PeekMemoCore.HoverPhase) {
+    private func installContent(
+        edge: ScreenEdge,
+        isNotchCloak: Bool,
+        phase: PeekMemoCore.HoverPhase,
+        notchOccludedHeight: CGFloat
+    ) {
         let root = PeekRootView(
             edge: edge,
             isNotchCloak: isNotchCloak,
             phase: phase,
             accent: .accent,
-            showHitRegions: DebugFlags.showHitRegions
+            showHitRegions: DebugFlags.showHitRegions,
+            notchOccludedHeight: notchOccludedHeight
         )
         if let hostingView {
             hostingView.rootView = root
@@ -292,6 +332,37 @@ final class PanelController {
     private func screen(for point: CGPoint) -> ScreenGeometry? {
         ScreenMigration.screenContaining(point: point, screens: ScreenManager.allSnapshots())
             ?? ScreenManager.mainSnapshot()
+    }
+
+    private func notchOccludedHeight(for placement: PanelPlacement) -> CGFloat {
+        guard placement.isNotchCloak, let screen = screenForAnchor(placement) else { return 0 }
+        return NotchGeometry.region(on: screen)?.frame.height ?? 0
+    }
+
+    private func probeNotchHit(at point: CGPoint) {
+        #if DEBUG
+        guard let anchor = anchorPlacement, anchor.isNotchCloak,
+              let screen = screenForAnchor(anchor),
+              let notch = NotchGeometry.region(on: screen)
+        else { return }
+        NotchHitProbe.record(point: point, notch: notch)
+        #endif
+    }
+
+    private func refreshNotchDebugOverlay() {
+        #if DEBUG
+        guard DebugFlags.showNotchGeometry,
+              let anchor = anchorPlacement, anchor.isNotchCloak,
+              let screen = screenForAnchor(anchor),
+              let notch = NotchGeometry.region(on: screen)
+        else {
+            notchDebugOverlay.hide()
+            return
+        }
+        notchDebugOverlay.show(notch: notch, anchor: anchor.frame, screen: screen)
+        #else
+        notchDebugOverlay.hide()
+        #endif
     }
 
     private func observeScreenChanges() {

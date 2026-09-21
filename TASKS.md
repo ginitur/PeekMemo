@@ -39,7 +39,9 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 
 - [x] Derive notch from auxiliary areas + safe-area insets (`NotchGeometry.region`)
 - [x] Allow snap into the notch (do not push away); 26 pt `notchSnapThreshold` with smoothstep pull
-- [x] Underside hover hit region (14 pt), housing itself is not a drawing surface
+- [x] Collapsed cloak anchor sits **inside** `notchRect` (center = notch mid). Housing occludes it.
+- [x] Fallback activation extension: **3 pt** below `notchRect.minY` (not a 14 pt bar)
+- [ ] Native notch hit testing: **unconfirmed** in this environment (no HID injection). `NotchHitProbe` logs `notchRect` vs `activationExtension`. Treat as PARTIAL until a live mouse enter is observed.
 - [x] No Notch Cloak UI on screens without a notch
 - [x] Escape hatches: drag out of the notch, Reset Position
 - [x] Geometry tests: no notch, notch, enter L/R, exit L/R, offset clamp, screen size change

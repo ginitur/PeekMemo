@@ -7,10 +7,11 @@ enum NotchGeometryTests {
         try regionAcceptsRawRectangles()
         try displayWithoutAuxiliaryAreasHasNoNotch()
         try droppingOnNotchEntersCloakInsteadOfPushingAside()
-        try cloakWindowSitsOnUndersideNotInHousing()
+        try cloakAnchorSitsInsidePhysicalNotch()
+        try collapsedNotchFrameCoversNotchRect()
         try topEdgeAwayFromNotchStaysANormalTab()
         try cloakCanBeDisabled()
-        try expandedCloakPanelOpensDownwardFromNotch()
+        try expandedCloakPanelKeepsNotchMaxYFixed()
         try enterNotchFromTheLeft()
         try enterNotchFromTheRight()
         try dragOutOfNotchToTheLeft()
@@ -18,6 +19,7 @@ enum NotchGeometryTests {
         try offsetClampOnNotchedTopEdge()
         try screenSizeChangeKeepsCloakOnDerivedNotch()
         try noCloakUIOnExternalDisplay()
+        try hitZoneClassifiesNotchVersusExtension()
     }
 
     static func notchedScreenReportsRegionFromAuxiliaryAreas() throws {
@@ -63,23 +65,33 @@ enum NotchGeometryTests {
         try expectEqual(placement.edge, .top)
     }
 
-    static func cloakWindowSitsOnUndersideNotInHousing() throws {
-        let stack: CGFloat = 96
-        let offset = NotchGeometry.cloakOffset(stackLength: stack, screen: Fixtures.notched)
-        let placement = EdgeGeometry.collapsedPlacement(
-            screen: Fixtures.notched,
-            edge: .top,
-            offset: offset,
-            stackLength: stack
-        )
+    static func cloakAnchorSitsInsidePhysicalNotch() throws {
+        let placement = cloakPlacement()
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected a notch region")
         }
-        let hit = NotchGeometry.undersideHitRect(for: notch)
-        try expectEqual(placement.frame, hit)
-        try expectEqual(placement.frame.maxY, notch.frame.minY)
-        try expectEqual(placement.frame.height, LayoutMetrics.notchCloakHitThickness)
-        try expect(placement.frame.maxY <= notch.frame.minY + 0.01)
+        let center = NotchGeometry.anchorCenter(for: notch)
+        try expectEqual(center.x, notch.frame.midX)
+        try expectEqual(center.y, notch.frame.midY)
+        try expect(notch.frame.contains(center))
+        try expect(placement.frame.contains(center))
+        try expectEqual(placement.frame.midX, notch.frame.midX)
+        try expect(placement.frame.maxY == notch.frame.maxY)
+        try expect(placement.frame.minY <= notch.frame.minY)
+        try expect(placement.frame.minY >= notch.frame.minY - LayoutMetrics.notchActivationExtension - 0.01)
+    }
+
+    static func collapsedNotchFrameCoversNotchRect() throws {
+        guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
+            throw CheckError(message: "expected a notch region")
+        }
+        let frame = NotchGeometry.collapsedWindowFrame(for: notch)
+        try expectEqual(frame.maxY, notch.frame.maxY)
+        try expectEqual(frame.minX, notch.frame.minX)
+        try expectEqual(frame.maxX, notch.frame.maxX)
+        try expectEqual(frame.height, notch.frame.height + LayoutMetrics.notchActivationExtension)
+        let inner = notch.frame.insetBy(dx: 1, dy: 1)
+        try expect(frame.intersection(inner) == inner)
     }
 
     static func topEdgeAwayFromNotchStaysANormalTab() throws {
@@ -107,25 +119,22 @@ enum NotchGeometryTests {
         try expect(!placement.isNotchCloak)
     }
 
-    static func expandedCloakPanelOpensDownwardFromNotch() throws {
-        let stack: CGFloat = 96
-        let offset = NotchGeometry.cloakOffset(stackLength: stack, screen: Fixtures.notched)
-        let collapsed = EdgeGeometry.collapsedPlacement(
-            screen: Fixtures.notched,
-            edge: .top,
-            offset: offset,
-            stackLength: stack
-        )
+    static func expandedCloakPanelKeepsNotchMaxYFixed() throws {
+        let collapsed = cloakPlacement()
+        let panelSize = CGSize(width: 280, height: 360)
         let expanded = EdgeGeometry.expandedFrame(
             collapsed: collapsed,
             screen: Fixtures.notched,
-            panelSize: CGSize(width: 280, height: 360)
+            panelSize: panelSize
         )
         guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
             throw CheckError(message: "expected a notch region")
         }
-        try expectEqual(expanded.maxY, notch.frame.minY)
-        try expectEqual(expanded.height, 360)
+        try expectEqual(expanded.maxY, notch.frame.maxY)
+        try expectEqual(expanded.maxY, collapsed.frame.maxY)
+        try expectEqual(expanded.height, notch.frame.height + panelSize.height)
+        try expectEqual(expanded.minY, notch.frame.minY - panelSize.height)
+        try expect(expanded.minY < collapsed.frame.minY)
     }
 
     static func enterNotchFromTheLeft() throws {
@@ -149,8 +158,8 @@ enum NotchGeometryTests {
             grabSize: CGSize(width: 96, height: 14)
         )
         try expect(live.isNotchCloak)
-        try expect(abs(live.frame.midX - justInside.x) < 60)
-        try expect(abs(live.frame.midX - notch.frame.midX) > 1)
+        try expectEqual(live.frame.midX, notch.frame.midX)
+        try expect(notch.frame.contains(CGPoint(x: live.frame.midX, y: notch.frame.midY)))
     }
 
     static func enterNotchFromTheRight() throws {
@@ -170,7 +179,7 @@ enum NotchGeometryTests {
             stackLength: 96
         )
         try expect(committed.isNotchCloak)
-        try expectEqual(committed.frame, NotchGeometry.undersideHitRect(for: notch))
+        try expectEqual(committed.frame, NotchGeometry.collapsedWindowFrame(for: notch))
     }
 
     static func dragOutOfNotchToTheLeft() throws {
@@ -247,9 +256,10 @@ enum NotchGeometryTests {
         guard let notch = NotchGeometry.region(on: larger) else {
             throw CheckError(message: "expected notch on resized screen")
         }
-        try expectEqual(placement.frame, NotchGeometry.undersideHitRect(for: notch))
+        try expectEqual(placement.frame, NotchGeometry.collapsedWindowFrame(for: notch))
         try expectEqual(notch.frame.minX, 720)
         try expectEqual(notch.frame.maxX, 1008)
+        try expect(notch.frame.contains(NotchGeometry.anchorCenter(for: notch)))
     }
 
     static func noCloakUIOnExternalDisplay() throws {
@@ -262,5 +272,28 @@ enum NotchGeometryTests {
         let placement = EdgeGeometry.placement(from: stored, screen: Fixtures.external, stackLength: 96)
         try expect(!placement.isNotchCloak)
         try expectEqual(placement.edge, .top)
+    }
+
+    static func hitZoneClassifiesNotchVersusExtension() throws {
+        guard let notch = NotchGeometry.region(on: Fixtures.notched) else {
+            throw CheckError(message: "expected a notch region")
+        }
+        let inside = CGPoint(x: notch.frame.midX, y: notch.frame.midY)
+        let strip = CGPoint(x: notch.frame.midX, y: notch.frame.minY - 1)
+        let away = CGPoint(x: 10, y: 10)
+        try expectEqual(NotchGeometry.hitZone(of: inside, notch: notch), .notchRect)
+        try expectEqual(NotchGeometry.hitZone(of: strip, notch: notch), .activationExtension)
+        try expectEqual(NotchGeometry.hitZone(of: away, notch: notch), .outside)
+    }
+
+    private static func cloakPlacement() -> PanelPlacement {
+        let stack: CGFloat = 96
+        let offset = NotchGeometry.cloakOffset(stackLength: stack, screen: Fixtures.notched)
+        return EdgeGeometry.collapsedPlacement(
+            screen: Fixtures.notched,
+            edge: .top,
+            offset: offset,
+            stackLength: stack
+        )
     }
 }

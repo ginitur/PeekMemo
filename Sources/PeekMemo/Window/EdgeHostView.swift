@@ -9,6 +9,7 @@ final class EdgeHostView: NSView {
     var onClick: (() -> Void)?
     var onPointerEntered: (() -> Void)?
     var onPointerExited: (() -> Void)?
+    var onPointerMoved: ((CGPoint) -> Void)?
 
     /// When set, only this rect (view coordinates) starts a drag or a pin click.
     var dragHandleRect: CGRect?
@@ -33,6 +34,7 @@ final class EdgeHostView: NSView {
         }
         let options: NSTrackingArea.Options = [
             .mouseEnteredAndExited,
+            .mouseMoved,
             .activeAlways,
             .inVisibleRect,
         ]
@@ -45,6 +47,10 @@ final class EdgeHostView: NSView {
 
     override func mouseExited(with event: NSEvent) {
         onPointerExited?()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        onPointerMoved?(NSEvent.mouseLocation)
     }
 
     override func mouseDown(with event: NSEvent) {

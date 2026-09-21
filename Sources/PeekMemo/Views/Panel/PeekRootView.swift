@@ -7,6 +7,8 @@ struct PeekRootView: View {
     var phase: PeekMemoCore.HoverPhase
     var accent: RGBAColor = .accent
     var showHitRegions: Bool = false
+    /// Height of the physical housing, in the expanded window’s top. Content starts below it.
+    var notchOccludedHeight: CGFloat = 0
 
     private var isExpanded: Bool {
         phase == .expanded || phase == .pinned || phase == .editing
@@ -52,6 +54,9 @@ struct PeekRootView: View {
                 }
             case .top:
                 VStack(spacing: 0) {
+                    if isNotchCloak, notchOccludedHeight > 0 {
+                        Color.clear.frame(height: notchOccludedHeight)
+                    }
                     handle.frame(height: LayoutMetrics.hoverHitThickness)
                     preview
                 }

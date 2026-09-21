@@ -18,7 +18,7 @@ struct CollapsedEdgeView: View {
                 }
 
                 if isNotchCloak {
-                    cloakHairline
+                    Color.clear
                 } else {
                     EdgeTabShape(edge: edge)
                         .fill(accent.color.opacity(0.55))
@@ -41,14 +41,6 @@ struct CollapsedEdgeView: View {
         case .top: return .top
         case .bottom: return .bottom
         }
-    }
-
-    private var cloakHairline: some View {
-        Rectangle()
-            .fill(accent.color.opacity(0.22))
-            .frame(height: LayoutMetrics.notchCloakVisibleThickness)
-            .frame(maxWidth: .infinity)
-            .accessibilityHidden(true)
     }
 
     private func visualSize(in window: CGSize) -> CGSize {

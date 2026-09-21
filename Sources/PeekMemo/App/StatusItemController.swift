@@ -8,17 +8,23 @@ final class StatusItemController {
     private let onHide: () -> Void
     private let onReset: () -> Void
     private let onToggleHitRegions: () -> Void
+    private let onToggleNotchGeometry: () -> Void
+    private let onMoveToNotch: () -> Void
 
     init(
         onShow: @escaping () -> Void,
         onHide: @escaping () -> Void,
         onReset: @escaping () -> Void,
-        onToggleHitRegions: @escaping () -> Void = {}
+        onToggleHitRegions: @escaping () -> Void = {},
+        onToggleNotchGeometry: @escaping () -> Void = {},
+        onMoveToNotch: @escaping () -> Void = {}
     ) {
         self.onShow = onShow
         self.onHide = onHide
         self.onReset = onReset
         self.onToggleHitRegions = onToggleHitRegions
+        self.onToggleNotchGeometry = onToggleNotchGeometry
+        self.onMoveToNotch = onMoveToNotch
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -60,6 +66,23 @@ final class StatusItemController {
         hits.target = self
         hits.state = DebugFlags.showHitRegions ? .on : .off
         menu.addItem(hits)
+
+        let notch = NSMenuItem(
+            title: "Show Notch Geometry",
+            action: #selector(toggleNotchGeometry),
+            keyEquivalent: ""
+        )
+        notch.target = self
+        notch.state = DebugFlags.showNotchGeometry ? .on : .off
+        menu.addItem(notch)
+
+        let cloak = NSMenuItem(
+            title: "Move to Notch Cloak",
+            action: #selector(moveToNotch),
+            keyEquivalent: ""
+        )
+        cloak.target = self
+        menu.addItem(cloak)
         #endif
 
         menu.addItem(.separator())
@@ -87,6 +110,15 @@ final class StatusItemController {
     @objc private func toggleHitRegions() {
         onToggleHitRegions()
         item.menu = makeMenu()
+    }
+
+    @objc private func toggleNotchGeometry() {
+        onToggleNotchGeometry()
+        item.menu = makeMenu()
+    }
+
+    @objc private func moveToNotch() {
+        onMoveToNotch()
     }
     #endif
 }
