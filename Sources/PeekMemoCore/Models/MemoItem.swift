@@ -7,7 +7,7 @@ public enum ItemType: String, Codable, Sendable, Equatable {
 
 public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
     public var id: UUID
-    public var listId: UUID
+    public var categoryId: UUID?
     public var parentId: UUID?
     public var type: ItemType
     public var title: String
@@ -24,7 +24,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
 
     public init(
         id: UUID = UUID(),
-        listId: UUID,
+        categoryId: UUID? = nil,
         parentId: UUID? = nil,
         type: ItemType = .task,
         title: String,
@@ -40,7 +40,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
         updatedAt: Date = Date()
     ) {
         self.id = id
-        self.listId = listId
+        self.categoryId = categoryId
         self.parentId = parentId
         self.type = type
         self.title = title
@@ -59,7 +59,7 @@ public struct MemoItem: Identifiable, Equatable, Sendable, Codable {
     public var isRoot: Bool { parentId == nil }
 }
 
-public struct UserList: Identifiable, Equatable, Sendable, Codable {
+public struct Category: Identifiable, Equatable, Sendable, Codable {
     public var id: UUID
     public var name: String
     public var icon: String
@@ -88,4 +88,9 @@ public struct UserList: Identifiable, Equatable, Sendable, Codable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+}
+
+public enum CategoryFilter: Equatable, Sendable, Hashable {
+    case all
+    case category(UUID)
 }

@@ -39,8 +39,6 @@ enum PeekMemoCoreTestsMain {
             ("CornerClampAnchor", CornerClampAnchorTests.run),
             ("TaskHierarchy", TaskHierarchyTests.run),
             ("TaskCompletion", TaskCompletionTests.run),
-            ("SmartView", SmartViewTests.run),
-            ("CompletedFiltering", CompletedFilteringTests.run),
             ("NotchContainedFrame", NotchContainedFrameTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
             ("DailyViewQuery", DailyViewQueryTests.run),
@@ -49,7 +47,11 @@ enum PeekMemoCoreTestsMain {
             ("ScheduledDate", ScheduledDateTests.run),
             ("TopEdgeDrag", TopEdgeDragTests.run),
             ("DragHandleHitRegion", DragHandleHitRegionTests.run),
-            ("MoreMenuInteraction", MoreMenuInteractionStateTests.run),
+            ("CategoryFilter", CategoryFilterTests.run),
+            ("DailyCategoryQuery", DailyCategoryQueryTests.run),
+            ("CompletedStayVisible", CompletedStayVisibleTests.run),
+            ("SubtaskIndent", SubtaskIndentModelTests.run),
+            ("AddTaskDefaultDate", AddTaskDefaultDateTests.run),
         ]
 
         var failed = 0

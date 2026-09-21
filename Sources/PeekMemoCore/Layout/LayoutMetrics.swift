@@ -58,6 +58,7 @@ public enum LayoutMetrics: Sendable {
     public static let previewPanelHeight: CGFloat = 320
 
     public static let defaultStackLength: CGFloat = 56
+    public static let subtaskIndent: CGFloat = 18
     public static let defaultOpacity: Double = 0.92
     public static let minimumOpacity: Double = 0.5
     public static let maximumOpacity: Double = 1.0

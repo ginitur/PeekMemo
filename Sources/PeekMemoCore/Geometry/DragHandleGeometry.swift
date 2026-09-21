@@ -48,13 +48,4 @@ public enum DragHandleGeometry: Sendable {
     }
 }
 
-public enum BottomNavLayout: Sendable {
-    public static let height: CGFloat = 40
 
-    /// How many custom list chips fit besides Today, Inbox, and More.
-    public static func visibleCustomListCount(panelWidth: CGFloat) -> Int {
-        if panelWidth < 220 { return 0 }
-        if panelWidth < 280 { return 1 }
-        return 2
-    }
-}

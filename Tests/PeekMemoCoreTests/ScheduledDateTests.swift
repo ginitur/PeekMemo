@@ -12,7 +12,7 @@ enum ScheduledDateTests {
         let scheduled = Date(timeIntervalSince1970: 1_700_000_000)
         let due = DailyView.shiftDay(scheduled, by: 2, calendar: calendar)
         let item = MemoItem(
-            listId: UUID(),
+            categoryId: UUID(),
             title: "Split",
             sortOrder: 0,
             dueDate: due,
@@ -25,7 +25,7 @@ enum ScheduledDateTests {
 
     static func missingScheduleUsesLegacyFlagOnlyForToday() throws {
         let now = Date()
-        let item = MemoItem(listId: UUID(), title: "Flag", sortOrder: 0, forToday: true)
+        let item = MemoItem(categoryId: UUID(), title: "Flag", sortOrder: 0, forToday: true)
         try expect(DailyView.isScheduled(item, on: now, now: now))
         try expect(!DailyView.isScheduled(item, on: DailyView.shiftDay(now, by: -1), now: now))
     }

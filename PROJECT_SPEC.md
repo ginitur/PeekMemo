@@ -110,24 +110,43 @@ Hover is owned by `HoverEngine` (Core) plus an AppKit `HoverController` that fee
 
 Live drag never cloaks. Notch Cloak is committed only on mouse-up. The Notch sensor is hidden while dragging and sits below the main panel’s window level.
 
+## Product model
+
+PeekMemo is intentionally not a project-management application.
+
+Core model:
+
+- **Date** (`selectedDate` / `scheduledDate`) — which day a task is for
+- **Category** (`Category`, `categoryId`) — Work, Personal, or user-created. Not a separate page
+- **Task / Subtask** — one extra indent level only
+- **Completion** — stays in place with strikethrough
+
+`Today` is not a list. It only means `selectedDate` is the current calendar day.
+
+There is no Inbox page, no Completed smart view, and no bottom More navigation.
+
+`dueDate` exists on the domain model but is not shown in v0.1 UI.
+
 ## Daily View
 
-`Today` is the Daily View with `selectedDate` defaulting to the current day.
+The expanded panel is always a date view. Default `selectedDate` is today.
 
 - `scheduledDate` — the day the user plans to work on the item
-- `dueDate` — deadline; not the same as scheduled
+- `dueDate` — deadline; hidden in v0.1
 - `completedAt` — when it was actually finished
 
 Historical daily view is derived from current `scheduledDate` + `completedAt`.
 Full activity history / event log is a future enhancement.
 
-A past day’s completion rate uses `completedAt <= endOfDay(selectedDate)`. Completing a task the next day does not rewrite yesterday’s percentage.
+Completed tasks remain in the day’s list (checked + strikethrough). They are not moved to a Completed section.
 
 Notes with a `scheduledDate` appear on that day but never enter the task completion ratio.
 
-## Navigation chrome
+## Edge snapping (v0.1)
 
-The expanded panel splits **body** (scroll) from a **fixed bottom navigation**. More uses `NSMenu.popUp` so it opens on the first click of a nonactivating panel and is not clipped by `NSHostingView`.
+Default snap targets: **Left, Right, Bottom**.
+
+**Top** and **Notch Cloak** are experimental. Code is kept. Enable via DEBUG → Experimental Top / Notch. Ordinary drag will not snap to Top, so users are not trapped there. A stored Top or Notch placement restores to Right while experimental snapping is off.
 
 Collapsed Notch Cloak uses only the underside hit strip (`notchCloakHitThickness`). The housing rectangle is never a drawing surface. Top-edge drag uses `notchSnapThreshold` (26 pt) with a smoothstep pull so cloak does not teleport.
 
@@ -137,14 +156,14 @@ The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI 
 
 GRDB.swift, local SQLite. Schema sketched in models:
 
-- `MemoGroup(id, title, icon, color, sortOrder, createdAt, updatedAt)`
-- `Memo(id, groupId, text, type, isCompleted, isArchived, sortOrder, createdAt, updatedAt)`
-- `type`: `note` | `checklist`
+- `Category(id, name, icon, color, sortOrder, isArchived, createdAt, updatedAt)`
+- `MemoItem(id, categoryId, parentId, type, title, body, isCompleted, completedAt, sortOrder, dueDate, scheduledDate, …)`
+- `type`: `note` | `task`
 - `AppSettings` and per-display `DisplayPlacement`
 
 Color is stored as RGBA components, never as a SwiftUI `Color`.
 
-First launch seeds Today / Inbox / Ideas once. Deleted seed rows are not recreated.
+First launch seeds Work and Personal. Deleted rows are not recreated.
 
 ## Settings (Phase 8–9)
 

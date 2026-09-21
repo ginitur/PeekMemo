@@ -63,9 +63,9 @@ enum TaskHierarchyTests {
 
     private static func sample() -> [MemoItem] {
         let list = UUID()
-        let parent = MemoItem(listId: list, type: .task, title: "Prepare report", sortOrder: 0)
-        let a = MemoItem(listId: list, parentId: parent.id, type: .task, title: "Collect data", sortOrder: 0)
-        let b = MemoItem(listId: list, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1)
+        let parent = MemoItem(categoryId: list, type: .task, title: "Prepare report", sortOrder: 0)
+        let a = MemoItem(categoryId: list, parentId: parent.id, type: .task, title: "Collect data", sortOrder: 0)
+        let b = MemoItem(categoryId: list, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1)
         return [parent, a, b]
     }
 }

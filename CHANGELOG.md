@@ -29,3 +29,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Bottom nav is a fixed region. More is an AppKit `NSMenu` so it opens on the first click and is not clipped.
 - Dragging never cloaks live; Top can be dragged to other edges. Notch sensor stays below the panel and hides during drag.
 - Daily View: `selectedDate`, `scheduledDate` vs `dueDate` vs `completedAt`. Past completion uses `completedAt <= endOfDay`.
+
+### Changed
+
+- PeekMemo is a date + category + task tool, not a project manager. The expanded panel is always a Date View. Today means `selectedDate == today`.
+- `UserList` / `listId` are now `Category` / `categoryId`. Default categories are Work and Personal. Filter with All ▾ next to the date.
+- Inbox, Completed smart view, and bottom More navigation are withdrawn from v0.1 UI.
+- Completed tasks stay in place (checkbox, strikethrough, lower opacity). There is no Completed section.
+- Subtasks indent 18 pt under their parent. Only two levels.
+- v0.1 edge snap is Left / Right / Bottom. Top and Notch Cloak are experimental (DEBUG menu) so ordinary drag cannot trap the tab on Top.

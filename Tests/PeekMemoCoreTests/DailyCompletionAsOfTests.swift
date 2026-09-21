@@ -15,7 +15,7 @@ enum DailyCompletionAsOfTests {
         let sep21 = DailyView.shiftDay(sep20, by: 1, calendar: calendar)
         let list = UUID()
         let item = MemoItem(
-            listId: list,
+            categoryId: list,
             type: .task,
             title: "Slides",
             isCompleted: true,
@@ -35,7 +35,7 @@ enum DailyCompletionAsOfTests {
         let sep20 = Date(timeIntervalSince1970: 1_695_168_000)
         let list = UUID()
         let item = MemoItem(
-            listId: list,
+            categoryId: list,
             type: .task,
             title: "Notes",
             isCompleted: true,
@@ -51,14 +51,14 @@ enum DailyCompletionAsOfTests {
 
     static func incompleteHasNoCompletedAt() throws {
         let day = Date()
-        let item = MemoItem(listId: UUID(), type: .task, title: "Open", sortOrder: 0, scheduledDate: day)
+        let item = MemoItem(categoryId: UUID(), type: .task, title: "Open", sortOrder: 0, scheduledDate: day)
         try expect(!DailyView.isCompleted(item, asOf: day))
     }
 
     static func notesNeverCountAsCompletedTasks() throws {
         let day = Date()
         let item = MemoItem(
-            listId: UUID(),
+            categoryId: UUID(),
             type: .note,
             title: "Note",
             isCompleted: true,

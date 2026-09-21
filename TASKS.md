@@ -82,6 +82,16 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Live drag never cloaks; sensor hidden while dragging; Top→other edges commit on mouse-up
 - [x] Daily View with `selectedDate`, `scheduledDate`, historical completion via `completedAt`
 
+## Phase 5.8 — Simplify the product
+
+- [x] Date view is the only main surface; Today is `selectedDate == today`
+- [x] Category filter (All / Work / Personal / New), not a parallel navigation
+- [x] Inbox, More, and Completed section removed from UI
+- [x] Completed tasks stay in place (check + strikethrough)
+- [x] Subtasks indent 18 pt
+- [x] `UserList` / `listId` renamed to `Category` / `categoryId`
+- [x] Top / Notch snap experimental, off by default
+
 ## Phase 6 — Memo persistence
 
 - [ ] GRDB.swift

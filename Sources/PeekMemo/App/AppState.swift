@@ -2,46 +2,26 @@ import Foundation
 import Observation
 import PeekMemoCore
 
-/// In-memory prototype store. Lost on quit. Persistence is Phase 6.
+/// In-memory prototype. Lost on quit. Persistence is Phase 6.
 @Observable
 @MainActor
 final class AppState {
-    var lists: [UserList]
+    var categories: [PeekMemoCore.Category]
     var items: [MemoItem]
-    var inboxID: UUID
-    var navigation: NavigationID = .smart(.today)
+    var selectedDate: Date = DailyView.startOfDay(Date())
+    var categoryFilter: CategoryFilter = .all
+    var showDatePicker = false
     var editingItemID: UUID?
     var composingParentID: UUID?
     var draftText: String = ""
     var isComposing: Bool = false
-    var completedExpanded = false
-    var pendingHideIDs: Set<UUID> = []
     var expandedTaskIDs: Set<UUID> = []
-    var selectedDate: Date = Calendar.current.startOfDay(for: Date())
 
-    var selectedList: UserList? {
-        switch navigation {
-        case .list(let id):
-            return lists.first(where: { $0.id == id })
-        case .smart(.inbox):
-            return lists.first(where: { $0.id == inboxID })
-        case .smart:
-            return nil
-        }
+    var activeCategories: [PeekMemoCore.Category] {
+        categories.filter { !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    var viewTitle: String {
-        switch navigation {
-        case .smart(.today): dailyTitle
-        case .smart(.inbox): "Inbox"
-        case .smart(.completed): "Completed"
-        case .list(let id): lists.first(where: { $0.id == id })?.name ?? "List"
-        }
-    }
-
-    var isDailyView: Bool { navigation == .smart(.today) }
-
-    var dailyTitle: String {
+    var dateTitle: String {
         let calendar = Calendar.current
         let day = DailyView.startOfDay(selectedDate, calendar: calendar)
         let formatter = DateFormatter()
@@ -55,41 +35,26 @@ final class AppState {
     }
 
     var dailyStats: (completed: Int, total: Int) {
-        DailyView.rootTaskStats(in: items, on: selectedDate)
+        DailyView.rootTaskStats(in: visibleDayItems, on: selectedDate)
     }
 
-    var customLists: [UserList] {
-        lists.filter { $0.id != inboxID && !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    var openItems: [MemoItem] {
-        switch navigation {
-        case .smart(.today):
-            DailyView.openScheduledRoots(in: items, on: selectedDate)
-        case .smart(.inbox):
-            SmartViews.inboxRoots(in: items, inboxID: inboxID)
-        case .smart(.completed):
-            []
-        case .list(let id):
-            TaskHierarchy.openRoots(in: items, listId: id)
-        }
-    }
-
-    var completedItems: [MemoItem] {
-        switch navigation {
-        case .smart(.completed):
-            SmartViews.completedAcrossLists(in: items)
-        case .smart(.inbox):
-            TaskHierarchy.completedRoots(in: items, listId: inboxID)
-        case .smart(.today):
-            DailyView.completedRoots(in: items, on: selectedDate)
-        case .list(let id):
-            TaskHierarchy.completedRoots(in: items, listId: id)
-        }
+    var visibleDayItems: [MemoItem] {
+        let categoryId: UUID? = {
+            if case .category(let id) = categoryFilter { return id }
+            return nil
+        }()
+        return DailyView.scheduledRoots(in: items, on: selectedDate, categoryId: categoryId)
     }
 
     var isEditing: Bool {
         isComposing || editingItemID != nil
+    }
+
+    var filterLabel: String {
+        switch categoryFilter {
+        case .all: "All"
+        case .category(let id): categories.first(where: { $0.id == id })?.name ?? "All"
+        }
     }
 
     init() {
@@ -99,53 +64,40 @@ final class AppState {
         let yesterday = DailyView.shiftDay(today, by: -1, calendar: calendar)
         let tomorrow = DailyView.shiftDay(today, by: 1, calendar: calendar)
         selectedDate = today
-        let inbox = UserList(name: "Inbox", icon: "tray", color: .inbox, sortOrder: 0, createdAt: now, updatedAt: now)
-        let work = UserList(name: "Work", icon: "briefcase", color: .today, sortOrder: 1, createdAt: now, updatedAt: now)
-        let personal = UserList(name: "Personal", icon: "house", color: RGBAColor(red: 0.2, green: 0.7, blue: 0.45), sortOrder: 2, createdAt: now, updatedAt: now)
-        let ideas = UserList(name: "Ideas", icon: "lightbulb", color: .ideas, sortOrder: 3, createdAt: now, updatedAt: now)
-        lists = [inbox, work, personal, ideas]
-        inboxID = inbox.id
-        navigation = .smart(.today)
+        let work = PeekMemoCore.Category(name: "Work", icon: "briefcase", color: .today, sortOrder: 0)
+        let personal = PeekMemoCore.Category(name: "Personal", icon: "house", color: RGBAColor(red: 0.2, green: 0.7, blue: 0.45), sortOrder: 1)
+        categories = [work, personal]
         let parent = MemoItem(
-            listId: inbox.id,
+            categoryId: work.id,
             type: .task,
             title: "Prepare report",
             sortOrder: 0,
-            scheduledDate: today,
-            forToday: true,
-            createdAt: now,
-            updatedAt: now
-        )
-        let yesterdayDone = MemoItem(
-            listId: work.id,
-            type: .task,
-            title: "Ship yesterday's notes",
-            isCompleted: true,
-            completedAt: yesterday.addingTimeInterval(15 * 3600),
-            sortOrder: 0,
-            scheduledDate: yesterday
-        )
-        let yesterdayLate = MemoItem(
-            listId: work.id,
-            type: .task,
-            title: "Finish slides (done next day)",
-            isCompleted: true,
-            completedAt: today.addingTimeInterval(10 * 3600),
-            sortOrder: 1,
-            scheduledDate: yesterday
+            scheduledDate: today
         )
         items = [
             parent,
-            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Collect data", isCompleted: true, completedAt: now, sortOrder: 0),
-            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1),
-            MemoItem(listId: inbox.id, parentId: parent.id, type: .task, title: "Final review", sortOrder: 2),
-            MemoItem(listId: work.id, type: .task, title: "Review pull request", sortOrder: 0, scheduledDate: today, forToday: true),
-            MemoItem(listId: ideas.id, type: .note, title: "Welcome to PeekMemo", sortOrder: 0, scheduledDate: today),
-            yesterdayDone,
-            yesterdayLate,
-            MemoItem(listId: personal.id, type: .task, title: "Call the accountant", sortOrder: 0, scheduledDate: tomorrow),
+            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Collect data", isCompleted: true, completedAt: now, sortOrder: 0),
+            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1),
+            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Final review", sortOrder: 2),
+            MemoItem(categoryId: work.id, type: .task, title: "Review pull request", sortOrder: 1, scheduledDate: today),
+            MemoItem(categoryId: personal.id, type: .note, title: "Remember to ask John about API", sortOrder: 2, scheduledDate: today),
+            MemoItem(
+                categoryId: work.id,
+                type: .task,
+                title: "Ship yesterday's notes",
+                isCompleted: true,
+                completedAt: yesterday.addingTimeInterval(15 * 3600),
+                sortOrder: 0,
+                scheduledDate: yesterday
+            ),
+            MemoItem(categoryId: personal.id, type: .task, title: "Call the accountant", sortOrder: 0, scheduledDate: tomorrow),
         ]
         expandedTaskIDs = [parent.id]
+    }
+
+    func categoryForItem(_ item: MemoItem) -> PeekMemoCore.Category? {
+        guard let id = item.categoryId else { return nil }
+        return categories.first(where: { $0.id == id })
     }
 
     func children(of item: MemoItem) -> [MemoItem] {
@@ -185,7 +137,6 @@ final class AppState {
         draftText = item.title
     }
 
-    /// Returns `true` when a subtask composer should stay open for the next item.
     @discardableResult
     func saveDraft(continueSubtask: Bool = false) -> Bool {
         let text = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -203,21 +154,19 @@ final class AppState {
             return false
         }
         if isComposing {
-            let listID = targetListID(for: parent)
+            let categoryId = targetCategoryID(for: parent)
             let siblings = parent == nil
-                ? TaskHierarchy.roots(in: items, listId: listID)
+                ? visibleDayItems
                 : TaskHierarchy.children(of: parent!, in: items)
             let order = (siblings.last?.sortOrder ?? -1) + 1
-            let schedule: Date? = isDailyView ? DailyView.startOfDay(selectedDate) : nil
             items.append(
                 MemoItem(
-                    listId: listID,
+                    categoryId: categoryId,
                     parentId: parent,
                     type: .task,
                     title: text,
                     sortOrder: order,
-                    scheduledDate: schedule,
-                    forToday: isDailyView && DailyView.isSameDay(selectedDate, Date()),
+                    scheduledDate: DailyView.startOfDay(selectedDate),
                     createdAt: now,
                     updatedAt: now
                 )
@@ -246,21 +195,6 @@ final class AppState {
         }
     }
 
-    func goToPreviousDay() {
-        selectedDate = DailyView.shiftDay(selectedDate, by: -1)
-        navigation = .smart(.today)
-    }
-
-    func goToNextDay() {
-        selectedDate = DailyView.shiftDay(selectedDate, by: 1)
-        navigation = .smart(.today)
-    }
-
-    func goToToday() {
-        selectedDate = DailyView.startOfDay(Date())
-        navigation = .smart(.today)
-    }
-
     func cancelEdit() {
         isComposing = false
         composingParentID = nil
@@ -269,71 +203,7 @@ final class AppState {
     }
 
     func toggleCompleted(_ item: MemoItem) {
-        let completing = !item.isCompleted
-        TaskHierarchy.setCompleted(item.id, to: completing, items: &items)
-        if completing, item.parentId == nil {
-            pendingHideIDs.insert(item.id)
-        }
-    }
-
-    func finishHideAnimation(for id: UUID) {
-        pendingHideIDs.remove(id)
-    }
-
-    func select(_ target: NavigationID) {
-        navigation = target
-        if target == .smart(.today) {
-            selectedDate = DailyView.startOfDay(Date())
-        }
-        completedExpanded = (target == .smart(.completed))
-        cancelEdit()
-    }
-
-    func addList(name: String = "New List") {
-        let order = (customLists.last?.sortOrder ?? 0) + 1
-        let list = UserList(name: name, icon: "folder", color: .accent, sortOrder: order)
-        lists.append(list)
-        navigation = .list(list.id)
-    }
-
-    func renameList(_ id: UUID, to name: String) {
-        guard let index = lists.firstIndex(where: { $0.id == id }), id != inboxID else { return }
-        lists[index].name = name
-        lists[index].updatedAt = Date()
-    }
-
-    func archiveList(_ id: UUID) {
-        guard id != inboxID, let index = lists.firstIndex(where: { $0.id == id }) else { return }
-        lists[index].isArchived = true
-        lists[index].updatedAt = Date()
-        if navigation == .list(id) {
-            navigation = .smart(.today)
-        }
-    }
-
-    func moveList(_ id: UUID, by delta: Int) {
-        var customs = customLists
-        guard let index = customs.firstIndex(where: { $0.id == id }) else { return }
-        let next = index + delta
-        guard customs.indices.contains(next) else { return }
-        customs.swapAt(index, next)
-        for (order, list) in customs.enumerated() {
-            if let i = lists.firstIndex(where: { $0.id == list.id }) {
-                lists[i].sortOrder = order + 1
-            }
-        }
-    }
-
-    private func targetListID(for parent: UUID?) -> UUID {
-        if let parent, let item = items.first(where: { $0.id == parent }) {
-            return item.listId
-        }
-        switch navigation {
-        case .list(let id):
-            return id
-        case .smart:
-            return inboxID
-        }
+        TaskHierarchy.setCompleted(item.id, to: !item.isCompleted, items: &items)
     }
 
     func delete(_ item: MemoItem) {
@@ -341,5 +211,34 @@ final class AppState {
         if editingItemID == item.id {
             cancelEdit()
         }
+    }
+
+    func goToPreviousDay() {
+        selectedDate = DailyView.shiftDay(selectedDate, by: -1)
+    }
+
+    func goToNextDay() {
+        selectedDate = DailyView.shiftDay(selectedDate, by: 1)
+    }
+
+    func goToToday() {
+        selectedDate = DailyView.startOfDay(Date())
+    }
+
+    func addCategory(name: String = "New Category") {
+        let order = (activeCategories.last?.sortOrder ?? -1) + 1
+        let category = PeekMemoCore.Category(name: name, icon: "folder", color: .accent, sortOrder: order)
+        categories.append(category)
+        categoryFilter = .category(category.id)
+    }
+
+    private func targetCategoryID(for parent: UUID?) -> UUID? {
+        if let parent, let item = items.first(where: { $0.id == parent }) {
+            return item.categoryId
+        }
+        if case .category(let id) = categoryFilter {
+            return id
+        }
+        return nil
     }
 }

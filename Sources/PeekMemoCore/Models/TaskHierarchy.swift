@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 public enum TaskHierarchy: Sendable {
@@ -5,21 +6,13 @@ public enum TaskHierarchy: Sendable {
         items.filter { $0.parentId == parentID && !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    public static func roots(in items: [MemoItem], listId: UUID? = nil) -> [MemoItem] {
+    public static func roots(in items: [MemoItem], categoryId: UUID? = nil) -> [MemoItem] {
         items.filter { item in
             item.parentId == nil
                 && !item.isArchived
-                && (listId == nil || item.listId == listId)
+                && (categoryId == nil || item.categoryId == categoryId)
         }
         .sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    public static func openRoots(in items: [MemoItem], listId: UUID? = nil) -> [MemoItem] {
-        roots(in: items, listId: listId).filter { !$0.isCompleted }
-    }
-
-    public static func completedRoots(in items: [MemoItem], listId: UUID? = nil) -> [MemoItem] {
-        roots(in: items, listId: listId).filter(\.isCompleted)
     }
 
     public static func progress(of parent: MemoItem, in items: [MemoItem]) -> (done: Int, total: Int) {
@@ -30,6 +23,8 @@ public enum TaskHierarchy: Sendable {
     public static func canAddSubtask(_ item: MemoItem) -> Bool {
         item.type == .task && item.parentId == nil
     }
+
+    public static let subtaskIndent: CGFloat = 18
 
     /// Completing a parent completes unfinished children. Completing the last child completes the parent.
     public static func setCompleted(_ id: UUID, to completed: Bool, items: inout [MemoItem], at date: Date = Date()) {

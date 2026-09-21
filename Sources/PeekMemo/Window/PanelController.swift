@@ -387,8 +387,8 @@ final class PanelController {
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
             onEndEdit: { [weak self] in self?.hover.exitEditing() },
-            onMoreWillOpen: { [weak self] in self?.enterKeyMode() },
-            onMoreDidClose: { [weak self] in
+            onPickerWillOpen: { [weak self] in self?.enterKeyMode() },
+            onPickerDidClose: { [weak self] in
                 guard let self, !self.appState.isEditing else { return }
                 self.exitKeyMode()
             },

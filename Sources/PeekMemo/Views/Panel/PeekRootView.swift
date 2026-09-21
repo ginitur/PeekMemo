@@ -13,8 +13,8 @@ struct PeekRootView: View {
     var appState: AppState
     var onBeginEdit: () -> Void = {}
     var onEndEdit: () -> Void = {}
-    var onMoreWillOpen: () -> Void = {}
-    var onMoreDidClose: () -> Void = {}
+    var onPickerWillOpen: () -> Void = {}
+    var onPickerDidClose: () -> Void = {}
     var handleOffsetInsidePanel: CGFloat = 0
     var stackLength: CGFloat = LayoutMetrics.defaultStackLength
 
@@ -48,8 +48,8 @@ struct PeekRootView: View {
             accent: accent,
             onBeginEdit: onBeginEdit,
             onEndEdit: onEndEdit,
-            onMoreWillOpen: onMoreWillOpen,
-            onMoreDidClose: onMoreDidClose
+            onPickerWillOpen: onPickerWillOpen,
+            onPickerDidClose: onPickerDidClose
         )
         return Group {
             switch edge {

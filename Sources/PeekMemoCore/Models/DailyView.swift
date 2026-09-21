@@ -29,6 +29,7 @@ public enum DailyView: Sendable {
     public static func scheduledRoots(
         in items: [MemoItem],
         on day: Date,
+        categoryId: UUID? = nil,
         calendar: Calendar = .current,
         now: Date = Date()
     ) -> [MemoItem] {
@@ -36,8 +37,14 @@ public enum DailyView: Sendable {
             item.parentId == nil
                 && !item.isArchived
                 && isScheduled(item, on: day, calendar: calendar, now: now)
+                && matches(item, filter: categoryId)
         }
         .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    public static func matches(_ item: MemoItem, filter categoryId: UUID?) -> Bool {
+        guard let categoryId else { return true }
+        return item.categoryId == categoryId
     }
 
     public static func dueRoots(
