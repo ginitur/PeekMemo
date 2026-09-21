@@ -15,7 +15,22 @@ public enum LayoutMetrics: Sendable {
     /// Mouse-tracking thickness of the collapsed window, in points.
     public static let hoverHitThickness: CGFloat = 14
 
-    public static let defaultHoverOpenDelay: TimeInterval = 0.15
+    /// Horizontal distance from the notch at which Top-edge drag starts pulling toward cloak.
+    public static let notchSnapThreshold: CGFloat = 26
+
+    /// Hairline drawn on the notch underside. Keep at 0–1 pt.
+    public static let notchCloakVisibleThickness: CGFloat = 1
+
+    /// Transparent tracking strip under the notch. Keep at 10–16 pt.
+    public static let notchCloakHitThickness: CGFloat = 14
+
+    /// Extra padding around the union of tab + panel so a 1–2 px animation gap does not collapse hover.
+    public static let hoverRegionPadding: CGFloat = 6
+
+    /// Delay after mouse-exit before the engine is told the pointer left.
+    public static let hoverGracePeriod: TimeInterval = 0.08
+
+    public static let defaultHoverOpenDelay: TimeInterval = 0.16
     public static let defaultHoverCloseDelay: TimeInterval = 0.35
 
     /// Handle reveal. Keep inside 100–180 ms.

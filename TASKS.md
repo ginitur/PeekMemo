@@ -37,11 +37,13 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 
 ## Phase 4 — Notch Cloak positioning
 
-- [ ] Derive notch from auxiliary areas + safe-area insets
-- [ ] Allow snap into the notch (do not push away)
-- [ ] Underside hover hit region
-- [ ] No Notch Cloak UI on screens without a notch
-- [ ] Escape hatches: drag handle, reset position
+- [x] Derive notch from auxiliary areas + safe-area insets (`NotchGeometry.region`)
+- [x] Allow snap into the notch (do not push away); 26 pt `notchSnapThreshold` with smoothstep pull
+- [x] Underside hover hit region (14 pt), housing itself is not a drawing surface
+- [x] No Notch Cloak UI on screens without a notch
+- [x] Escape hatches: drag out of the notch, Reset Position
+- [x] Geometry tests: no notch, notch, enter L/R, exit L/R, offset clamp, screen size change
+- [ ] Drag handle after hover — Phase 5 (cloak collapsed has no handle until hover)
 
 ## Phase 5 — Hover expansion
 

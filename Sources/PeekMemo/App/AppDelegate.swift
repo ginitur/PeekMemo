@@ -21,6 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onReset: { [weak controller] in
                 controller?.resetPosition()
+            },
+            onToggleHitRegions: { [weak controller] in
+                #if DEBUG
+                DebugFlags.showHitRegions.toggle()
+                controller?.refreshChrome()
+                #endif
             }
         )
         controller.showRestoredOrDefault()

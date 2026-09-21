@@ -7,15 +7,18 @@ final class StatusItemController {
     private let onShow: () -> Void
     private let onHide: () -> Void
     private let onReset: () -> Void
+    private let onToggleHitRegions: () -> Void
 
     init(
         onShow: @escaping () -> Void,
         onHide: @escaping () -> Void,
-        onReset: @escaping () -> Void
+        onReset: @escaping () -> Void,
+        onToggleHitRegions: @escaping () -> Void = {}
     ) {
         self.onShow = onShow
         self.onHide = onHide
         self.onReset = onReset
+        self.onToggleHitRegions = onToggleHitRegions
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -47,6 +50,18 @@ final class StatusItemController {
         reset.target = self
         menu.addItem(reset)
 
+        #if DEBUG
+        menu.addItem(.separator())
+        let hits = NSMenuItem(
+            title: "Show Hit Regions",
+            action: #selector(toggleHitRegions),
+            keyEquivalent: ""
+        )
+        hits.target = self
+        hits.state = DebugFlags.showHitRegions ? .on : .off
+        menu.addItem(hits)
+        #endif
+
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(
             title: "Quit PeekMemo",
@@ -67,4 +82,11 @@ final class StatusItemController {
     @objc private func resetPosition() {
         onReset()
     }
+
+    #if DEBUG
+    @objc private func toggleHitRegions() {
+        onToggleHitRegions()
+        item.menu = makeMenu()
+    }
+    #endif
 }

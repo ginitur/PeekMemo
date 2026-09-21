@@ -49,6 +49,11 @@ final class PanelController {
         panel.orderOut(nil)
     }
 
+    func refreshChrome() {
+        guard let placement = currentPlacement else { return }
+        installContent(edge: placement.edge, isNotchCloak: placement.isNotchCloak)
+    }
+
     func resetPosition() {
         guard let screen = ScreenManager.mainSnapshot() else {
             return
@@ -125,19 +130,25 @@ final class PanelController {
     }
 
     private func apply(_ placement: PanelPlacement, persist: Bool = false) {
-        let edgeChanged = currentPlacement?.edge != placement.edge
+        let chromeChanged = currentPlacement?.edge != placement.edge
+            || currentPlacement?.isNotchCloak != placement.isNotchCloak
         currentPlacement = placement
         positionManager.apply(placement, to: panel)
-        if edgeChanged || hostingView == nil {
-            installContent(edge: placement.edge)
+        if chromeChanged || hostingView == nil {
+            installContent(edge: placement.edge, isNotchCloak: placement.isNotchCloak)
         }
         if persist {
             PlacementStore.upsert(placement.stored)
         }
     }
 
-    private func installContent(edge: ScreenEdge) {
-        let root = CollapsedEdgeView(edge: edge)
+    private func installContent(edge: ScreenEdge, isNotchCloak: Bool) {
+        let root = CollapsedEdgeView(
+            edge: edge,
+            isNotchCloak: isNotchCloak,
+            accent: .accent,
+            showHitRegions: DebugFlags.showHitRegions
+        )
         if let hostingView {
             hostingView.rootView = root
             hostingView.frame = hostView.bounds

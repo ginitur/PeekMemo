@@ -90,13 +90,15 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        let allowCloak = stored.isNotchCloak || stored.edge == .top
+        if stored.isNotchCloak, let notch = NotchGeometry.region(on: screen) {
+            return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
+        }
         return collapsedPlacement(
             screen: screen,
             edge: stored.edge,
             offset: stored.offset,
             stackLength: stackLength,
-            allowNotchCloak: allowCloak
+            allowNotchCloak: stored.edge == .top
         )
     }
 
@@ -111,13 +113,20 @@ public enum EdgeGeometry: Sendable {
     ) -> PanelPlacement {
         let (edge, distance) = nearestEdge(to: pointer, on: screen)
         if distance <= magnetRange {
+            if edge == .top {
+                return draggingOnTopEdge(
+                    pointer: pointer,
+                    screen: screen,
+                    stackLength: stackLength
+                )
+            }
             let offset = offsetAlongEdge(pointer: pointer, edge: edge, stackLength: stackLength, screen: screen)
             return collapsedPlacement(
                 screen: screen,
                 edge: edge,
                 offset: offset,
                 stackLength: stackLength,
-                allowNotchCloak: true
+                allowNotchCloak: false
             )
         }
 
@@ -145,13 +154,18 @@ public enum EdgeGeometry: Sendable {
         stackLength: CGFloat
     ) -> PanelPlacement {
         let (edge, _) = nearestEdge(to: pointer, on: screen)
+        if edge == .top, NotchGeometry.pointerCommitsCloak(pointer, screen: screen) {
+            if let notch = NotchGeometry.region(on: screen) {
+                return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
+            }
+        }
         let offset = offsetAlongEdge(pointer: pointer, edge: edge, stackLength: stackLength, screen: screen)
         return collapsedPlacement(
             screen: screen,
             edge: edge,
             offset: offset,
             stackLength: stackLength,
-            allowNotchCloak: true
+            allowNotchCloak: false
         )
     }
 
@@ -272,22 +286,62 @@ public enum EdgeGeometry: Sendable {
         }
     }
 
+    /// Live Top-edge drag: follow the pointer, pull toward the notch, never teleport.
+    private static func draggingOnTopEdge(
+        pointer: CGPoint,
+        screen: ScreenGeometry,
+        stackLength: CGFloat
+    ) -> PanelPlacement {
+        let pull = NotchGeometry.cloakPull(pointer: pointer, screen: screen)
+        let offset = offsetAlongEdge(pointer: pointer, edge: .top, stackLength: stackLength, screen: screen)
+        let normal = collapsedPlacement(
+            screen: screen,
+            edge: .top,
+            offset: offset,
+            stackLength: stackLength,
+            allowNotchCloak: false
+        )
+
+        guard pull > 0, let notch = NotchGeometry.region(on: screen) else {
+            return normal
+        }
+
+        let cloak = notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
+        if pull >= 1 {
+            let hit = NotchGeometry.undersideHitRect(for: notch)
+            let width = max(stackLength, 48)
+            let x = min(
+                max(pointer.x - width / 2, notch.frame.minX),
+                notch.frame.maxX - width
+            )
+            let frame = CGRect(x: x, y: hit.minY, width: width, height: hit.height)
+            return PanelPlacement(
+                displayIdentifier: screen.identifier,
+                edge: .top,
+                offset: NotchGeometry.cloakOffset(stackLength: stackLength, screen: screen),
+                frame: frame,
+                isNotchCloak: true,
+                isSnapped: true
+            )
+        }
+
+        return PanelPlacement(
+            displayIdentifier: screen.identifier,
+            edge: .top,
+            offset: offset,
+            frame: mix(normal.frame, cloak.frame, t: pull),
+            isNotchCloak: false,
+            isSnapped: true
+        )
+    }
+
     private static func notchCloakPlacement(
         screen: ScreenGeometry,
         notch: NotchRegion,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        let hit = LayoutMetrics.hoverHitThickness
-        // Window covers the notch plus an underside tracking strip.
-        // Visual content in the notch may be empty; interaction lives in the strip.
-        let width = max(stackLength, notch.frame.width)
-        let x = notch.frame.midX - width / 2
-        let frame = CGRect(
-            x: x,
-            y: notch.frame.minY - hit,
-            width: width,
-            height: notch.frame.height + hit
-        )
+        // Window sits on the underside only. The housing itself has no drawable pixels.
+        let frame = NotchGeometry.undersideHitRect(for: notch)
         let offset = NotchGeometry.cloakOffset(stackLength: stackLength, screen: screen)
         return PanelPlacement(
             displayIdentifier: screen.identifier,
@@ -296,6 +350,16 @@ public enum EdgeGeometry: Sendable {
             frame: frame,
             isNotchCloak: true,
             isSnapped: true
+        )
+    }
+
+    private static func mix(_ a: CGRect, _ b: CGRect, t: CGFloat) -> CGRect {
+        let t = min(max(t, 0), 1)
+        return CGRect(
+            x: a.origin.x + (b.origin.x - a.origin.x) * t,
+            y: a.origin.y + (b.origin.y - a.origin.y) * t,
+            width: a.size.width + (b.size.width - a.size.width) * t,
+            height: a.size.height + (b.size.height - a.size.height) * t
         )
     }
 }

@@ -4,13 +4,27 @@ import Foundation
 /// Derives the camera-housing / notch rectangle from portable screen metrics.
 /// Never uses a Mac model name or a hard-coded resolution.
 public enum NotchGeometry: Sendable {
-    /// Horizontal overlap ratio at which a top-edge drop is treated as Notch Cloak.
+    /// Horizontal overlap ratio at which a stored top-edge drop is treated as Notch Cloak.
     public static let cloakOverlapRatio: CGFloat = 0.5
 
     public static func region(on screen: ScreenGeometry) -> NotchRegion? {
-        guard screen.safeAreaInsets.top > 0,
-              let left = Self.meaningful(screen.auxiliaryTopLeft),
-              let right = Self.meaningful(screen.auxiliaryTopRight)
+        region(
+            screenFrame: screen.frame,
+            safeAreaInsets: screen.safeAreaInsets,
+            auxiliaryTopLeft: screen.auxiliaryTopLeft,
+            auxiliaryTopRight: screen.auxiliaryTopRight
+        )
+    }
+
+    public static func region(
+        screenFrame: CGRect,
+        safeAreaInsets: EdgeInsetsLTRB,
+        auxiliaryTopLeft: CGRect?,
+        auxiliaryTopRight: CGRect?
+    ) -> NotchRegion? {
+        guard safeAreaInsets.top > 0,
+              let left = meaningful(auxiliaryTopLeft),
+              let right = meaningful(auxiliaryTopRight)
         else {
             return nil
         }
@@ -18,21 +32,44 @@ public enum NotchGeometry: Sendable {
         let minX = left.maxX
         let maxX = right.minX
         let width = maxX - minX
-        let height = screen.safeAreaInsets.top
+        let height = safeAreaInsets.top
         guard width > 1, height > 0 else {
             return nil
         }
 
         let frame = CGRect(
             x: minX,
-            y: screen.frame.maxY - height,
+            y: screenFrame.maxY - height,
             width: width,
             height: height
         )
         return NotchRegion(frame: frame)
     }
 
-    /// True when a top-edge stack at `offset` should enter Notch Cloak.
+    /// Horizontal band of the notch in screen space.
+    public static func horizontalRange(on screen: ScreenGeometry) -> ClosedRange<CGFloat>? {
+        guard let notch = region(on: screen) else { return nil }
+        return notch.frame.minX...notch.frame.maxX
+    }
+
+    /// Distance from `x` to the notch’s horizontal span. Zero when inside.
+    public static func horizontalDistance(_ x: CGFloat, to notch: CGRect) -> CGFloat {
+        if x < notch.minX { return notch.minX - x }
+        if x > notch.maxX { return x - notch.maxX }
+        return 0
+    }
+
+    /// Transparent tracking strip on the notch underside. Does not cover the housing itself.
+    public static func undersideHitRect(for notch: NotchRegion) -> CGRect {
+        CGRect(
+            x: notch.frame.minX,
+            y: notch.frame.minY - LayoutMetrics.notchCloakHitThickness,
+            width: notch.frame.width,
+            height: LayoutMetrics.notchCloakHitThickness
+        )
+    }
+
+    /// True when a top-edge stack at `offset` overlaps the notch enough to cloak.
     public static func shouldCloak(
         edge: ScreenEdge,
         offset: CGFloat,
@@ -51,6 +88,35 @@ public enum NotchGeometry: Sendable {
         }
         let threshold = min(stackLength, notch.frame.width) * cloakOverlapRatio
         return overlap >= threshold
+    }
+
+    /// Pointer is on the top edge and inside the notch’s horizontal span.
+    public static func pointerCommitsCloak(
+        _ pointer: CGPoint,
+        screen: ScreenGeometry,
+        magnetRange: CGFloat = LayoutMetrics.magnetRange
+    ) -> Bool {
+        guard let notch = region(on: screen) else { return false }
+        let distanceToTop = abs(pointer.y - screen.frame.maxY)
+        guard distanceToTop <= magnetRange else { return false }
+        return horizontalDistance(pointer.x, to: notch.frame) == 0
+    }
+
+    /// 0 outside the magnet, 1 inside the notch, smoothstep in between.
+    public static func cloakPull(
+        pointer: CGPoint,
+        screen: ScreenGeometry,
+        magnetRange: CGFloat = LayoutMetrics.magnetRange,
+        snapThreshold: CGFloat = LayoutMetrics.notchSnapThreshold
+    ) -> CGFloat {
+        guard let notch = region(on: screen) else { return 0 }
+        let distanceToTop = abs(pointer.y - screen.frame.maxY)
+        guard distanceToTop <= magnetRange else { return 0 }
+        let distX = horizontalDistance(pointer.x, to: notch.frame)
+        if distX == 0 { return 1 }
+        if distX >= snapThreshold { return 0 }
+        let t = 1 - distX / snapThreshold
+        return t * t * (3 - 2 * t)
     }
 
     /// Offset that centers a stack on the notch, clamped to the top visible span.

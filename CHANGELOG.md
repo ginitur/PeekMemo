@@ -16,3 +16,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Drag the Edge Tab to Left / Right / Top / Bottom with 6 pt drag threshold and 24 pt magnetic snap.
 - Per-display `{edge, offset}` saved in UserDefaults (SQLite arrives in Phase 6).
 - Menu Bar: Show, Hide, Reset Position, Quit.
+- Notch Cloak: Top-edge drag into the notch range hides the tab in the camera housing. The window sits on a 14 pt underside hit strip (1 pt hairline). Dragging out restores a normal Edge Tab. Reset Position still works.
