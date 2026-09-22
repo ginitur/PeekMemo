@@ -59,6 +59,9 @@ public enum LayoutMetrics: Sendable {
 
     public static let defaultStackLength: CGFloat = 56
     public static let subtaskIndent: CGFloat = 18
+
+    /// Category control hit height. Kept clear of the drag rail.
+    public static let categoryHitHeight: CGFloat = 32
     public static let defaultOpacity: Double = 0.92
     public static let minimumOpacity: Double = 0.5
     public static let maximumOpacity: Double = 1.0

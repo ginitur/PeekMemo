@@ -1,13 +1,16 @@
+import AppKit
 import PeekMemoCore
 import SwiftUI
 
 struct PreviewPanelView: View {
     @Bindable var state: AppState
     var accent: RGBAColor = .accent
+    var showInteractionRegions: Bool = false
     var onBeginEdit: () -> Void
     var onEndEdit: () -> Void
-    var onPickerWillOpen: () -> Void = {}
-    var onPickerDidClose: () -> Void = {}
+    var onInteractionBegan: () -> Void = {}
+    var onInteractionEnded: () -> Void = {}
+    var onEditorFrameChange: (CGRect) -> Void = { _ in }
     @FocusState private var editorFocused: Bool
 
     var body: some View {
@@ -29,6 +32,7 @@ struct PreviewPanelView: View {
                             Text("+ Add Task")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(accent.color)
+                                .textSelection(.disabled)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Add Task")
@@ -37,8 +41,10 @@ struct PreviewPanelView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
             }
+            .textSelection(.disabled)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .textSelection(.disabled)
         .background {
             VisualEffectView(
                 material: .hudWindow,
@@ -49,12 +55,13 @@ struct PreviewPanelView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .center, spacing: 6) {
             Button(action: state.goToPreviousDay) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.plain)
+            .frame(width: 28, height: LayoutMetrics.categoryHitHeight)
             .accessibilityLabel("Previous day")
 
             Button {
@@ -64,15 +71,25 @@ struct PreviewPanelView: View {
                     Text(state.dateTitle)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
+                        .textSelection(.disabled)
                     let stats = state.dailyStats
                     if stats.total > 0 {
                         Text("\(stats.completed)/\(stats.total)")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
+                            .textSelection(.disabled)
                     }
                 }
+                .frame(maxWidth: .infinity, minHeight: LayoutMetrics.categoryHitHeight)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .layoutPriority(1)
+            .overlay {
+                if showInteractionRegions {
+                    HitRegionOverlay(kind: .headerDate)
+                }
+            }
             .popover(isPresented: $state.showDatePicker, arrowEdge: .bottom) {
                 DatePicker(
                     "",
@@ -89,15 +106,21 @@ struct PreviewPanelView: View {
                 .labelsHidden()
                 .padding(8)
             }
+            .onChange(of: state.showDatePicker) { _, presented in
+                if presented {
+                    onInteractionBegan()
+                } else {
+                    onInteractionEnded()
+                }
+            }
 
             Button(action: state.goToNextDay) {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.plain)
+            .frame(width: 28, height: LayoutMetrics.categoryHitHeight)
             .accessibilityLabel("Next day")
-
-            Spacer(minLength: 8)
 
             CategoryPickerButton(
                 label: state.filterLabel,
@@ -105,11 +128,16 @@ struct PreviewPanelView: View {
                 onSelectAll: { state.categoryFilter = .all },
                 onSelect: { state.categoryFilter = .category($0) },
                 onNew: { state.addCategory() },
-                onWillOpen: onPickerWillOpen,
-                onDidClose: onPickerDidClose
+                onWillOpen: onInteractionBegan,
+                onDidClose: onInteractionEnded
             )
-            .frame(minWidth: 44, maxHeight: 18)
-            .fixedSize()
+            .frame(minWidth: 64, minHeight: LayoutMetrics.categoryHitHeight, maxHeight: LayoutMetrics.categoryHitHeight)
+            .fixedSize(horizontal: true, vertical: true)
+            .overlay {
+                if showInteractionRegions {
+                    HitRegionOverlay(kind: .category)
+                }
+            }
         }
     }
 
@@ -125,7 +153,7 @@ struct PreviewPanelView: View {
                     Image(systemName: state.isTaskExpanded(item.id) ? "chevron.down" : "chevron.right")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 12, height: 16)
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(state.isTaskExpanded(item.id) ? "Collapse subtasks" : "Expand subtasks")
@@ -145,6 +173,7 @@ struct PreviewPanelView: View {
                                 Text("+ Add subtask")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(accent.color)
+                                    .textSelection(.disabled)
                             }
                             .buttonStyle(.plain)
                             .padding(.leading, LayoutMetrics.subtaskIndent)
@@ -164,6 +193,8 @@ struct PreviewPanelView: View {
                 Text("\(progress.done)/\(progress.total)")
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
+                    .textSelection(.disabled)
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -174,30 +205,35 @@ struct PreviewPanelView: View {
             editorField(placeholder: isSubtask ? "Subtask" : "Task", isSubtask: isSubtask)
                 .padding(.leading, isSubtask ? LayoutMetrics.subtaskIndent : 0)
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
                 if item.type == .task {
                     Button(action: { state.toggleCompleted(item) }) {
                         Image(systemName: item.isCompleted ? "checkmark.square.fill" : "square")
                             .font(.system(size: isSubtask ? 12 : 13))
                             .foregroundStyle(item.isCompleted ? accent.color : .secondary)
+                            .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(item.isCompleted ? "Mark incomplete" : "Mark complete")
                 }
 
-                Text(item.title)
-                    .font(.system(size: isSubtask ? 11.5 : 12.5))
-                    .strikethrough(item.isCompleted)
-                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                    .opacity(item.isCompleted ? 0.55 : 1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture { edit(item) }
+                NonInteractiveLabel(
+                    text: item.title,
+                    font: .systemFont(ofSize: isSubtask ? 11.5 : 12.5),
+                    color: item.isCompleted ? .secondaryLabelColor : .labelColor,
+                    strikethrough: item.isCompleted,
+                    onClick: { edit(item) }
+                )
+                .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
+                .opacity(item.isCompleted ? 0.55 : 1)
 
                 if !isSubtask, state.categoryFilter == .all {
                     Text(state.categoryForItem(item)?.name ?? "Uncategorized")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.tertiary)
+                        .textSelection(.disabled)
+                        .allowsHitTesting(false)
+                        .fixedSize()
                 }
             }
             .padding(.leading, isSubtask ? LayoutMetrics.subtaskIndent : 0)
@@ -214,8 +250,22 @@ struct PreviewPanelView: View {
             .font(.system(size: isSubtask ? 11.5 : 12.5))
             .padding(6)
             .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background {
+                ScreenFrameReader { onEditorFrameChange($0) }
+            }
+            .overlay {
+                if showInteractionRegions {
+                    HitRegionOverlay(kind: .editor)
+                }
+            }
             .focused($editorFocused)
             .onAppear { editorFocused = true }
+            .onDisappear { onEditorFrameChange(.null) }
+            .onChange(of: editorFocused) { _, focused in
+                if !focused {
+                    endFromBlur()
+                }
+            }
             .onSubmit {
                 if isSubtask {
                     let keep = state.saveDraft(continueSubtask: true)
@@ -263,6 +313,12 @@ struct PreviewPanelView: View {
 
     private func cancel() {
         state.cancelEdit()
+        onEndEdit()
+    }
+
+    private func endFromBlur() {
+        guard state.isEditing else { return }
+        state.commitComposerIfNeeded()
         onEndEdit()
     }
 }

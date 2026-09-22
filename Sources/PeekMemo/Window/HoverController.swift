@@ -26,7 +26,9 @@ final class HoverController {
 
     func pointerExited() {
         guard !isDragging else { return }
-        graceWork?.cancel()
+        // A move outside while the grace timer is already running must not
+        // push the collapse further out.
+        if graceWork != nil { return }
         let work = DispatchWorkItem { [weak self] in
             self?.confirmExit()
         }
@@ -53,7 +55,24 @@ final class HoverController {
 
     func exitEditing() {
         apply(engine.handle(.endEditing))
+        if engine.phase == .expanded, !engine.pointerInside, engine.interactionHoldCount == 0 {
+            apply(engine.handle(.pointerExitedRegion))
+        }
     }
+
+    func beginInteraction() {
+        guard !isDragging else { return }
+        graceWork?.cancel()
+        graceWork = nil
+        apply(engine.handle(.beginInteraction))
+    }
+
+    func endInteraction() {
+        guard !isDragging else { return }
+        apply(engine.handle(.endInteraction))
+    }
+
+    var isExitGracePending: Bool { graceWork != nil }
 
     func beginDrag() {
         isDragging = true

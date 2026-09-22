@@ -82,7 +82,8 @@ enum HoverEngineTests {
 
         let ended = engine.handle(.endEditing)
         try expectEqual(ended, .endEditing)
-        try expectEqual(engine.phase, .pinned)
+        try expectEqual(engine.phase, .expanded)
+        try expect(!engine.isPinned)
         try expect(!engine.allowsKeyWindow)
     }
 

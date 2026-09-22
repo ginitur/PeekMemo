@@ -92,6 +92,15 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] `UserList` / `listId` renamed to `Category` / `categoryId`
 - [x] Top / Notch snap experimental, off by default
 
+## Phase 5.9 — Mouse interaction stabilization
+
+- [x] Drag hits only the edge handle. `EdgeHostView.hitTest` no longer mirrors Y into the flipped hosting view.
+- [x] Static titles are non-selectable labels. No hidden full-panel text field. I-beam is limited to a real `TextField`.
+- [x] Hover uses the live edge frame and the live panel frame separately. Leaving schedules collapse (350 ms). Edit and menus do not pin.
+- [x] Category control is an `NSMenu` with a 32 pt hit target. Choosing a category does not pin.
+- [x] DEBUG: Show Interaction Regions, `[Hover]` / `[Interaction]` logs on state changes only.
+- [ ] PARTIAL: live pointer paths (hover leave, one-click All, drag vs content) were checked with an on-screen hit dump, not a full HID script. Needs a hands-on pass.
+
 ## Phase 6 — Memo persistence
 
 - [ ] GRDB.swift

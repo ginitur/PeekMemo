@@ -7,14 +7,16 @@ struct PeekRootView: View {
     var phase: PeekMemoCore.HoverPhase
     var accent: RGBAColor = .accent
     var showHitRegions: Bool = false
+    var showInteractionRegions: Bool = false
     /// Height of the physical housing, in the expanded window’s top. Content starts below it.
     var notchOccludedHeight: CGFloat = 0
     var contentOpacity: Double = 1
     var appState: AppState
     var onBeginEdit: () -> Void = {}
     var onEndEdit: () -> Void = {}
-    var onPickerWillOpen: () -> Void = {}
-    var onPickerDidClose: () -> Void = {}
+    var onInteractionBegan: () -> Void = {}
+    var onInteractionEnded: () -> Void = {}
+    var onEditorFrameChange: (CGRect) -> Void = { _ in }
     var handleOffsetInsidePanel: CGFloat = 0
     var stackLength: CGFloat = LayoutMetrics.defaultStackLength
 
@@ -38,6 +40,10 @@ struct PeekRootView: View {
             if showHitRegions, isExpanded {
                 HitRegionOverlay(kind: .content, edge: edge)
             }
+            if showInteractionRegions, isExpanded {
+                HitRegionOverlay(kind: .panelHover, edge: edge)
+                    .allowsHitTesting(false)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -46,10 +52,12 @@ struct PeekRootView: View {
         let preview = PreviewPanelView(
             state: appState,
             accent: accent,
+            showInteractionRegions: showInteractionRegions,
             onBeginEdit: onBeginEdit,
             onEndEdit: onEndEdit,
-            onPickerWillOpen: onPickerWillOpen,
-            onPickerDidClose: onPickerDidClose
+            onInteractionBegan: onInteractionBegan,
+            onInteractionEnded: onInteractionEnded,
+            onEditorFrameChange: onEditorFrameChange
         )
         return Group {
             switch edge {
@@ -85,23 +93,33 @@ struct PeekRootView: View {
         let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: accent)
         let thickness = LayoutMetrics.hoverHitThickness
         ZStack(alignment: vertical ? .top : .leading) {
-            Color.clear
+            Color.clear.allowsHitTesting(false)
             handle
+                .allowsHitTesting(false)
                 .frame(
                     width: vertical ? thickness : stackLength,
                     height: vertical ? stackLength : thickness
                 )
+                .overlay {
+                    if showInteractionRegions || showHitRegions {
+                        HitRegionOverlay(kind: .dragHandle, edge: edge)
+                    }
+                }
                 .offset(
                     x: vertical ? 0 : handleOffsetInsidePanel - stackLength / 2,
                     y: vertical ? handleOffsetInsidePanel - stackLength / 2 : 0
                 )
-        }
-        .frame(width: vertical ? thickness : nil, height: vertical ? nil : thickness)
-        .overlay {
-            if showHitRegions {
-                HitRegionOverlay(kind: .dragHandle, edge: edge)
+            if showInteractionRegions {
+                HitRegionOverlay(kind: .sensor, edge: edge)
+                    .frame(
+                        width: vertical ? thickness : nil,
+                        height: vertical ? nil : thickness
+                    )
+                    .allowsHitTesting(false)
             }
         }
+        .frame(width: vertical ? thickness : nil, height: vertical ? nil : thickness)
+        .allowsHitTesting(false)
     }
 
 }

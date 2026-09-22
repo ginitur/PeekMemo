@@ -20,6 +20,11 @@ final class PanelController {
     private var suppressAnimatedCollapse = false
     private let appState = AppState()
     private var currentExpansion: ExpansionLayout?
+    private var outsideMoveMonitor: Any?
+    private var editorScreenRect: CGRect?
+    #if DEBUG
+    private var lastInteractionLog: InteractionLogKey?
+    #endif
 
     private var previewSize: CGSize {
         CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
@@ -56,6 +61,7 @@ final class PanelController {
         }
         hostView.onPointerMoved = { [weak self] point in
             self?.probeNotchHit(at: point)
+            self?.evaluatePointer()
         }
         hover.regionContainsPointer = { [weak self] in
             self?.pointerIsInsideHoverRegion() ?? false
@@ -96,6 +102,7 @@ final class PanelController {
     }
 
     func hide() {
+        stopOutsideMonitor()
         panel.orderOut(nil)
     }
 
@@ -222,8 +229,10 @@ final class PanelController {
     private func handleHoverOutput(_ output: HoverOutput) {
         switch output {
         case .expand:
+            startOutsideMonitor()
             expandChrome()
         case .beginEditing:
+            startOutsideMonitor()
             if !shellExpanded {
                 expandChrome()
             }
@@ -231,6 +240,8 @@ final class PanelController {
         case .endEditing:
             exitKeyMode()
         case .collapse:
+            stopOutsideMonitor()
+            editorScreenRect = nil
             if hover.isDragging || suppressAnimatedCollapse {
                 motionGeneration += 1
                 shellExpanded = false
@@ -242,6 +253,10 @@ final class PanelController {
         case .none, .scheduleOpen, .scheduleClose, .cancelTimers:
             break
         }
+        if hover.engine.isPinned || hover.engine.phase == .collapsed {
+            stopOutsideMonitor()
+        }
+        publishInteractionLog(at: NSEvent.mouseLocation)
     }
 
     private func expandChrome() {
@@ -357,6 +372,8 @@ final class PanelController {
             edge: anchorPlacement?.edge ?? .right,
             expanded: shellExpanded
         )
+        hostView.installTrackingArea()
+        evaluatePointer()
     }
 
     private func displayedPlacement(anchor: PanelPlacement, expanded: Bool) -> PanelPlacement {
@@ -387,15 +404,17 @@ final class PanelController {
             phase: phase,
             accent: .accent,
             showHitRegions: DebugFlags.showHitRegions,
+            showInteractionRegions: DebugFlags.showInteractionRegions,
             notchOccludedHeight: notchOccludedHeight,
             contentOpacity: contentOpacity,
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
             onEndEdit: { [weak self] in self?.hover.exitEditing() },
-            onPickerWillOpen: { [weak self] in self?.enterKeyMode() },
-            onPickerDidClose: { [weak self] in
-                guard let self, !self.appState.isEditing else { return }
-                self.exitKeyMode()
+            onInteractionBegan: { [weak self] in self?.beginTemporaryInteraction() },
+            onInteractionEnded: { [weak self] in self?.endTemporaryInteraction() },
+            onEditorFrameChange: { [weak self] rect in
+                self?.editorScreenRect = rect
+                self?.publishInteractionLog(at: NSEvent.mouseLocation)
             },
             handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? 0,
             stackLength: positionManager.stackLength
@@ -431,26 +450,60 @@ final class PanelController {
         )
     }
 
+    private func pointerHits(at point: CGPoint) -> HoverPointerHits {
+        let edge = anchorPlacement?.frame ?? .null
+        let panelFrame: CGRect? = shellExpanded ? panel.frame : nil
+        let visibleEdge = shellExpanded ? edge : panel.frame
+        return HoverRegion.hits(point, edge: visibleEdge, panel: panelFrame)
+    }
+
     private func pointerIsInsideHoverRegion() -> Bool {
-        guard let anchor = anchorPlacement else { return false }
-        let phase = hover.engine.phase
-        let collapsed = anchor.frame
-        let expanded: CGRect
-        if let screen = screenForAnchor(anchor) {
-            expanded = EdgeGeometry.expandedFrame(
-                collapsed: anchor,
-                screen: screen,
-                panelSize: previewSize
-            )
-        } else {
-            expanded = collapsed
+        pointerHits(at: NSEvent.mouseLocation).inside
+    }
+
+    private func evaluatePointer() {
+        guard !hover.isDragging else { return }
+        let point = NSEvent.mouseLocation
+        let hits = pointerHits(at: point)
+        if hits.inside {
+            if !hover.engine.pointerInside || hover.isExitGracePending {
+                hover.pointerEntered()
+            }
+        } else if hover.engine.pointerInside, !hover.isExitGracePending {
+            hover.pointerExited()
         }
-        return HoverRegion.contains(
-            NSEvent.mouseLocation,
-            collapsed: collapsed,
-            expanded: expanded,
-            phase: phase
-        )
+        publishInteractionLog(at: point, hits: hits)
+    }
+
+    private func beginTemporaryInteraction() {
+        hover.beginInteraction()
+        enterKeyMode()
+    }
+
+    private func endTemporaryInteraction() {
+        hover.endInteraction()
+        if !appState.isEditing, hover.engine.phase != .editing {
+            exitKeyMode()
+        }
+        evaluatePointer()
+    }
+
+    private func startOutsideMonitor() {
+        guard outsideMoveMonitor == nil else { return }
+        outsideMoveMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self?.evaluatePointer()
+                }
+            }
+        }
+    }
+
+    private func stopOutsideMonitor() {
+        if let outsideMoveMonitor {
+            NSEvent.removeMonitor(outsideMoveMonitor)
+            self.outsideMoveMonitor = nil
+        }
     }
 
     private func screenForAnchor(_ placement: PanelPlacement) -> ScreenGeometry? {
@@ -468,14 +521,23 @@ final class PanelController {
         panel.allowsKey = true
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        publishInteractionLog(at: NSEvent.mouseLocation)
     }
 
     private func exitKeyMode() {
         panel.allowsKey = false
+        if panel.firstResponder is NSTextView || panel.firstResponder is NSTextField {
+            panel.makeFirstResponder(nil)
+        }
         if panel.isKeyWindow {
             panel.resignKey()
         }
+        panel.invalidateCursorRects(for: hostView)
+        if let hostingView {
+            panel.invalidateCursorRects(for: hostingView)
+        }
         panel.orderFrontRegardless()
+        publishInteractionLog(at: NSEvent.mouseLocation)
     }
 
     private func notchOccludedHeight(for placement: PanelPlacement) -> CGFloat {
@@ -533,6 +595,34 @@ final class PanelController {
         notchDebugOverlay.show(notch: notch, anchor: anchor.frame, screen: screen)
         #else
         notchDebugOverlay.hide()
+        #endif
+    }
+
+    private func publishInteractionLog(at point: CGPoint, hits: HoverPointerHits? = nil) {
+        #if DEBUG
+        let resolved = hits ?? pointerHits(at: point)
+        let insideEditor = editorScreenRect?.contains(point) ?? false
+        let key = InteractionLogKey(
+            hoverState: hover.engine.phase,
+            editingItemID: appState.editingItemID,
+            isComposing: appState.isComposing,
+            isKeyWindow: panel.isKeyWindow,
+            allowsKey: panel.allowsKey,
+            isPinned: hover.engine.isPinned,
+            interactionHoldCount: hover.engine.interactionHoldCount,
+            mouseInsideEdge: resolved.insideEdge,
+            mouseInsidePanel: resolved.insidePanel,
+            insideEditor: insideEditor
+        )
+        guard key != lastInteractionLog else { return }
+        lastInteractionLog = key
+        let editing = appState.editingItemID?.uuidString ?? "nil"
+        print(
+            "[Hover] mouse=(\(point.x),\(point.y)) insideEdge=\(resolved.insideEdge) insidePanel=\(resolved.insidePanel) insideEditor=\(insideEditor) state=\(hover.engine.phase.rawValue)"
+        )
+        print(
+            "[Interaction] hoverState=\(hover.engine.phase.rawValue) editingItemID=\(editing) isKeyWindow=\(panel.isKeyWindow) allowsKey=\(panel.allowsKey) isPinned=\(hover.engine.isPinned) interactionHoldCount=\(hover.engine.interactionHoldCount) mouseInsideEdge=\(resolved.insideEdge) mouseInsidePanel=\(resolved.insidePanel)"
+        )
         #endif
     }
 

@@ -23,24 +23,37 @@ final class EdgeHostView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    private var isUpdatingTracking = false
+
     override func hitTest(_ point: NSPoint) -> NSView? {
+        // `point` is in the superview's coordinates. The hosting view is flipped;
+        // converting into it and then calling `hitTest` mirrors Y and delivers
+        // header clicks to the scroll view.
+        let local = convert(point, from: superview)
+        guard bounds.contains(local) else { return nil }
         if let dragHandleRect {
-            if dragHandleRect.contains(point) {
+            if dragHandleRect.contains(local) {
                 return self
             }
-            for subview in subviews.reversed() {
-                let converted = convert(point, to: subview)
-                if let hit = subview.hitTest(converted) {
-                    return hit
-                }
-            }
-            return nil
+            return super.hitTest(point)
         }
-        return bounds.contains(point) ? self : nil
+        return self
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        installTrackingArea()
     }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
+        installTrackingArea()
+    }
+
+    func installTrackingArea() {
+        guard !isUpdatingTracking else { return }
+        isUpdatingTracking = true
+        defer { isUpdatingTracking = false }
         for area in trackingAreas {
             removeTrackingArea(area)
         }

@@ -7,6 +7,10 @@ enum HitRegionKind {
     case content
     case dragHandle
     case sensor
+    case headerDate
+    case category
+    case editor
+    case panelHover
 }
 
 struct HitRegionOverlay: View {
@@ -36,6 +40,10 @@ struct HitRegionOverlay: View {
         case .content: Color.green
         case .dragHandle: Color.pink
         case .sensor: Color.yellow
+        case .headerDate: Color.cyan
+        case .category: Color.orange
+        case .editor: Color.mint
+        case .panelHover: Color.green
         }
     }
 
@@ -45,7 +53,11 @@ struct HitRegionOverlay: View {
         case .notch: "Notch Hit"
         case .content: "Panel Content"
         case .dragHandle: "Drag Handle"
-        case .sensor: "Notch Sensor"
+        case .sensor: "Edge Sensor"
+        case .headerDate: "Header Date"
+        case .category: "Category Button"
+        case .editor: "Editor"
+        case .panelHover: "Panel Hover Region"
         }
     }
 }

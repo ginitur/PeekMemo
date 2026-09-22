@@ -42,6 +42,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DebugFlags.showAnchorGeometry.toggle()
                 controller?.refreshChrome()
                 #endif
+            },
+            onToggleInteractionRegions: { [weak controller] in
+                #if DEBUG
+                DebugFlags.showInteractionRegions.toggle()
+                controller?.refreshChrome()
+                #endif
             }
         )
         controller.showRestoredOrDefault()

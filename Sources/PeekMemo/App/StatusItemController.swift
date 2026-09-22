@@ -11,6 +11,7 @@ final class StatusItemController {
     private let onToggleNotchGeometry: () -> Void
     private let onMoveToNotch: () -> Void
     private let onToggleAnchorGeometry: () -> Void
+    private let onToggleInteractionRegions: () -> Void
 
     init(
         onShow: @escaping () -> Void,
@@ -19,7 +20,8 @@ final class StatusItemController {
         onToggleHitRegions: @escaping () -> Void = {},
         onToggleNotchGeometry: @escaping () -> Void = {},
         onMoveToNotch: @escaping () -> Void = {},
-        onToggleAnchorGeometry: @escaping () -> Void = {}
+        onToggleAnchorGeometry: @escaping () -> Void = {},
+        onToggleInteractionRegions: @escaping () -> Void = {}
     ) {
         self.onShow = onShow
         self.onHide = onHide
@@ -28,6 +30,7 @@ final class StatusItemController {
         self.onToggleNotchGeometry = onToggleNotchGeometry
         self.onMoveToNotch = onMoveToNotch
         self.onToggleAnchorGeometry = onToggleAnchorGeometry
+        self.onToggleInteractionRegions = onToggleInteractionRegions
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -104,6 +107,15 @@ final class StatusItemController {
         experimental.target = self
         experimental.state = DebugFlags.experimentalTopEdge ? .on : .off
         menu.addItem(experimental)
+
+        let regions = NSMenuItem(
+            title: "Show Interaction Regions",
+            action: #selector(toggleInteractionRegions),
+            keyEquivalent: ""
+        )
+        regions.target = self
+        regions.state = DebugFlags.showInteractionRegions ? .on : .off
+        menu.addItem(regions)
         #endif
 
         menu.addItem(.separator())
@@ -149,6 +161,11 @@ final class StatusItemController {
 
     @objc private func toggleExperimentalTop() {
         DebugFlags.experimentalTopEdge.toggle()
+        item.menu = makeMenu()
+    }
+
+    @objc private func toggleInteractionRegions() {
+        onToggleInteractionRegions()
         item.menu = makeMenu()
     }
     #endif

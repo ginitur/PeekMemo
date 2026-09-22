@@ -52,6 +52,12 @@ enum PeekMemoCoreTestsMain {
             ("CompletedStayVisible", CompletedStayVisibleTests.run),
             ("SubtaskIndent", SubtaskIndentModelTests.run),
             ("AddTaskDefaultDate", AddTaskDefaultDateTests.run),
+            ("HoverExitCollapse", HoverExitCollapseTests.run),
+            ("TemporaryInteractionHold", TemporaryInteractionHoldTests.run),
+            ("EditModeTransition", EditModeTransitionTests.run),
+            ("PinnedVsInteractive", PinnedVsInteractiveTests.run),
+            ("CategorySelectionState", CategorySelectionStateTests.run),
+            ("DragHandleIsolation", DragHandleIsolationTests.run),
         ]
 
         var failed = 0

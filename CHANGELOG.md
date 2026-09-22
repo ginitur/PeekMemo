@@ -30,6 +30,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Dragging never cloaks live; Top can be dragged to other edges. Notch sensor stays below the panel and hides during drag.
 - Daily View: `selectedDate`, `scheduledDate` vs `dueDate` vs `completedAt`. Past completion uses `completedAt <= endOfDay`.
 
+### Fixed
+
+- Expanded-panel hit testing no longer mirrors clicks into the task list. The drag handle is the only drag origin.
+- Hover collapse follows the live panel frame. Editing, the date picker, and the category menu pause collapse without pinning.
+- Category All ▾ is an AppKit menu with a 32 pt target and opens on the first click.
+- Static task titles do not take the I-beam cursor. The text field exists only while editing.
+
 ### Changed
 
 - PeekMemo is a date + category + task tool, not a project manager. The expanded panel is always a Date View. Today means `selectedDate == today`.
