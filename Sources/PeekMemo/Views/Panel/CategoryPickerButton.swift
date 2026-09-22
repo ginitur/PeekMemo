@@ -60,14 +60,21 @@ final class CategoryPickerNSView: NSView {
     override var intrinsicContentSize: NSSize {
         let text = (coordinator?.label ?? "All") + " ▾"
         let size = text.size(withAttributes: Self.attributes)
-        return NSSize(width: ceil(size.width) + 4, height: 18)
+        return NSSize(width: ceil(size.width) + 16, height: LayoutMetrics.categoryHitHeight)
     }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let local = convert(point, from: superview)
+        return bounds.contains(local) ? self : nil
+    }
+
+    override var needsPanelToBecomeKey: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {
         let text = (coordinator?.label ?? "All") + " ▾"
         let size = text.size(withAttributes: Self.attributes)
         text.draw(
-            at: CGPoint(x: 0, y: (bounds.height - size.height) / 2),
+            at: CGPoint(x: 8, y: (bounds.height - size.height) / 2),
             withAttributes: Self.attributes
         )
     }
