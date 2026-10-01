@@ -54,7 +54,7 @@ The app bundle is written to `dist/PeekMemo.app` and `dist/PeekMemo.zip`.
 
 ## Privacy
 
-Notes, tasks, and categories are stored locally in SQLite. Appearance settings are stored locally in UserDefaults.
+Notes, tasks, and categories are stored locally in SQLite. Appearance settings are stored locally in UserDefaults. A panel background image, if you choose one, is copied into Application Support and is not uploaded.
 
 PeekMemo does not upload note contents anywhere.
 

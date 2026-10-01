@@ -128,7 +128,7 @@ The product model stays frozen. This phase does not add task-management features
 - [x] Settings window: General, Appearance, Behavior
 - [x] `PreferencesStore` and `peekmemo.preferences.*` in UserDefaults. Not SQLite
 - [x] Theme System / Light / Dark. Panel opacity 0.70–1.00, default 0.94
-- [x] Width Compact / Medium / Wide and maximum height Small / Medium / Large. Short content shrinks; overflow scrolls
+- [x] Width Compact / Medium / Wide and maximum height Small / Medium / Large. Superseded by Phase 7.1; short lists no longer shrink the panel
 - [x] Edge tab stays one Wedge: thickness, length, opacity, System Accent or custom hex color
 - [x] Hit region stays 14 pt when the wedge gets thinner
 - [x] Hover open / close delays apply to `HoverEngine` immediately
@@ -138,6 +138,21 @@ The product model stays frozen. This phase does not add task-management features
 - [x] Launch at Login via `SMAppService.mainApp`. The menu bar icon cannot be hidden
 - [x] No new timers, display link, or mouse polling
 - [ ] PARTIAL: live edge, opacity, theme, and delay changes need a hands-on pass. `swift run` is not an installed app, so Login Items often reports not registered
+
+## Phase 7.1 — Panel layout and background
+
+Still not a new task-management feature. SQLite, hover, and the edge anchor stay as they were.
+
+- [x] Default memo is Medium, 340×460 pt, taller than it is wide. Minimum 280×300. Short lists do not shrink the panel
+- [x] Small 300×360, Medium 340×460, Large 420×560, plus Custom. A drag stores the exact size and becomes Custom
+- [x] Resize grip on the free corner. Right is bottom-left, Left is bottom-right, Bottom is top-right. The edge anchor does not move
+- [x] Saved size is `panelWidth` / `panelHeight` in UserDefaults. A smaller display clamps the window only; it does not overwrite the saved size
+- [x] Old Compact / Medium / Wide and height presets migrate once. The old default becomes 340×460, not 280×120
+- [x] Expanded panel corner radius is 16 pt. Material, image, and the hairline border share that clip. A light window shadow shows only while expanded
+- [x] Background: System Material, Solid Color, or Image. Image is copied to `~/Library/Application Support/PeekMemo/Backgrounds/`. Preferences store the filename only
+- [x] Fill / Fit, top / center / bottom, image opacity 0.20–1.00 (default 0.60), overlay 0–0.80 (default 0.25). Remove deletes only the copied file
+- [x] A missing image falls back to System Material. Header stays put; the list scrolls; Add Task stays under the list
+- [ ] PARTIAL: dragging the grip and choosing a photo still need a hands-on pass. Background blur was not added
 
 ## Phase 8 — not started
 

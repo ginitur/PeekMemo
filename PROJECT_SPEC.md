@@ -207,11 +207,15 @@ Preferences is a normal macOS window (General, Appearance, Behavior), opened fro
 
 Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, through `PreferencesStore`. Views do not call `UserDefaults.set` themselves. Nothing in this window is written to SQLite.
 
-- Theme: System / Light / Dark. Default System. The panel follows it immediately.
+- Theme: System / Light / Dark. Default System. The panel follows it immediately. Text and controls follow the theme. A background image does not.
 - Panel opacity: 0.70–1.00. Default 0.94. Applied as the expanded window alpha.
-- Width: Compact / Medium / Wide memo column (280 / 340 / 420 pt). Default Compact. Left and Right add the 14 pt hit rail beside the column.
-- Maximum height: Small / Medium / Large (280 / 420 / 560 pt), including the header. Default Medium. Short content shrinks; overflow scrolls. Empty days do not open a tall window.
-- Edge tab: one Wedge. Thickness 2–6 pt (default 3), length 32–96 pt (default 56), opacity default 0.55. Color is System Accent or a custom color stored as hex RGBA. Hover raises wedge opacity slightly. No glow, gradient, or extra shapes.
+- Panel size: Small 300×360, Medium 340×460 (default), Large 420×560, or Custom. The card is the size. Left and Right add the 14 pt hit rail beside it; Top and Bottom add it above or below. Minimum stored size is 280×300. The window is also clamped to the current `visibleFrame`, and that clamp is not written back.
+- Short lists keep the saved size. Overflow scrolls inside the card. The header stays fixed. `+ Add Task` stays under the scroll.
+- Dragging the resize grip on the free corner (right edge: bottom-left, left edge: bottom-right, bottom edge: top-right) sets Custom and saves `panelWidth` and `panelHeight`. Width and height are independent. The edge anchor does not move. Auto-collapse pauses while the pointer is down on the grip.
+- Corner radius is 16 pt for the expanded card. The material, the image, the content, and the hairline border use that same rounded clip. The expanded window uses the system shadow. The collapsed wedge does not.
+- Background: System Material (default), Solid Color, or Image. Solid color has its own opacity (0.40–1.00). An opaque light or dark solid switches text contrast. Image fit is Fill (default) or Fit, never stretched, aligned Top, Center, or Bottom. Image opacity is 0.20–1.00, default 0.60. Overlay is 0–0.80, default 0.25, black in Dark and white in Light.
+- A chosen image is copied to `~/Library/Application Support/PeekMemo/Backgrounds/` under a `background-<uuid>` name. Preferences store that filename only, not the original path and not the bytes. Replace copies the new file before deleting the previous copy. Remove and Reset Appearance delete only that copy. A missing or unreadable image draws System Material and Settings says “Background image unavailable”.
+- Edge tab: one Wedge. Thickness 2–6 pt (default 3), length 32–96 pt (default 56), opacity default 0.55. Color is System Accent or a custom color stored as hex RGBA. Hover raises wedge opacity slightly. No glow, gradient, or extra shapes. Panel size does not change the wedge.
 - The hit region stays 14 pt. Visual thickness does not change it.
 - Hover open delay: 0, 0.10, 0.16, 0.25, 0.40 s. Default 0.16. Close: 0.15, 0.25, 0.35, 0.50, 0.75 s. Default 0.35. `HoverEngine` reads the new values without a restart.
 - Reduce Motion: the preference or `accessibilityDisplayShouldReduceMotion`. Panel movement duration becomes 0. The short content fade stays.
