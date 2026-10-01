@@ -20,6 +20,12 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 
+# .NET
+[Bb]in/
+[Oo]bj/
+project.assets.json
+*.user
+
 # Build products
 dist/
 .release/

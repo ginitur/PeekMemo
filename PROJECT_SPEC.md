@@ -50,7 +50,7 @@ Folder mapping versus the original sketch:
 | `Utilities/` | `Sources/PeekMemo/Utilities/` |
 | `Resources/` | `Sources/PeekMemo/Resources/` |
 
-Windows is **not** being built. The split exists so a future Windows adapter can reuse Core without dragging AppKit into domain code.
+The macOS split stays. Windows is a separate native client under `windows/`. It does not reuse the Swift package, and the Swift package does not gain a Windows UI.
 
 ## Coordinate system
 
@@ -222,4 +222,22 @@ Tests live in the `PeekMemoCoreTests` **executable** (`swift run PeekMemoCoreTes
 
 ## Out of scope for v0.1
 
-iCloud, AI, agents, Workbench integration, plugins, a full Markdown editor, mobile, Windows, analytics, telemetry, crash SDKs, accounts, cloud sync, notarization, Developer ID signing.
+iCloud, AI, agents, Workbench integration, plugins, a full Markdown editor, mobile, analytics, telemetry, crash SDKs, accounts, cloud sync, notarization, Developer ID signing. The Windows client is in `windows/` and is not a port of the AppKit UI.
+
+## Windows client
+
+Native C# / .NET 8 / WPF under `windows/PeekMemo.Windows.sln`. It is not Electron, Tauri, MAUI, Avalonia, or a WebView shell. macOS sources stay where they are.
+
+`PeekMemo.Core` (`net8.0`) holds models, daily rules, edge and resize geometry, and JSON settings. It does not reference WPF. `PeekMemo.Windows` is the WPF app. Tests are `windows/tests/PeekMemo.Windows.Tests` and must use a temp directory, not the real `%LOCALAPPDATA%\PeekMemo`.
+
+Data root, when the app runs: `%LOCALAPPDATA%\PeekMemo\`. Settings file: `settings.json`. Database file, later: `PeekMemo.sqlite`. Backgrounds, later: `Backgrounds\`. IDs are uppercase `8-4-4-4-12` text, the same shape as Swift `UUID.uuidString`.
+
+The SQLite column lists in `MemoSchema` match macOS. Windows does not add task columns. The database is not opened in the current milestone.
+
+Supported edges are Left, Right, and Bottom. Top is not a snap target. A stored Top value resolves to Right. Placement is monitor id + edge + offset, not absolute x/y.
+
+Geometry uses a top-left origin, Y down, in DIPs. The working rectangle comes from the monitor work area (`rcWork`), so the taskbar is already excluded. Resize grip geometry is a 22×22 corner, never larger than 24×24, and it is not the card. The phase 1 window does not show a resize grip.
+
+Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
+
+The WPF UI has not been run on Windows from this macOS workspace. `windows-latest` is the build and test check.

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <RootNamespace>PeekMemo.Windows</RootNamespace>
+    <AssemblyName>PeekMemo</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WinForms is only for NotifyIcon. Leave its namespaces out of every file. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WPF keeps PerMonitorV2 in the manifest. WinForms is only the tray icon. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <Description>PeekMemo native Windows client. WinForms is referenced only for the tray icon.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PeekMemo.Core\PeekMemo.Core.csproj" />
+  </ItemGroup>
+</Project>

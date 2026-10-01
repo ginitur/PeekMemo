@@ -2,8 +2,8 @@
 
 PeekMemo is a long-lived native macOS application. Follow these rules on every change.
 
-1. PeekMemo is a macOS native app. Swift, SwiftUI, and AppKit only for the shipped UI.
-2. Do not introduce Electron, Tauri, or a WebView as the main UI.
+1. PeekMemo has two native clients. macOS UI is Swift, SwiftUI, and AppKit. Windows UI is C#, .NET 8, and WPF. Do not turn the macOS UI into a cross-platform toolkit, and do not run Swift or AppKit on Windows.
+2. Do not introduce Electron, Tauri, MAUI, Avalonia, or a WebView as the main UI.
 3. Avoid unnecessary dependencies. GRDB.swift is the approved SQLite layer. Do not add a package to save a few dozen lines.
 4. Do not use private macOS APIs.
 5. Do not hard-code screen resolutions or Mac models.

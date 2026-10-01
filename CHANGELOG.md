@@ -56,3 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 - Notch Cloak, including hide-in-notch placement, the notch activation sensor, notch hit probe, notch debug overlay, notch mouse monitors, and the DEBUG controls (Show Notch Geometry, Move to Notch Cloak, Experimental Top / Notch).
 - Notch-only geometry, UserDefaults flags, and tests. Git history still has the old implementation. It is not on the current roadmap.
+
+### Added
+
+- Native Windows client bootstrap under `windows/`: .NET 8 class library, WPF project, solution, and core tests. No Electron, Tauri, or WebView UI. The WPF window is not device-verified.
