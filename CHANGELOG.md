@@ -50,6 +50,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Subtasks indent 18 pt under their parent. Only two levels.
 - v0.1 edge snap is Left / Right / Bottom. Top and Notch Cloak are experimental (DEBUG menu) so ordinary drag cannot trap the tab on Top.
 - The expanded memo defaults to 340×460 pt with 16 pt corners. It no longer shrinks when the day is short. Dragging the free corner saves a custom size without moving the edge anchor. Older width and height presets migrate once.
+- The resize grip is a 22×22 pt corner target. The three ticks are drawn in 14×14 pt and no longer cover the memo.
 - Unfinished root tasks from earlier days appear above Today as “未完成 · N”. Their `scheduledDate` is not rewritten. Other dates show only that day’s items.
 - Items with no category have no badge. Right-click + Add Task to add a plain Note. Notes never enter the completion count.
 - Local SQLite (GRDB) at `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. Migration `v1_initial_schema` seeds Work and Personal once and does not recreate deleted rows. A failed open or migration leaves the file in place.

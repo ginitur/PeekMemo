@@ -71,7 +71,8 @@ struct PreviewPanelView: View {
                 onChanged: onResizeChanged,
                 onEnded: onResizeEnded
             )
-            .padding(PanelResizeGeometry.gripInset)
+            .frame(width: PanelResizeGeometry.gripSize, height: PanelResizeGeometry.gripSize)
+            .offset(gripOffset)
         }
     }
 
@@ -117,6 +118,17 @@ struct PreviewPanelView: View {
 
     private var footerTrailing: CGFloat {
         gripCorner == .bottomRight ? gripClearance : 12
+    }
+
+    /// Positive x moves right, positive y moves down. The view stays 22×22.
+    private var gripOffset: CGSize {
+        let inset = PanelResizeGeometry.gripInset
+        switch gripCorner {
+        case .bottomLeft: return CGSize(width: inset, height: -inset)
+        case .bottomRight: return CGSize(width: -inset, height: -inset)
+        case .topLeft: return CGSize(width: inset, height: inset)
+        case .topRight: return CGSize(width: -inset, height: inset)
+        }
     }
 
     private var gripAlignment: Alignment {

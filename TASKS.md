@@ -154,6 +154,12 @@ Still not a new task-management feature. SQLite, hover, and the edge anchor stay
 - [x] A missing image falls back to System Material. Header stays put; the list scrolls; Add Task stays under the list
 - [ ] PARTIAL: dragging the grip and choosing a photo still need a hands-on pass. Background blur was not added
 
+## Phase 7.2 — Resize handle hit testing
+
+- [x] The grip view is fixed at 22×22 pt. A card-sized frame still hit-tests only that corner square
+- [x] The three ticks draw inside 14×14 pt. Date, category, tasks, and Add Task are outside the rect
+- [ ] PARTIAL: click-through on a running panel still needs a hands-on pass
+
 ## Phase 8 — not started
 
 Folded into Phase 7. Do not start a new phase. Circle, pill, and rounded-square edge items were not added. The edge tab remains a wedge.
