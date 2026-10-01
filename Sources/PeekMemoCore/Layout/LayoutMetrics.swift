@@ -27,11 +27,11 @@ public enum LayoutMetrics: Sendable {
     /// Handle reveal. About 100 ms.
     public static let handleRevealDuration: TimeInterval = 0.10
 
-    /// Panel expand. 180–220 ms.
-    public static let expandDuration: TimeInterval = 0.20
+    /// Panel expand. Ease-out frame plus a short content spring.
+    public static let expandDuration: TimeInterval = 0.24
 
-    /// Panel collapse. 150–190 ms.
-    public static let collapseDuration: TimeInterval = 0.17
+    /// Panel collapse. Slightly faster than expand.
+    public static let collapseDuration: TimeInterval = 0.18
 
     /// Content fade starts this long after the shell begins expanding.
     public static let contentFadeDelay: TimeInterval = 0.04

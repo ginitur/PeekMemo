@@ -13,7 +13,7 @@ struct PeekRootView: View {
     var tabOpacity: Double = AppearancePreferences.defaultEdgeTabOpacity
     var showHitRegions: Bool = false
     var showInteractionRegions: Bool = false
-    var contentOpacity: Double = 1
+    @ObservedObject var reveal: RevealChrome
     var appState: AppState
     var onBeginEdit: () -> Void = {}
     var onEndEdit: () -> Void = {}
@@ -76,26 +76,45 @@ struct PeekRootView: View {
             switch edge {
             case .right:
                 HStack(spacing: 0) {
-                    preview.opacity(contentOpacity)
+                    revealed(preview)
                     handleRail(vertical: true)
                 }
             case .left:
                 HStack(spacing: 0) {
                     handleRail(vertical: true)
-                    preview.opacity(contentOpacity)
+                    revealed(preview)
                 }
             case .top:
                 VStack(spacing: 0) {
                     handleRail(vertical: false)
-                    preview.opacity(contentOpacity)
+                    revealed(preview)
                 }
             case .bottom:
                 VStack(spacing: 0) {
-                    preview.opacity(contentOpacity)
+                    revealed(preview)
                     handleRail(vertical: false)
                 }
             }
         }
+    }
+
+    private var scaleAnchor: UnitPoint {
+        switch edge {
+        case .right: .trailing
+        case .left: .leading
+        case .bottom: .bottom
+        case .top: .top
+        }
+    }
+
+    private func revealed(_ preview: PreviewPanelView) -> some View {
+        preview
+            .scaleEffect(
+                RevealMotion.contentScale(opacity: reveal.opacity, reduceMotion: reveal.reduceMotion),
+                anchor: scaleAnchor
+            )
+            .opacity(reveal.opacity)
+            .animation(reveal.animation, value: reveal.opacity)
     }
 
     @ViewBuilder

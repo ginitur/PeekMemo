@@ -12,9 +12,8 @@ final class WindowFrameAnimator {
     ) {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = duration
-            context.timingFunction = expanding
-                ? CAMediaTimingFunction(controlPoints: 0.16, 0.84, 0.32, 1)
-                : CAMediaTimingFunction(controlPoints: 0.4, 0, 0.2, 1)
+            // Ease-out. Control points stay inside 0...1; the slight overshoot is the content spring.
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
             context.allowsImplicitAnimation = true
             panel.animator().setFrame(frame, display: true)
         }

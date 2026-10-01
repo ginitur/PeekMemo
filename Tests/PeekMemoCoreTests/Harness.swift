@@ -90,6 +90,7 @@ enum PeekMemoCoreTestsMain {
             ("DateHeaderText", DateHeaderTextTests.run),
             ("BrandQuote", BrandQuoteTests.run),
             ("CategoryFilterLabel", CategoryFilterLabelTests.run),
+            ("EdgeRevealMotion", EdgeRevealMotionTests.run),
         ]
 
         var failed = 0

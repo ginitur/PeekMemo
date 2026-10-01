@@ -13,7 +13,7 @@ final class PanelController {
     private var anchorPlacement: PanelPlacement?
     private var screenChangeObserver: (any NSObjectProtocol)?
     private var shellExpanded = false
-    private var contentOpacity: Double = 1
+    private let reveal = RevealChrome()
     private var motionGeneration = 0
     private var suppressAnimatedCollapse = false
     private let appState: AppState
@@ -45,7 +45,8 @@ final class PanelController {
             guard let self else { return }
             self.motionGeneration += 1
             self.shellExpanded = false
-            self.contentOpacity = 1
+            self.reveal.animates = false
+            self.reveal.opacity = 1
             self.hover.beginDrag()
             self.syncChrome(animated: false)
         }
@@ -235,7 +236,8 @@ final class PanelController {
             if hover.isDragging || suppressAnimatedCollapse {
                 motionGeneration += 1
                 shellExpanded = false
-                contentOpacity = 1
+                reveal.animates = false
+                reveal.opacity = 1
                 syncChrome(animated: false)
             } else {
                 collapseChrome()
@@ -255,33 +257,46 @@ final class PanelController {
         motionGeneration += 1
         let generation = motionGeneration
         shellExpanded = true
-        contentOpacity = 0
+        reveal.reduceMotion = preferences.reducesMotion
+        reveal.collapsing = false
+        if preferences.reducesMotion || hover.isDragging {
+            reveal.animates = false
+            reveal.opacity = 1
+            syncChrome(animated: false)
+            return
+        }
+        reveal.animates = true
+        reveal.opacity = 0
         let duration = preferences.movementDuration(LayoutMetrics.expandDuration)
-        syncChrome(
-            animated: duration > 0 && !hover.isDragging,
-            expanding: true,
-            duration: duration > 0 ? duration : LayoutMetrics.expandDuration
-        )
+        syncChrome(animated: true, expanding: true, duration: duration)
         DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeDelay) { [weak self] in
             guard let self, self.motionGeneration == generation else { return }
-            self.contentOpacity = 1
-            self.refreshPresentedContent()
+            self.reveal.opacity = 1
         }
     }
 
     private func collapseChrome() {
         motionGeneration += 1
         let generation = motionGeneration
-        contentOpacity = 0
-        refreshPresentedContent()
+        reveal.reduceMotion = preferences.reducesMotion
+        if preferences.reducesMotion || hover.isDragging {
+            reveal.animates = false
+            reveal.opacity = 1
+            shellExpanded = false
+            syncChrome(animated: false)
+            return
+        }
+        reveal.animates = true
+        reveal.collapsing = true
+        reveal.opacity = 0
         DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeOutDuration) { [weak self] in
             guard let self, self.motionGeneration == generation else { return }
             self.shellExpanded = false
             let duration = self.preferences.movementDuration(LayoutMetrics.collapseDuration)
             self.syncChrome(
-                animated: duration > 0 && !self.hover.isDragging,
+                animated: true,
                 expanding: false,
-                duration: duration > 0 ? duration : LayoutMetrics.collapseDuration
+                duration: duration
             )
         }
     }
@@ -399,7 +414,7 @@ final class PanelController {
             ),
             showHitRegions: DebugFlags.showHitRegions,
             showInteractionRegions: DebugFlags.showInteractionRegions,
-            contentOpacity: contentOpacity,
+            reveal: reveal,
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
             onEndEdit: { [weak self] in self?.hover.exitEditing() },
