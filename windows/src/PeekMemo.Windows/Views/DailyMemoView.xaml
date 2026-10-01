@@ -384,19 +384,33 @@
         </ScrollViewer>
 
         <Border Grid.Row="3" BorderBrush="{DynamicResource MemoLine}" BorderThickness="0,1,0,0" Padding="0,6,0,0" Margin="0,8,0,0">
-            <ContentControl Content="{Binding}" Focusable="False">
-                <ContentControl.Style>
-                    <Style TargetType="ContentControl">
-                        <Setter Property="ContentTemplate" Value="{StaticResource AddButtonTemplate}"/>
-                        <Setter Property="Focusable" Value="False"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsAddingRoot}" Value="True">
-                                <Setter Property="ContentTemplate" Value="{StaticResource AddEditorTemplate}"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ContentControl.Style>
-            </ContentControl>
+            <StackPanel>
+                <ContentControl Content="{Binding}" Focusable="False">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource AddButtonTemplate}"/>
+                            <Setter Property="Focusable" Value="False"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsAddingRoot}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource AddEditorTemplate}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+                <TextBlock x:Name="QuoteText"
+                           FontFamily="Georgia, Times New Roman, Cambria"
+                           FontStyle="Italic"
+                           FontSize="10.5"
+                           Opacity="0.4"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           LineHeight="15"
+                           MaxHeight="48"
+                           Margin="16,8,16,6"
+                           Visibility="Collapsed"/>
+            </StackPanel>
         </Border>
 
         <Popup x:Name="DatePopup"

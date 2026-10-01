@@ -19,6 +19,10 @@ struct PreviewPanelView: View {
     var onResizeEnded: () -> Void = {}
     @FocusState private var editorFocused: Bool
 
+    private var showsQuote: Bool {
+        BrandQuote.isVisible(panelHeight: state.panelHeight) && !state.isEditing
+    }
+
     private var gripCorner: ResizeGripCorner {
         PanelResizeGeometry.corner(for: edge)
     }
@@ -52,6 +56,14 @@ struct PreviewPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: PanelHeightKey.self, value: proxy.size.height)
+            }
+        }
+        .onPreferenceChange(PanelHeightKey.self) { height in
+            state.panelHeight = height
+        }
         .textSelection(.disabled)
         .preferredColorScheme(readableScheme)
         .background {
@@ -141,22 +153,35 @@ struct PreviewPanelView: View {
     }
 
     private var addTaskBar: some View {
-        Button(action: addRoot) {
-            Text("+ Add Task")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(accent.color)
-                .textSelection(.disabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: 8) {
+            Button(action: addRoot) {
+                Text("+ Add Task")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(accent.color)
+                    .textSelection(.disabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add Task")
+            .contextMenu {
+                Button("Add Task") { addRoot() }
+                Button("Add Note") { addNote() }
+            }
+            if showsQuote {
+                Text(BrandQuote.text)
+                    .font(.system(size: 10.5, design: .serif).italic())
+                    .foregroundStyle(.primary.opacity(0.4))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 2)
+            }
         }
-        .buttonStyle(.plain)
         .padding(.leading, footerLeading)
         .padding(.trailing, footerTrailing)
         .padding(.bottom, 12)
-        .accessibilityLabel("Add Task")
-        .contextMenu {
-            Button("Add Task") { addRoot() }
-            Button("Add Note") { addNote() }
-        }
     }
 
     private var memoBody: some View {
@@ -200,7 +225,7 @@ struct PreviewPanelView: View {
                     Text(state.dateTitle)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .truncationMode(.tail)
                         .textSelection(.disabled)
                     let stats = state.dailyStats
                     if stats.total > 0 {
@@ -261,8 +286,8 @@ struct PreviewPanelView: View {
                 onWillOpen: onInteractionBegan,
                 onDidClose: onInteractionEnded
             )
-            .frame(minWidth: 64, minHeight: LayoutMetrics.categoryHitHeight, maxHeight: LayoutMetrics.categoryHitHeight)
-            .fixedSize(horizontal: true, vertical: true)
+            .frame(minWidth: 72, maxWidth: 140, minHeight: LayoutMetrics.categoryHitHeight, maxHeight: LayoutMetrics.categoryHitHeight)
+            .layoutPriority(0)
             .overlay {
                 if showInteractionRegions {
                     HitRegionOverlay(kind: .category)
@@ -469,5 +494,12 @@ struct PreviewPanelView: View {
         guard state.isEditing else { return }
         state.commitComposerIfNeeded()
         onEndEdit()
+    }
+}
+
+private struct PanelHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

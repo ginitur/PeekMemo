@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using PeekMemo.Core.Daily;
 using PeekMemo.Windows.ViewModels;
 
 namespace PeekMemo.Windows.Views;
@@ -20,6 +21,8 @@ public partial class DailyMemoView : UserControl
     public DailyMemoView()
     {
         InitializeComponent();
+        QuoteText.Text = BrandQuote.Text;
+        SizeChanged += (_, _) => UpdateQuote();
         DataContextChanged += (_, _) => HookModel();
     }
 
@@ -49,6 +52,7 @@ public partial class DailyMemoView : UserControl
             _model.EditorFocusRequested -= OnEditorFocusRequested;
             _model.BlurSuspended -= OnBlurSuspended;
             _model.CloseCategoryMenu -= OnCloseCategoryMenu;
+            _model.PropertyChanged -= OnModelPropertyChanged;
         }
 
         _model = DataContext as DailyMemoViewModel;
@@ -60,6 +64,16 @@ public partial class DailyMemoView : UserControl
         _model.EditorFocusRequested += OnEditorFocusRequested;
         _model.BlurSuspended += OnBlurSuspended;
         _model.CloseCategoryMenu += OnCloseCategoryMenu;
+        _model.PropertyChanged += OnModelPropertyChanged;
+        UpdateQuote();
+    }
+
+    void OnModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is null or nameof(DailyMemoViewModel.IsAddingRoot) or nameof(DailyMemoViewModel.IsEditingCategory))
+        {
+            UpdateQuote();
+        }
     }
 
     void OnBlurSuspended() => _blurArmed = false;
@@ -70,6 +84,13 @@ public partial class DailyMemoView : UserControl
         {
             CategoryPopup.IsOpen = false;
         }
+    }
+
+    void UpdateQuote()
+    {
+        var tall = BrandQuote.IsVisible(ActualHeight);
+        var busy = _model is { IsAddingRoot: true } or { IsEditingCategory: true };
+        QuoteText.Visibility = tall && !busy ? Visibility.Visible : Visibility.Collapsed;
     }
 
     void OnEditorFocusRequested() =>

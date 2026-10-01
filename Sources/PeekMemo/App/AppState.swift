@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Observation
 import PeekMemoCore
@@ -17,6 +18,7 @@ final class AppState {
     var draftText: String = ""
     var isComposing: Bool = false
     var expandedTaskIDs: Set<UUID> = []
+    var panelHeight: CGFloat = PanelSizeMetrics.defaultHeight
 
     private let store: MemoStore?
 

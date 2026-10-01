@@ -88,6 +88,7 @@ enum PeekMemoCoreTestsMain {
             ("HoverDelayPreference", HoverDelayPreferenceTests.run),
             ("ReduceMotionPreference", ReduceMotionPreferenceTests.run),
             ("DateHeaderText", DateHeaderTextTests.run),
+            ("BrandQuote", BrandQuoteTests.run),
             ("CategoryFilterLabel", CategoryFilterLabelTests.run),
         ]
 
