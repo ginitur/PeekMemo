@@ -14,9 +14,7 @@ final class EdgeHostView: NSView {
     /// When set, only this rect (view coordinates) starts a drag or a pin click.
     var dragHandleRect: CGRect?
 
-    private var dragOrigin: CGPoint?
     private var isDragging = false
-    private var handlePress = false
 
     override var isFlipped: Bool { false }
     override var mouseDownCanMoveWindow: Bool { false }
@@ -26,10 +24,10 @@ final class EdgeHostView: NSView {
     private var isUpdatingTracking = false
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        // `point` is in the superview's coordinates. The hosting view is flipped;
-        // converting into it and then calling `hitTest` mirrors Y and delivers
-        // header clicks to the scroll view.
-        let local = convert(point, from: superview)
+        // `point` is in the superview. Convert through the window so a flipped
+        // hosting view does not mirror the drag handle into the content.
+        let windowPoint = superview?.convert(point, to: nil) ?? point
+        let local = convert(windowPoint, from: nil)
         guard bounds.contains(local) else { return nil }
         if let dragHandleRect {
             if dragHandleRect.contains(local) {
@@ -81,41 +79,35 @@ final class EdgeHostView: NSView {
     override func mouseDown(with event: NSEvent) {
         let local = convert(event.locationInWindow, from: nil)
         if let dragHandleRect, !dragHandleRect.contains(local) {
-            dragOrigin = nil
-            handlePress = false
             isDragging = false
             return
         }
-        handlePress = true
-        dragOrigin = NSEvent.mouseLocation
+        // A nonactivating panel does not deliver mouseDragged. Track inside mouseDown.
+        let origin = NSEvent.mouseLocation
         isDragging = false
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        guard handlePress, let origin = dragOrigin else { return }
-        let location = NSEvent.mouseLocation
-        if !isDragging {
-            let dx = location.x - origin.x
-            let dy = location.y - origin.y
-            if hypot(dx, dy) >= LayoutMetrics.dragThreshold {
-                isDragging = true
-                onDragBegan?()
+        let mask: NSEvent.EventTypeMask = [.leftMouseDragged, .leftMouseUp]
+        while let next = window?.nextEvent(matching: mask, until: .distantFuture, inMode: .eventTracking, dequeue: true) {
+            let location = NSEvent.mouseLocation
+            if next.type == .leftMouseUp {
+                if isDragging {
+                    onDragEnded?(location)
+                } else {
+                    onClick?()
+                }
+                break
+            }
+            if !isDragging {
+                let dx = location.x - origin.x
+                let dy = location.y - origin.y
+                if hypot(dx, dy) >= LayoutMetrics.dragThreshold {
+                    isDragging = true
+                    onDragBegan?()
+                }
+            }
+            if isDragging {
+                onDrag?(location)
             }
         }
-        if isDragging {
-            onDrag?(location)
-        }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        let location = NSEvent.mouseLocation
-        if isDragging {
-            onDragEnded?(location)
-        } else if handlePress {
-            onClick?()
-        }
-        dragOrigin = nil
         isDragging = false
-        handlePress = false
     }
 }
