@@ -55,6 +55,10 @@ public partial class EdgeWindow : NonActivatingWindow
     public EdgeWindow(SettingsStore store, AppSettings settings, MemoDatabase? database)
     {
         InitializeComponent();
+        if (WindowIcons.Load() is System.Windows.Media.ImageSource icon)
+        {
+            Icon = icon;
+        }
         _store = store;
         _session = new EdgeSession(settings);
         var today = DateOnly.FromDateTime(DateTime.Now);

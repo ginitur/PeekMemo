@@ -1,3 +1,5 @@
+using System.Drawing;
+using System.IO;
 using Forms = System.Windows.Forms;
 
 namespace PeekMemo.Windows.Services;
@@ -5,6 +7,7 @@ namespace PeekMemo.Windows.Services;
 internal sealed class TrayIcon : IDisposable
 {
     readonly Forms.NotifyIcon _icon;
+    readonly Icon? _ownedIcon;
 
     public TrayIcon(Action show, Action resetPosition, Action openSettings, Action quit)
     {
@@ -14,9 +17,10 @@ internal sealed class TrayIcon : IDisposable
         menu.Items.Add("Settings", null, (_, _) => openSettings());
         menu.Items.Add("Quit PeekMemo", null, (_, _) => quit());
 
+        _ownedIcon = LoadLogo();
         _icon = new Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = _ownedIcon ?? System.Drawing.SystemIcons.Application,
             Visible = true,
             Text = "PeekMemo",
             ContextMenuStrip = menu
@@ -28,5 +32,24 @@ internal sealed class TrayIcon : IDisposable
     {
         _icon.Visible = false;
         _icon.Dispose();
+        _ownedIcon?.Dispose();
+    }
+
+    static Icon? LoadLogo()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "PeekMemo.ico");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return new Icon(path, 16, 16);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 }

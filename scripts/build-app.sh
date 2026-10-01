@@ -24,6 +24,12 @@ rm -rf "$DIST"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Sources/PeekMemo/Resources/Info.plist" "$APP/Contents/Info.plist"
+ICON="$ROOT/Brand/AppIcon.icns"
+if [[ ! -f "$ICON" ]]; then
+  echo "error: missing $ICON — run scripts/make-icons.py" >&2
+  exit 1
+fi
+cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 chmod +x "$APP/Contents/MacOS/$APP_NAME"
 

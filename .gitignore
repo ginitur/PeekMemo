@@ -31,6 +31,9 @@ project.assets.json
 *.sqlite-shm
 *.sqlite-wal
 
+# Generated iconset. AppIcon.icns is the committed artifact.
+Brand/AppIcon.iconset/
+
 # Build products
 dist/
 publish/

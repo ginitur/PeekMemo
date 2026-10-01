@@ -9,10 +9,16 @@
     <!-- WinForms is only for NotifyIcon. Leave its namespaces out of every file. -->
     <ImplicitUsings>disable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\PeekMemo.ico</ApplicationIcon>
     <!-- WPF keeps PerMonitorV2 in the manifest. WinForms is only the tray icon. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <Description>PeekMemo native Windows client. WinForms is referenced only for the tray icon.</Description>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Assets\PeekMemo.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PeekMemo.Core\PeekMemo.Core.csproj" />
     <ProjectReference Include="..\PeekMemo.Persistence\PeekMemo.Persistence.csproj" />
