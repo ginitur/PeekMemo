@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PeekMemo.Core.Daily;
 using PeekMemo.Core.Geometry;
@@ -10,7 +12,9 @@ using CoreDpi = PeekMemo.Core.Geometry.DpiScale;
 using PeekMemo.Core.Hover;
 using PeekMemo.Core.Layout;
 using PeekMemo.Core.Models;
+using PeekMemo.Core.Persistence;
 using PeekMemo.Core.Settings;
+using PeekMemo.Persistence;
 using PeekMemo.Windows.Services;
 using PeekMemo.Windows.ViewModels;
 using PeekMemo.Windows.Windowing;
@@ -29,6 +33,8 @@ public partial class EdgeWindow : NonActivatingWindow
     readonly EdgeSession _session;
     readonly DailyMemoViewModel _memo;
     readonly SettingsStore _store;
+    readonly BackgroundImageStore _backgrounds;
+    readonly DecodeCache<BitmapImage> _images = new();
     readonly DispatcherTimer _timer;
     PlacementLayout _layout;
     MonitorDescriptor _monitor;
@@ -46,14 +52,18 @@ public partial class EdgeWindow : NonActivatingWindow
     double _resizeStartWidth;
     double _resizeStartHeight;
 
-    public EdgeWindow(SettingsStore store, AppSettings settings)
+    public EdgeWindow(SettingsStore store, AppSettings settings, MemoDatabase? database)
     {
         InitializeComponent();
         _store = store;
         _session = new EdgeSession(settings);
-        _memo = new DailyMemoViewModel(new DailySession(
-            MemoBoard.CreateSample(DateOnly.FromDateTime(DateTime.Now)),
-            _session.Interaction));
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var daily = database is null
+            ? new DailySession(new MemoBoard(today), _session.Interaction)
+            : ProductionSession.Open(database, today, _session.Interaction);
+        _memo = new DailyMemoViewModel(daily);
+        var root = Path.GetDirectoryName(store.FilePath) ?? AppPaths.DefaultRoot();
+        _backgrounds = new BackgroundImageStore(AppPaths.BackgroundsDirectory(root));
         _memo.ModeChanged += mode => SetPresentationMode(mode);
         _memo.InteractionReleased += OnInteractionReleased;
         MemoView.DataContext = _memo;
@@ -715,11 +725,12 @@ public partial class EdgeWindow : NonActivatingWindow
         var line = light ? Color.FromArgb(48, 0, 0, 0) : Color.FromArgb(64, 255, 255, 255);
         var wedge = light ? Color.FromRgb(72, 128, 176) : Color.FromRgb(142, 184, 220);
         var grip = light ? Color.FromArgb(140, 60, 60, 67) : Color.FromArgb(160, 230, 230, 235);
-        var opacity = Math.Clamp(settings.PanelOpacity, 0.70, 1);
-        ExpandedChrome.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 * opacity), card.R, card.G, card.B));
+        var opacity = AppearanceLimits.PanelOpacity(settings.PanelOpacity);
+        ExpandedChrome.Background = Brushes.Transparent;
         ExpandedChrome.BorderBrush = new SolidColorBrush(line);
+        ApplyBackground(settings, card, opacity);
         MemoView.ApplyTheme(ink, line, card);
-        var wedgeBrush = new SolidColorBrush(wedge);
+        var wedgeBrush = new SolidColorBrush(ParseColor(settings.ResolvedWedgeColor(), wedge));
         CollapsedChrome.Background = wedgeBrush;
         DragHandleMark.Background = wedgeBrush;
         CollapsedChrome.Opacity = Math.Clamp(settings.WedgeOpacity, 0.2, 1);
@@ -728,5 +739,114 @@ public partial class EdgeWindow : NonActivatingWindow
         GripTickA.Background = gripBrush;
         GripTickB.Background = gripBrush;
         GripTickC.Background = gripBrush;
+    }
+
+    void ApplyBackground(AppSettings settings, Color card, double panelOpacity)
+    {
+        ImageHost.Visibility = Visibility.Collapsed;
+        BackgroundImage.Source = null;
+        CardFill.Visibility = Visibility.Visible;
+        var mode = settings.ResolvedBackgroundMode();
+        if (mode == PanelBackgroundMode.Image && ShowImage(settings))
+        {
+            CardFill.Visibility = Visibility.Collapsed;
+            ImageHost.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var fill = mode == PanelBackgroundMode.Solid
+            ? ParseColor(settings.ResolvedSolidColor(), card)
+            : card;
+        var alpha = mode == PanelBackgroundMode.Solid
+            ? panelOpacity * AppearanceLimits.SolidOpacity(settings.BackgroundSolidOpacity)
+            : panelOpacity;
+        CardFill.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 * alpha), fill.R, fill.G, fill.B));
+    }
+
+    bool ShowImage(AppSettings settings)
+    {
+        var path = _backgrounds.ExistingFile(settings.ResolvedBackgroundFilename());
+        if (path is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var info = new FileInfo(path);
+            var stamp = info.LastWriteTimeUtc.Ticks ^ info.Length;
+            BackgroundImage.Source = _images.Get(path, stamp, () => DecodeImage(path));
+        }
+        catch (Exception exception)
+        {
+            PersistenceLog.Error(exception);
+            BackgroundImage.Source = null;
+            return false;
+        }
+
+        BackgroundImage.Stretch = BackgroundLayout.StretchFor(settings.ResolvedBackgroundFit()) == BackgroundStretch.Uniform
+            ? Stretch.Uniform
+            : Stretch.UniformToFill;
+        BackgroundImage.VerticalAlignment = settings.ResolvedBackgroundPosition() switch
+        {
+            BackgroundAnchor.Top => VerticalAlignment.Top,
+            BackgroundAnchor.Bottom => VerticalAlignment.Bottom,
+            _ => VerticalAlignment.Center
+        };
+        BackgroundImage.HorizontalAlignment = HorizontalAlignment.Center;
+        BackgroundImage.Opacity = AppearanceLimits.ImageOpacity(settings.BackgroundImageOpacity)
+            * AppearanceLimits.PanelOpacity(settings.PanelOpacity);
+        ImageOverlay.Opacity = AppearanceLimits.OverlayOpacity(settings.BackgroundOverlayOpacity);
+        return true;
+    }
+
+    static BitmapImage DecodeImage(string path)
+    {
+        var bytes = File.ReadAllBytes(path);
+        var image = new BitmapImage();
+        using (var stream = new MemoryStream(bytes))
+        {
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = stream;
+            image.EndInit();
+        }
+
+        image.Freeze();
+        return image;
+    }
+
+    static Color ParseColor(string? hex, Color fallback)
+    {
+        if (hex is null)
+        {
+            return fallback;
+        }
+
+        try
+        {
+            return ColorConverter.ConvertFromString(hex) is Color color ? color : fallback;
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
+        catch (NotSupportedException)
+        {
+            return fallback;
+        }
+    }
+
+    void OnExpandedChromeSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (ExpandedChrome.ActualWidth <= 0 || ExpandedChrome.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        ExpandedChrome.Clip = new RectangleGeometry(
+            new Rect(0, 0, ExpandedChrome.ActualWidth, ExpandedChrome.ActualHeight),
+            PanelSize.CornerRadius,
+            PanelSize.CornerRadius);
     }
 }

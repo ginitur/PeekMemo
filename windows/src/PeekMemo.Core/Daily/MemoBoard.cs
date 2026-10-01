@@ -1,13 +1,25 @@
 using PeekMemo.Core.Models;
+using PeekMemo.Core.Persistence;
 
 namespace PeekMemo.Core.Daily;
 
-/// In-memory memo state. This is not a database. Phase 4 must not persist <see cref="CreateSample"/>.
+/// In-memory memo state. <see cref="CreateSample"/> is a design fixture and is not written to SQLite.
 public sealed class MemoBoard
 {
     readonly List<Category> _categories = [];
     readonly List<MemoItem> _items = [];
     readonly DateTimeOffset _createdAt;
+
+    /// When set, mutations are written through. A failed write restores the previous lists.
+    public IBoardStore? Store { get; set; }
+
+    public void Load(IEnumerable<Category> categories, IEnumerable<MemoItem> items)
+    {
+        _categories.Clear();
+        _categories.AddRange(categories);
+        _items.Clear();
+        _items.AddRange(items);
+    }
 
     public MemoBoard(DateOnly today, DateTimeOffset? createdAt = null)
     {
@@ -77,7 +89,7 @@ public sealed class MemoBoard
             return false;
         }
 
-        created = MemoItem.Create(
+        var item = MemoItem.Create(
             MemoItemType.Task,
             text,
             parent.ScheduledDate,
@@ -85,7 +97,12 @@ public sealed class MemoBoard
             parent.Id,
             NextChildOrder(parent.Id),
             timestamp: _createdAt);
-        _items.Add(created);
+        if (!Mutate(() => _items.Add(item), () => Store!.InsertItem(item)))
+        {
+            return false;
+        }
+
+        created = item;
         return true;
     }
 
@@ -98,8 +115,8 @@ public sealed class MemoBoard
             return false;
         }
 
-        _items[index] = _items[index] with { Title = text, UpdatedAt = _createdAt };
-        return true;
+        var updated = _items[index] with { Title = text, UpdatedAt = _createdAt };
+        return Mutate(() => _items[index] = updated, () => Store!.UpdateItem(updated));
     }
 
     public bool Delete(Guid id)
@@ -109,29 +126,34 @@ public sealed class MemoBoard
             return false;
         }
 
-        var doomed = new HashSet<Guid> { id };
-        var grew = true;
-        while (grew)
+        return Mutate(() =>
         {
-            grew = false;
-            foreach (var item in _items)
+            var doomed = new HashSet<Guid> { id };
+            var grew = true;
+            while (grew)
             {
-                if (item.ParentId is Guid parent && doomed.Contains(parent) && doomed.Add(item.Id))
+                grew = false;
+                foreach (var item in _items)
                 {
-                    grew = true;
+                    if (item.ParentId is Guid parent && doomed.Contains(parent) && doomed.Add(item.Id))
+                    {
+                        grew = true;
+                    }
                 }
             }
-        }
 
-        _items.RemoveAll(item => doomed.Contains(item.Id));
-        return true;
+            _items.RemoveAll(item => doomed.Contains(item.Id));
+        }, () => Store!.DeleteItem(id));
     }
 
     public void SetCompleted(Guid id, bool completed, DateTimeOffset at)
     {
-        var next = CompletionRules.SetCompleted(_items.ToList(), id, completed, at);
-        _items.Clear();
-        _items.AddRange(next);
+        Mutate(() =>
+        {
+            var next = CompletionRules.SetCompleted(_items.ToList(), id, completed, at);
+            _items.Clear();
+            _items.AddRange(next);
+        }, () => Store!.SetCompleted(id, completed, at));
     }
 
     public bool TryAddCategory(string name, out Category? created)
@@ -144,7 +166,7 @@ public sealed class MemoBoard
         }
 
         var order = _categories.Count == 0 ? 0 : _categories.Max(category => category.SortOrder) + 1;
-        created = new Category(
+        var category = new Category(
             Guid.NewGuid(),
             text,
             Icon: null,
@@ -153,7 +175,12 @@ public sealed class MemoBoard
             IsArchived: false,
             _createdAt,
             _createdAt);
-        _categories.Add(created);
+        if (!Mutate(() => _categories.Add(category), () => Store!.InsertCategory(category)))
+        {
+            return false;
+        }
+
+        created = category;
         return true;
     }
 
@@ -166,8 +193,65 @@ public sealed class MemoBoard
             return false;
         }
 
-        _categories[index] = _categories[index] with { Name = text, UpdatedAt = _createdAt };
+        var updated = _categories[index] with { Name = text, UpdatedAt = _createdAt };
+        return Mutate(() => _categories[index] = updated, () => Store!.UpdateCategory(updated));
+    }
+
+    public bool TryArchiveCategory(Guid id)
+    {
+        var index = _categories.FindIndex(category => category.Id == id && !category.IsArchived);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        var updated = _categories[index] with { IsArchived = true, UpdatedAt = _createdAt };
+        if (!Mutate(() => _categories[index] = updated, () => Store!.UpdateCategory(updated)))
+        {
+            return false;
+        }
+
+        if (SelectedCategoryId == id)
+        {
+            SelectedCategoryId = null;
+        }
+
         return true;
+    }
+
+    public bool TryRecolorCategory(Guid id, string? color)
+    {
+        var index = _categories.FindIndex(category => category.Id == id);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        var updated = _categories[index] with { Color = color, UpdatedAt = _createdAt };
+        return Mutate(() => _categories[index] = updated, () => Store!.UpdateCategory(updated));
+    }
+
+    public bool TryReorderCategories(IReadOnlyList<Guid> orderedIds)
+    {
+        var updated = _categories.Select(category =>
+        {
+            var position = -1;
+            for (var index = 0; index < orderedIds.Count; index++)
+            {
+                if (orderedIds[index] == category.Id)
+                {
+                    position = index;
+                    break;
+                }
+            }
+
+            return position < 0 ? category : category with { SortOrder = position, UpdatedAt = _createdAt };
+        }).ToList();
+        return Mutate(() =>
+        {
+            _categories.Clear();
+            _categories.AddRange(updated);
+        }, () => Store!.ReorderCategories(orderedIds));
     }
 
     public string? CategoryLabel(MemoItem item)
@@ -252,15 +336,46 @@ public sealed class MemoBoard
             return false;
         }
 
-        created = MemoItem.Create(
+        var item = MemoItem.Create(
             type,
             text,
             SelectedDate,
             categoryId,
             sortOrder: NextRootOrder(SelectedDate),
             timestamp: _createdAt);
-        _items.Add(created);
+        if (!Mutate(() => _items.Add(item), () => Store!.InsertItem(item)))
+        {
+            return false;
+        }
+
+        created = item;
         return true;
+    }
+
+    bool Mutate(Action mutate, Action persist)
+    {
+        var categories = _categories.ToList();
+        var items = _items.ToList();
+        mutate();
+        if (Store is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            persist();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            PersistenceLog.Error(exception);
+            _categories.Clear();
+            _categories.AddRange(categories);
+            _items.Clear();
+            _items.AddRange(items);
+            return false;
+        }
     }
 
     int NextRootOrder(DateOnly day)

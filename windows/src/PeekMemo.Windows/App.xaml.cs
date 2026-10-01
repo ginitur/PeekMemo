@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using PeekMemo.Core.Settings;
+using PeekMemo.Persistence;
 using PeekMemo.Windows.Services;
 using PeekMemo.Windows.Settings;
 using PeekMemo.Windows.Views;
@@ -16,10 +19,17 @@ public partial class App : Application
     DisplayWatcher? _display;
     SettingsStore? _store;
     CurrentUserStartupRegistration? _startup;
+    MemoDatabase? _database;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Any(argument => argument == "--smoke"))
+        {
+            Environment.Exit(RunSmoke());
+            return;
+        }
+
         _single = new SingleInstance();
         if (!_single.IsFirst)
         {
@@ -38,7 +48,17 @@ public partial class App : Application
             _startup.Apply(true, Environment.ProcessPath ?? "");
         }
 
-        _edge = new EdgeWindow(_store, settings);
+        try
+        {
+            _database = MemoDatabase.Open(AppPaths.DatabaseFile(root));
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError("[Persistence] {0}", exception);
+            _database = null;
+        }
+
+        _edge = new EdgeWindow(_store, settings, _database);
         _theme = new SystemThemeWatcher();
         _theme.Changed += () => Dispatcher.Invoke(RefreshFromDisk);
         _display = new DisplayWatcher();
@@ -87,6 +107,36 @@ public partial class App : Application
         _display?.Dispose();
         _tray?.Dispose();
         _single?.Dispose();
+        _database?.Dispose();
         base.OnExit(e);
+    }
+
+    static int RunSmoke()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "peekmemo-smoke", Guid.NewGuid().ToString("N"));
+        try
+        {
+            StartupSmoke.Run(root);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError("[Persistence] {0}", exception);
+            return 1;
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, recursive: true);
+                }
+            }
+            catch (Exception exception)
+            {
+                Trace.TraceError("[Persistence] {0}", exception);
+            }
+        }
     }
 }

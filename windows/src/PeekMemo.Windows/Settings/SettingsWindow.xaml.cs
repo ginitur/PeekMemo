@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using PeekMemo.Core.Settings;
 
 namespace PeekMemo.Windows.Settings;
@@ -13,6 +15,9 @@ public partial class SettingsWindow : Window
     readonly SettingsStore _store;
     readonly IStartupRegistration _startup;
     readonly AppSettings _settings;
+    readonly BackgroundImageStore _backgrounds;
+    string? _pendingImage;
+    bool _removeImage;
 
     public event Action<AppSettings>? Saved;
 
@@ -22,6 +27,8 @@ public partial class SettingsWindow : Window
         _store = store;
         _startup = startup;
         _settings = settings;
+        var root = Path.GetDirectoryName(store.FilePath) ?? AppPaths.DefaultRoot();
+        _backgrounds = new BackgroundImageStore(AppPaths.BackgroundsDirectory(root));
         LaunchAtStartupBox.IsChecked = settings.LaunchAtStartup;
         ThemeBox.SelectedIndex = settings.ResolvedTheme() switch
         {
@@ -36,6 +43,27 @@ public partial class SettingsWindow : Window
         FillDelays(OpenDelayBox, OpenDelays, settings.HoverOpenDelaySeconds);
         FillDelays(CloseDelayBox, CloseDelays, settings.HoverCloseDelaySeconds);
         ReduceMotionBox.IsChecked = settings.ReduceMotion;
+        WedgeColorBox.Text = settings.WedgeColor ?? "";
+        BackgroundModeBox.SelectedIndex = settings.ResolvedBackgroundMode() switch
+        {
+            PanelBackgroundMode.Solid => 1,
+            PanelBackgroundMode.Image => 2,
+            _ => 0
+        };
+        SolidColorBox.Text = settings.BackgroundSolidColor;
+        SolidOpacitySlider.Value = AppearanceLimits.SolidOpacity(settings.BackgroundSolidOpacity);
+        ImageFitBox.SelectedIndex = settings.ResolvedBackgroundFit() == BackgroundFit.Fit ? 1 : 0;
+        ImagePositionBox.SelectedIndex = settings.ResolvedBackgroundPosition() switch
+        {
+            BackgroundAnchor.Top => 0,
+            BackgroundAnchor.Bottom => 2,
+            _ => 1
+        };
+        ImageOpacitySlider.Value = AppearanceLimits.ImageOpacity(settings.BackgroundImageOpacity);
+        OverlayOpacitySlider.Value = AppearanceLimits.OverlayOpacity(settings.BackgroundOverlayOpacity);
+        ImageNameText.Text = settings.ResolvedBackgroundFilename() is string name
+            ? $"Picture: {name}"
+            : "Picture: none";
         PanelSizeText.Text = string.Format(
             CultureInfo.CurrentCulture,
             "Panel size: {0:0} × {1:0} DIP",
@@ -66,6 +94,33 @@ public partial class SettingsWindow : Window
         _settings.HoverOpenDelaySeconds = SelectedDelay(OpenDelayBox, _settings.HoverOpenDelaySeconds);
         _settings.HoverCloseDelaySeconds = SelectedDelay(CloseDelayBox, _settings.HoverCloseDelaySeconds);
         _settings.ReduceMotion = ReduceMotionBox.IsChecked == true;
+        _settings.WedgeColor = string.IsNullOrWhiteSpace(WedgeColorBox.Text) ? null : WedgeColorBox.Text.Trim();
+        _settings.BackgroundMode = BackgroundModeBox.SelectedIndex switch
+        {
+            1 => PanelBackgroundMode.Solid.ToString(),
+            2 => PanelBackgroundMode.Image.ToString(),
+            _ => PanelBackgroundMode.Default.ToString()
+        };
+        _settings.BackgroundSolidColor = string.IsNullOrWhiteSpace(SolidColorBox.Text)
+            ? "#F6F3EC"
+            : SolidColorBox.Text.Trim();
+        _settings.BackgroundSolidOpacity = SolidOpacitySlider.Value;
+        _settings.BackgroundImageContentMode = ImageFitBox.SelectedIndex == 1
+            ? BackgroundFit.Fit.ToString()
+            : BackgroundFit.Fill.ToString();
+        _settings.BackgroundImagePosition = ImagePositionBox.SelectedIndex switch
+        {
+            0 => BackgroundAnchor.Top.ToString(),
+            2 => BackgroundAnchor.Bottom.ToString(),
+            _ => BackgroundAnchor.Center.ToString()
+        };
+        _settings.BackgroundImageOpacity = ImageOpacitySlider.Value;
+        _settings.BackgroundOverlayOpacity = OverlayOpacitySlider.Value;
+        if (!TryApplyPicture())
+        {
+            return;
+        }
+
         _store.Save(_settings);
         _startup.Apply(_settings.LaunchAtStartup, Environment.ProcessPath ?? "");
         Saved?.Invoke(_settings);
@@ -73,6 +128,62 @@ public partial class SettingsWindow : Window
     }
 
     void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
+    void ChoosePicture_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Pictures (PNG, JPEG, WebP, BMP)|*.png;*.jpg;*.jpeg;*.webp;*.bmp",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        _pendingImage = dialog.FileName;
+        _removeImage = false;
+        ImageNameText.Text = $"Picture: {Path.GetFileName(dialog.FileName)}";
+    }
+
+    void RemovePicture_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingImage = null;
+        _removeImage = true;
+        ImageNameText.Text = "Picture: none";
+    }
+
+    bool TryApplyPicture()
+    {
+        try
+        {
+            if (_pendingImage is not null)
+            {
+                var previous = _settings.BackgroundImageFilename;
+                var installed = _backgrounds.Install(_pendingImage);
+                _settings.BackgroundImageFilename = installed;
+                if (!string.Equals(previous, installed, StringComparison.Ordinal))
+                {
+                    _backgrounds.RemoveManaged(previous);
+                }
+
+                return true;
+            }
+
+            if (_removeImage)
+            {
+                _backgrounds.RemoveManaged(_settings.BackgroundImageFilename);
+                _settings.BackgroundImageFilename = null;
+            }
+
+            return true;
+        }
+        catch (Exception exception) when (exception is BackgroundImageException or IOException)
+        {
+            MessageBox.Show(this, exception.Message, "PeekMemo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+    }
 
     static void FillDelays(ComboBox box, double[] values, double selected)
     {

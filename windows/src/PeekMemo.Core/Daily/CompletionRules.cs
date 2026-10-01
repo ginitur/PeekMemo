@@ -51,7 +51,8 @@ public static class CompletionRules
         next[item.Id] = item with
         {
             IsCompleted = completed,
-            CompletedAt = completed ? completedAt : null
+            CompletedAt = completed ? completedAt : null,
+            UpdatedAt = completedAt
         };
     }
 }

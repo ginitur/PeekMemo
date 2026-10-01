@@ -4,6 +4,6 @@
     <RootNamespace>PeekMemo.Core</RootNamespace>
     <AssemblyName>PeekMemo.Core</AssemblyName>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Description>PeekMemo domain, geometry, and settings. No WPF and no SQLite yet.</Description>
+    <Description>PeekMemo domain, geometry, and settings. No WPF and no SQLite driver.</Description>
   </PropertyGroup>
 </Project>

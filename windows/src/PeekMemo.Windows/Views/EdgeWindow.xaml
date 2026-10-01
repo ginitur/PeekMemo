@@ -26,13 +26,24 @@
                 Margin="0,0,14,0"
                 CornerRadius="16"
                 BorderThickness="1"
-                Padding="20"
+                Padding="0"
                 Visibility="Collapsed"
-                IsHitTestVisible="True">
+                IsHitTestVisible="True"
+                SizeChanged="OnExpandedChromeSizeChanged">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="14" ShadowDepth="1" Opacity="0.16" Color="#000000"/>
             </Border.Effect>
-            <views:DailyMemoView x:Name="MemoView"/>
+            <Grid>
+                <Border x:Name="CardFill" CornerRadius="16" IsHitTestVisible="False"/>
+                <Grid x:Name="ImageHost" IsHitTestVisible="False" Visibility="Collapsed">
+                    <Image x:Name="BackgroundImage"
+                           Stretch="UniformToFill"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                    <Border x:Name="ImageOverlay" Background="#000000" IsHitTestVisible="False"/>
+                </Grid>
+                <views:DailyMemoView x:Name="MemoView" Margin="20"/>
+            </Grid>
         </Border>
         <Border x:Name="DragHandleChrome"
                 HorizontalAlignment="Left"

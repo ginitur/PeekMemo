@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PeekMemo Settings"
         Width="420"
-        Height="560"
+        Height="680"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True">
@@ -27,6 +27,39 @@
             <Slider x:Name="LengthSlider" Minimum="32" Maximum="96" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
             <TextBlock Text="Edge wedge opacity"/>
             <Slider x:Name="WedgeOpacitySlider" Minimum="0.20" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
+            <TextBlock Text="Edge wedge color (empty uses the theme)"/>
+            <TextBox x:Name="WedgeColorBox" Margin="0,4,0,10"/>
+
+            <TextBlock Text="Background"/>
+            <ComboBox x:Name="BackgroundModeBox" Margin="0,4,0,10">
+                <ComboBoxItem Content="Default"/>
+                <ComboBoxItem Content="Solid"/>
+                <ComboBoxItem Content="Image"/>
+            </ComboBox>
+            <TextBlock Text="Solid color"/>
+            <TextBox x:Name="SolidColorBox" Margin="0,4,0,10"/>
+            <TextBlock Text="Solid opacity"/>
+            <Slider x:Name="SolidOpacitySlider" Minimum="0.40" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
+            <TextBlock Text="Image fit"/>
+            <ComboBox x:Name="ImageFitBox" Margin="0,4,0,10">
+                <ComboBoxItem Content="Fill"/>
+                <ComboBoxItem Content="Fit"/>
+            </ComboBox>
+            <TextBlock Text="Image position"/>
+            <ComboBox x:Name="ImagePositionBox" Margin="0,4,0,10">
+                <ComboBoxItem Content="Top"/>
+                <ComboBoxItem Content="Center"/>
+                <ComboBoxItem Content="Bottom"/>
+            </ComboBox>
+            <TextBlock Text="Image opacity"/>
+            <Slider x:Name="ImageOpacitySlider" Minimum="0.20" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
+            <TextBlock Text="Overlay opacity"/>
+            <Slider x:Name="OverlayOpacitySlider" Minimum="0" Maximum="0.80" TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
+            <TextBlock x:Name="ImageNameText" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Choose picture" Width="120" Margin="0,0,8,0" Click="ChoosePicture_Click"/>
+                <Button Content="Remove picture" Width="120" Click="RemovePicture_Click"/>
+            </StackPanel>
 
             <TextBlock x:Name="PanelSizeText" TextWrapping="Wrap" Margin="0,4,0,8"/>
 
@@ -38,7 +71,7 @@
             <CheckBox x:Name="ReduceMotionBox" Content="Reduce motion"/>
 
             <TextBlock x:Name="ScopeNote" TextWrapping="Wrap" Opacity="0.7" Margin="0,16,0,12"
-                       Text="Drag moves the wedge between Left, Right, and Bottom. The corner grip resizes the panel. Top is not a snap edge. Date, tasks, categories, background images, and SQLite are not in this build."/>
+                       Text="Drag moves the wedge between Left, Right, and Bottom. The corner grip resizes the panel. Top is not a snap edge. Pictures are copied into the local Backgrounds folder."/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" Width="88" Margin="0,0,8,0" IsCancel="True" Click="Cancel_Click"/>
                 <Button Content="OK" Width="88" IsDefault="True" Click="Ok_Click"/>

@@ -15,5 +15,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PeekMemo.Core\PeekMemo.Core.csproj" />
+    <ProjectReference Include="..\PeekMemo.Persistence\PeekMemo.Persistence.csproj" />
   </ItemGroup>
 </Project>

@@ -30,6 +30,15 @@ public sealed class AppSettings
     public double WedgeThickness { get; set; } = LayoutMetrics.VisibleWedgeThickness;
     public double WedgeLength { get; set; } = LayoutMetrics.WedgeLength;
     public double WedgeOpacity { get; set; } = LayoutMetrics.WedgeOpacity;
+    public string? WedgeColor { get; set; }
+    public string BackgroundMode { get; set; } = "Default";
+    public string BackgroundSolidColor { get; set; } = "#F6F3EC";
+    public double BackgroundSolidOpacity { get; set; } = 1;
+    public string? BackgroundImageFilename { get; set; }
+    public string BackgroundImageContentMode { get; set; } = "Fill";
+    public string BackgroundImagePosition { get; set; } = "Center";
+    public double BackgroundImageOpacity { get; set; } = 0.60;
+    public double BackgroundOverlayOpacity { get; set; } = 0.25;
 
     public ScreenEdge ResolvedEdge()
     {
@@ -112,4 +121,26 @@ public sealed class AppSettings
 
         return string.IsNullOrWhiteSpace(MonitorDeviceName) ? null : MonitorDeviceName;
     }
+
+    public PanelBackgroundMode ResolvedBackgroundMode() =>
+        Enum.TryParse<PanelBackgroundMode>(BackgroundMode, ignoreCase: true, out var mode)
+            ? mode
+            : PanelBackgroundMode.Default;
+
+    public BackgroundFit ResolvedBackgroundFit() =>
+        Enum.TryParse<BackgroundFit>(BackgroundImageContentMode, ignoreCase: true, out var fit)
+            ? fit
+            : BackgroundFit.Fill;
+
+    public BackgroundAnchor ResolvedBackgroundPosition() =>
+        Enum.TryParse<BackgroundAnchor>(BackgroundImagePosition, ignoreCase: true, out var position)
+            ? position
+            : BackgroundAnchor.Center;
+
+    public string? ResolvedBackgroundFilename() =>
+        BackgroundImageStore.IsSafeFilename(BackgroundImageFilename) ? BackgroundImageFilename : null;
+
+    public string? ResolvedWedgeColor() => StoredColor.Normalize(WedgeColor);
+
+    public string? ResolvedSolidColor() => StoredColor.Normalize(BackgroundSolidColor);
 }
