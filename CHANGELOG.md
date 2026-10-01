@@ -29,6 +29,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Bottom nav is a fixed region. More is an AppKit `NSMenu` so it opens on the first click and is not clipped.
 - Dragging never cloaks live; Top can be dragged to other edges. Notch sensor stays below the panel and hides during drag.
 - Daily View: `selectedDate`, `scheduledDate` vs `dueDate` vs `completedAt`. Past completion uses `completedAt <= endOfDay`.
+- Settings window with General, Appearance, and Behavior. Theme, panel opacity, width, maximum height, wedge thickness / length / opacity / color, hover delays, and Reduce Motion. Values live in UserDefaults and apply without a restart.
+- Launch at Login via `SMAppService.mainApp`. Settings… is in the menu bar. The icon stays visible.
+- Category rename, color, order, and archive from Settings. Reset Appearance does not touch SQLite.
 
 ### Fixed
 

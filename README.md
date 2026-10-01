@@ -13,6 +13,7 @@ This is a native Swift / SwiftUI / AppKit app. It is not an Electron, Tauri, or 
 - Local notes and checklists
 - Per-display placement
 - Menu bar extra + Launch at Login
+- Settings for theme, panel size, wedge, hover delay, and Reduce Motion
 - Accessory app: no Dock icon
 
 ## Screenshots
@@ -29,7 +30,7 @@ _Screenshots will be added after the first visual milestone._
 ## Build
 
 ```sh
-git clone https://github.com/<you>/PeekMemo.git
+git clone https://github.com/ginitur/PeekMemo.git
 cd PeekMemo
 swift build
 swift run PeekMemoCoreTests
@@ -53,7 +54,7 @@ The app bundle is written to `dist/PeekMemo.app` and `dist/PeekMemo.zip`.
 
 ## Privacy
 
-All notes are stored locally.
+Notes, tasks, and categories are stored locally in SQLite. Appearance settings are stored locally in UserDefaults.
 
 PeekMemo does not upload note contents anywhere.
 

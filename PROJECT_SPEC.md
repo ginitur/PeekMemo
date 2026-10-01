@@ -201,17 +201,30 @@ Completing a parent completes its children, completing the last child completes 
 
 A note may have a `scheduledDate` and a `categoryId`. It cannot have a parent or a subtask, and it has no completion state. Daily progress counts root tasks only.
 
-## Settings (Phase 8–9)
+## Settings
 
-Preferences windows: General, Appearance, Behavior.
+Preferences is a normal macOS window (General, Appearance, Behavior), opened from the menu bar. The menu bar icon stays visible so Settings and Quit cannot be lost.
 
-Launch at Login uses `SMAppService.mainApp` only.
+Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, through `PreferencesStore`. Views do not call `UserDefaults.set` themselves. Nothing in this window is written to SQLite.
 
-Hide-in-fullscreen is **experimental** and off by default. No private APIs.
+- Theme: System / Light / Dark. Default System. The panel follows it immediately.
+- Panel opacity: 0.70–1.00. Default 0.94. Applied as the expanded window alpha.
+- Width: Compact / Medium / Wide memo column (280 / 340 / 420 pt). Default Compact. Left and Right add the 14 pt hit rail beside the column.
+- Maximum height: Small / Medium / Large (280 / 420 / 560 pt), including the header. Default Medium. Short content shrinks; overflow scrolls. Empty days do not open a tall window.
+- Edge tab: one Wedge. Thickness 2–6 pt (default 3), length 32–96 pt (default 56), opacity default 0.55. Color is System Accent or a custom color stored as hex RGBA. Hover raises wedge opacity slightly. No glow, gradient, or extra shapes.
+- The hit region stays 14 pt. Visual thickness does not change it.
+- Hover open delay: 0, 0.10, 0.16, 0.25, 0.40 s. Default 0.16. Close: 0.15, 0.25, 0.35, 0.50, 0.75 s. Default 0.35. `HoverEngine` reads the new values without a restart.
+- Reduce Motion: the preference or `accessibilityDisplayShouldReduceMotion`. Panel movement duration becomes 0. The short content fade stays.
+- Categories in Appearance: rename, color, Move Up / Down, Archive, New Category. Color is a small label only. Defaults remain Work and Personal.
+- Reset Appearance to Defaults restores appearance and behavior only. It does not touch tasks, notes, categories, or Launch at Login.
+
+Launch at Login uses `SMAppService.mainApp` only. The switch shows the real system status. A failed register or unregister is shown; PeekMemo does not install a LaunchAgent or rewrite the status on launch.
+
+Hide-in-fullscreen is **experimental** and off by default. No private APIs. Top and Notch stay experimental.
 
 ## Animation
 
-Duration window: 120–220 ms for expansion, 100–180 ms for handle reveal. No bounce. Direction follows the edge (right opens left, and so on).
+Duration window: 120–220 ms for expansion, 100–180 ms for handle reveal. No bounce. Direction follows the edge (right opens left, and so on). Reduce Motion skips the frame travel and keeps the short content fade. There is no display link and no mouse polling.
 
 ## Testing policy
 

@@ -121,22 +121,33 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Window placement stays in UserDefaults
 - [x] Temporary-database tests, including restart
 
-## Phase 7 — not started
+## Phase 7 — Appearance and preferences
 
-The product model is frozen. Do not extend task management past Date, Category, Note, Task, Subtask, and Completion.
+The product model stays frozen. This phase does not add task-management features.
 
-## Phase 8 — Appearance settings
+- [x] Settings window: General, Appearance, Behavior
+- [x] `PreferencesStore` and `peekmemo.preferences.*` in UserDefaults. Not SQLite
+- [x] Theme System / Light / Dark. Panel opacity 0.70–1.00, default 0.94
+- [x] Width Compact / Medium / Wide and maximum height Small / Medium / Large. Short content shrinks; overflow scrolls
+- [x] Edge tab stays one Wedge: thickness, length, opacity, System Accent or custom hex color
+- [x] Hit region stays 14 pt when the wedge gets thinner
+- [x] Hover open / close delays apply to `HoverEngine` immediately
+- [x] Reduce Motion follows the preference or the system setting. Movement duration becomes 0; the content fade stays
+- [x] Categories: rename, color, Move Up / Down, Archive, New Category. Color is only a small label
+- [x] Reset Appearance to Defaults does not touch SQLite or Launch at Login
+- [x] Launch at Login via `SMAppService.mainApp`. The menu bar icon cannot be hidden
+- [x] No new timers, display link, or mouse polling
+- [ ] PARTIAL: live edge, opacity, theme, and delay changes need a hands-on pass. `swift run` is not an installed app, so Login Items often reports not registered
 
-- [ ] System / Light / Dark
-- [ ] Opacity 0.5–1.0
-- [ ] Item shape and size
-- [ ] Per-group color as RGBA
+## Phase 8 — not started
 
-## Phase 9 — Menu Bar + Launch at Login
+Folded into Phase 7. Do not start a new phase. Circle, pill, and rounded-square edge items were not added. The edge tab remains a wedge.
 
-- [ ] Status item menu
-- [ ] `SMAppService.mainApp`
-- [ ] Show / Hide / Reposition / Preferences / Quit
+## Phase 9 — Menu bar and Launch at Login
+
+- [x] Status item menu: Show, Hide, Reset Position, Settings…, Quit
+- [x] `SMAppService.mainApp`
+- [x] The menu bar icon stays visible so Settings and Quit remain reachable
 
 ## Phase 10 — Multi-display
 
@@ -148,8 +159,8 @@ The product model is frozen. Do not extend task management past Date, Category, 
 
 - [ ] Four-edge + notch + multi-display verification
 - [ ] Accessibility labels
-- [ ] Reduced motion
-- [ ] Idle CPU check (no polling)
+- [x] Reduced motion (Phase 7). Movement is skipped; the content fade stays
+- [ ] Idle CPU check (no polling). Phase 7 added no timer; not yet measured in Instruments
 
 ## Phase 12 — GitHub packaging
 
