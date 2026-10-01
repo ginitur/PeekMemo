@@ -443,6 +443,8 @@ final class PanelController {
             edge: edge,
             isNotchCloak: isNotchCloak,
             phase: phase,
+            appearance: preferences.snapshot,
+            backgroundImage: shellExpanded ? preferences.currentBackgroundImage() : nil,
             accent: .accent,
             tabColor: preferences.resolvedEdgeTabColor(),
             tabThickness: preferences.snapshot.edgeTabThickness,

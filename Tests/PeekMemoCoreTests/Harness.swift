@@ -81,6 +81,10 @@ enum PeekMemoCoreTestsMain {
             ("CustomPanelSizePersistence", CustomPanelSizePersistenceTests.run),
             ("PanelResizeClamp", PanelResizeClampTests.run),
             ("AnchorStableDuringResize", AnchorStableDuringResizeTests.run),
+            ("BackgroundPreference", BackgroundPreferenceTests.run),
+            ("BackgroundImageCopy", BackgroundImageCopyTests.run),
+            ("BackgroundFallback", BackgroundFallbackTests.run),
+            ("BackgroundDoesNotTouchSQLite", BackgroundDoesNotTouchSQLiteTests.run),
             ("HoverDelayPreference", HoverDelayPreferenceTests.run),
             ("ReduceMotionPreference", ReduceMotionPreferenceTests.run),
         ]

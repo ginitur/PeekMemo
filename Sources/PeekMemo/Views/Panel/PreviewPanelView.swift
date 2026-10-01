@@ -5,6 +5,8 @@ import SwiftUI
 struct PreviewPanelView: View {
     @Bindable var state: AppState
     var edge: ScreenEdge = .right
+    var appearance: AppearancePreferences = .default
+    var backgroundImage: NSImage? = nil
     var accent: RGBAColor = .accent
     var showInteractionRegions: Bool = false
     var onBeginEdit: () -> Void
@@ -51,12 +53,9 @@ struct PreviewPanelView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .textSelection(.disabled)
+        .preferredColorScheme(readableScheme)
         .background {
-            VisualEffectView(
-                material: .hudWindow,
-                blendingMode: .behindWindow,
-                cornerRadius: PanelSizeMetrics.cornerRadius
-            )
+            PanelBackgroundView(appearance: appearance, image: backgroundImage)
         }
         .clipShape(RoundedRectangle(cornerRadius: PanelSizeMetrics.cornerRadius, style: .continuous))
         .overlay {
@@ -73,6 +72,38 @@ struct PreviewPanelView: View {
                 onEnded: onResizeEnded
             )
             .padding(PanelResizeGeometry.gripInset)
+        }
+    }
+
+    private var readableScheme: ColorScheme? {
+        switch BackgroundPresentation.contentColorScheme(
+            mode: appearance.backgroundMode,
+            solid: appearance.backgroundSolidColor,
+            solidOpacity: appearance.backgroundSolidOpacity
+        ) {
+        case .light: .light
+        case .dark: .dark
+        case nil: nil
+        }
+    }
+
+    private var taskTitleColor: NSColor {
+        contrastingTitleColor(alpha: 1, fallback: .labelColor)
+    }
+
+    private var completedTitleColor: NSColor {
+        contrastingTitleColor(alpha: 0.55, fallback: .secondaryLabelColor)
+    }
+
+    private func contrastingTitleColor(alpha: CGFloat, fallback: NSColor) -> NSColor {
+        guard let readableScheme else { return fallback }
+        switch readableScheme {
+        case .light:
+            return NSColor(srgbRed: 0.11, green: 0.11, blue: 0.12, alpha: alpha)
+        case .dark:
+            return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: alpha)
+        @unknown default:
+            return fallback
         }
     }
 
@@ -313,7 +344,7 @@ struct PreviewPanelView: View {
                 NonInteractiveLabel(
                     text: item.title,
                     font: .systemFont(ofSize: isSubtask ? 11.5 : 12.5),
-                    color: item.isCompleted ? .secondaryLabelColor : .labelColor,
+                    color: item.isCompleted ? completedTitleColor : taskTitleColor,
                     strikethrough: item.isCompleted,
                     onClick: { edit(item) }
                 )

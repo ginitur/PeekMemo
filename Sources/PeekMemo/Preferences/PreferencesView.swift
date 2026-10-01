@@ -60,13 +60,6 @@ struct PreferencesView: View {
                     Text("Dark").tag(ThemePreference.dark)
                 }
                 .pickerStyle(.segmented)
-                opacityRow(
-                    "Panel Opacity",
-                    value: binding(\.panelOpacity),
-                    range: AppearancePreferences.opacityRange
-                )
-            }
-            Section {
                 Picker("Size", selection: sizeMode) {
                     Text("Small").tag(PanelSizeMode.small)
                     Text("Medium").tag(PanelSizeMode.medium)
@@ -78,9 +71,17 @@ struct PreferencesView: View {
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
+                opacityRow(
+                    "Opacity",
+                    value: binding(\.panelOpacity),
+                    range: AppearancePreferences.opacityRange
+                )
+            } header: {
+                Text("Panel")
             } footer: {
                 Text("Default is a tall note. Short lists stay at this size and scroll when they grow. Drag the panel corner for a custom size.")
             }
+            backgroundSection
             Section {
                 LabeledContent("Style") {
                     Text("Wedge")
@@ -120,6 +121,78 @@ struct PreferencesView: View {
             categories
             reset
         }
+    }
+
+    private var backgroundSection: some View {
+        Section {
+            Picker("Style", selection: backgroundMode) {
+                Text("System Material").tag(PanelBackgroundMode.systemMaterial)
+                Text("Solid Color").tag(PanelBackgroundMode.solidColor)
+                Text("Image").tag(PanelBackgroundMode.image)
+            }
+            if model.snapshot.backgroundMode == .solidColor {
+                ColorPicker("Background Color", selection: solidColor, supportsOpacity: false)
+                opacityRow(
+                    "Background Opacity",
+                    value: binding(\.backgroundSolidOpacity),
+                    range: AppearancePreferences.solidOpacityRange
+                )
+            }
+            if model.snapshot.backgroundMode == .image {
+                imageBackgroundControls
+            }
+        } header: {
+            Text("Background")
+        } footer: {
+            Text("An image is copied into PeekMemo. Removing it does not delete the original file.")
+        }
+    }
+
+    @ViewBuilder
+    private var imageBackgroundControls: some View {
+        switch model.backgroundImageStatus {
+        case .unavailable:
+            Text("Background image unavailable")
+                .foregroundStyle(.secondary)
+        case .empty, .notApplicable:
+            Text("No image selected")
+                .foregroundStyle(.secondary)
+        case .ready:
+            EmptyView()
+        }
+        if let message = model.backgroundMessage {
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        Button(model.snapshot.backgroundImageFilename == nil ? "Choose Image…" : "Replace Image…") {
+            model.chooseBackgroundImage()
+        }
+        if model.snapshot.backgroundImageFilename != nil {
+            Button("Remove Image") {
+                model.removeBackgroundImage()
+            }
+        }
+        Picker("Image Fit", selection: imageContentMode) {
+            Text("Fill").tag(BackgroundImageContentMode.fill)
+            Text("Fit").tag(BackgroundImageContentMode.fit)
+        }
+        Picker("Position", selection: imagePosition) {
+            Text("Top").tag(BackgroundImagePosition.top)
+            Text("Center").tag(BackgroundImagePosition.center)
+            Text("Bottom").tag(BackgroundImagePosition.bottom)
+        }
+        opacityRow(
+            "Image Opacity",
+            value: binding(\.backgroundImageOpacity),
+            range: AppearancePreferences.imageOpacityRange
+        )
+        opacityRow(
+            "Overlay",
+            value: binding(\.backgroundOverlayOpacity),
+            range: AppearancePreferences.overlayOpacityRange
+        )
     }
 
     private var behavior: some View {
@@ -219,6 +292,31 @@ struct PreferencesView: View {
 
     private var sizeMode: Binding<PanelSizeMode> {
         Binding(get: { model.snapshot.panelSizeMode }, set: { value in model.update { $0.panelSizeMode = value } })
+    }
+
+    private var backgroundMode: Binding<PanelBackgroundMode> {
+        Binding(get: { model.snapshot.backgroundMode }, set: { value in model.update { $0.backgroundMode = value } })
+    }
+
+    private var solidColor: Binding<Color> {
+        Binding(
+            get: { model.snapshot.backgroundSolidColor.color },
+            set: { color in model.update { $0.backgroundSolidColor = rgba(color) } }
+        )
+    }
+
+    private var imageContentMode: Binding<BackgroundImageContentMode> {
+        Binding(
+            get: { model.snapshot.backgroundImageContentMode },
+            set: { value in model.update { $0.backgroundImageContentMode = value } }
+        )
+    }
+
+    private var imagePosition: Binding<BackgroundImagePosition> {
+        Binding(
+            get: { model.snapshot.backgroundImagePosition },
+            set: { value in model.update { $0.backgroundImagePosition = value } }
+        )
     }
 
     private var thickness: Binding<Double> {

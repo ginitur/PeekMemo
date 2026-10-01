@@ -1,3 +1,4 @@
+import AppKit
 import PeekMemoCore
 import SwiftUI
 
@@ -5,6 +6,8 @@ struct PeekRootView: View {
     var edge: ScreenEdge
     var isNotchCloak: Bool
     var phase: PeekMemoCore.HoverPhase
+    var appearance: AppearancePreferences = .default
+    var backgroundImage: NSImage? = nil
     var accent: RGBAColor = .accent
     var tabColor: RGBAColor = .accent
     var tabThickness: CGFloat = LayoutMetrics.visibleTabThickness
@@ -60,6 +63,8 @@ struct PeekRootView: View {
         let preview = PreviewPanelView(
             state: appState,
             edge: edge,
+            appearance: appearance,
+            backgroundImage: backgroundImage,
             accent: accent,
             showInteractionRegions: showInteractionRegions,
             onBeginEdit: onBeginEdit,

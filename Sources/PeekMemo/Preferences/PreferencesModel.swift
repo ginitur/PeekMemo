@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import PeekMemoCore
+import UniformTypeIdentifiers
 
 enum SettingsPage: String, CaseIterable {
     case general
@@ -13,17 +14,26 @@ enum SettingsPage: String, CaseIterable {
 @Observable
 final class PreferencesModel {
     private let store: PreferencesStore
+    private let backgroundImages: BackgroundImageStore
     let appState: AppState
     var snapshot: AppearancePreferences
     var page: SettingsPage = .general
     var launchAtLoginMessage: String?
+    var backgroundMessage: String?
     var categoryNameDrafts: [UUID: String] = [:]
     var onChange: (() -> Void)?
 
     @ObservationIgnored nonisolated(unsafe) private var systemObservers: [any NSObjectProtocol] = []
 
-    init(store: PreferencesStore = PreferencesStore(), appState: AppState) {
+    init(
+        store: PreferencesStore = PreferencesStore(),
+        appState: AppState,
+        backgroundImages: BackgroundImageStore = BackgroundImageStore(
+            directory: BackgroundImageStore.applicationSupportDirectory()
+        )
+    ) {
         self.store = store
+        self.backgroundImages = backgroundImages
         self.appState = appState
         snapshot = store.load()
         refreshLaunchAtLoginFromSystem()
@@ -61,7 +71,58 @@ final class PreferencesModel {
         body(&next)
         snapshot = next.clamped()
         store.save(snapshot)
+        backgroundMessage = nil
         onChange?()
+    }
+
+    var backgroundImageStatus: BackgroundImageStatus {
+        let status = backgroundImages.imageStatus(
+            mode: snapshot.backgroundMode,
+            filename: snapshot.backgroundImageFilename
+        )
+        if status == .ready, currentBackgroundImage() == nil {
+            return .unavailable
+        }
+        return status
+    }
+
+    /// Thumbnail for the expanded panel. Missing or broken files return nil so the panel can fall back.
+    func currentBackgroundImage() -> NSImage? {
+        guard snapshot.backgroundMode == .image,
+              let url = backgroundImages.existingFile(filename: snapshot.backgroundImageFilename)
+        else { return nil }
+        return BackgroundImageCache.shared.image(at: url)
+    }
+
+    func chooseBackgroundImage() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowsOtherFileTypes = false
+        panel.prompt = snapshot.backgroundImageFilename == nil ? "Choose" : "Replace"
+        var types: [UTType] = [.png, .jpeg, .heic, .tiff]
+        if let webp = UTType(filenameExtension: "webp") {
+            types.append(webp)
+        }
+        panel.allowedContentTypes = types
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        installBackground(from: url)
+    }
+
+    func removeBackgroundImage() {
+        let filename = snapshot.backgroundImageFilename
+        if backgroundImages.existingFile(filename: filename) != nil {
+            guard backgroundImages.removeManaged(filename: filename) else {
+                backgroundMessage = "Could not remove the background image."
+                return
+            }
+        }
+        BackgroundImageCache.shared.invalidate()
+        update {
+            $0.backgroundMode = .systemMaterial
+            $0.backgroundImageFilename = nil
+        }
     }
 
     /// Live resize. The screen clamp is applied by the caller. Disk write waits until the drag ends.
@@ -81,10 +142,38 @@ final class PreferencesModel {
     }
 
     func resetAppearanceAndBehavior() {
+        _ = backgroundImages.removeManaged(filename: snapshot.backgroundImageFilename)
+        BackgroundImageCache.shared.invalidate()
         store.resetAppearanceAndBehavior()
         snapshot = store.load()
+        backgroundMessage = nil
         categoryNameDrafts = [:]
         onChange?()
+    }
+
+    private func installBackground(from url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        let previous = snapshot.backgroundImageFilename
+        let filename: String
+        do {
+            filename = try backgroundImages.install(from: url)
+        } catch {
+            backgroundMessage = "Could not use that image. The previous background was kept."
+            return
+        }
+        BackgroundImageCache.shared.invalidate()
+        update {
+            $0.backgroundMode = .image
+            $0.backgroundImageFilename = filename
+        }
+        if let previous, previous != filename {
+            _ = backgroundImages.removeManaged(filename: previous)
+        }
     }
 
     func resolvedEdgeTabColor() -> RGBAColor {
