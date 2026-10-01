@@ -34,7 +34,7 @@ struct CategoryPickerButton: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject {
-        var label = "All"
+        var label = CategoryFilterLabel.allTasks
         var categories: [PeekMemoCore.Category] = []
         var onSelectAll: () -> Void = {}
         var onSelect: (UUID) -> Void = { _ in }
@@ -58,9 +58,10 @@ final class CategoryPickerNSView: NSView {
     override var isFlipped: Bool { true }
 
     override var intrinsicContentSize: NSSize {
-        let text = (coordinator?.label ?? "All") + " ▾"
+        let text = (coordinator?.label ?? CategoryFilterLabel.allTasks) + " ▾"
         let size = text.size(withAttributes: Self.attributes)
-        return NSSize(width: ceil(size.width) + 16, height: LayoutMetrics.categoryHitHeight)
+        let width = min(Self.maximumWidth, ceil(size.width) + 16)
+        return NSSize(width: width, height: LayoutMetrics.categoryHitHeight)
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -71,11 +72,12 @@ final class CategoryPickerNSView: NSView {
     override var needsPanelToBecomeKey: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {
-        let text = (coordinator?.label ?? "All") + " ▾"
-        let size = text.size(withAttributes: Self.attributes)
+        let text = (coordinator?.label ?? CategoryFilterLabel.allTasks) + " ▾"
+        let rect = bounds.insetBy(dx: 8, dy: 0)
         text.draw(
-            at: CGPoint(x: 8, y: (bounds.height - size.height) / 2),
-            withAttributes: Self.attributes
+            with: rect,
+            options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+            attributes: Self.attributes
         )
     }
 
@@ -84,7 +86,7 @@ final class CategoryPickerNSView: NSView {
         coordinator.onWillOpen()
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let all = NSMenuItem(title: "All", action: #selector(CategoryPickerButton.Coordinator.chooseAll(_:)), keyEquivalent: "")
+        let all = NSMenuItem(title: CategoryFilterLabel.allTasks, action: #selector(CategoryPickerButton.Coordinator.chooseAll(_:)), keyEquivalent: "")
         all.target = coordinator
         menu.addItem(all)
         menu.addItem(.separator())
@@ -104,8 +106,16 @@ final class CategoryPickerNSView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    private static let attributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: 11, weight: .medium),
-        .foregroundColor: NSColor.secondaryLabelColor,
-    ]
+    private static let maximumWidth: CGFloat = 140
+
+    private static let attributes: [NSAttributedString.Key: Any] = {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        paragraph.alignment = .left
+        return [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: paragraph,
+        ]
+    }()
 }

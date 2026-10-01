@@ -65,8 +65,10 @@ final class AppState {
 
     var filterLabel: String {
         switch categoryFilter {
-        case .all: "All"
-        case .category(let id): categories.first(where: { $0.id == id })?.name ?? "All"
+        case .all:
+            CategoryFilterLabel.allTasks
+        case .category(let id):
+            CategoryFilterLabel.title(selectedName: categories.first(where: { $0.id == id })?.name)
         }
     }
 

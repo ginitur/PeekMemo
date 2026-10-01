@@ -51,8 +51,8 @@ public sealed class MemoBoard
 
     public string FilterLabel =>
         SelectedCategoryId is Guid id
-            ? ActiveCategories.FirstOrDefault(category => category.Id == id)?.Name ?? "All"
-            : "All";
+            ? ActiveCategories.FirstOrDefault(category => category.Id == id)?.Name ?? CategoryFilterLabel.AllTasks
+            : CategoryFilterLabel.AllTasks;
 
     public void SelectDate(DateOnly date) => SelectedDate = date;
 

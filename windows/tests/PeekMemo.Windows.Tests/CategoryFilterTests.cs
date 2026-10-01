@@ -33,6 +33,9 @@ public class CategoryFilterTests
 
         Assert.Null(note.CategoryId);
         Assert.Null(board.CategoryLabel(note));
+        Assert.Null(board.SelectedCategoryId);
+        Assert.Equal(CategoryFilterLabel.AllTasks, board.FilterLabel);
+        Assert.DoesNotContain(board.ActiveCategories, category => category.Name is "All" or "All Tasks" or "Default" or "Uncategorized");
 
         board.SelectCategory(board.ActiveCategories[0].Id);
         Assert.DoesNotContain(board.DailyItems, item => item.CategoryId is null);

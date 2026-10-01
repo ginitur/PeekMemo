@@ -309,11 +309,11 @@
                         Style="{StaticResource QuietButton}"
                         SizeChanged="OnHeaderSizeChanged"
                         Click="OnCategoryClick"
-                        MaxWidth="112"
+                        MaxWidth="132"
                         Padding="6,2"
                         AutomationProperties.Name="Category">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding FilterLabel}" TextTrimming="CharacterEllipsis" MaxWidth="84" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding FilterLabel}" TextTrimming="CharacterEllipsis" MaxWidth="108" VerticalAlignment="Center"/>
                         <TextBlock Text=" ▾" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -441,7 +441,7 @@
                             AutomationProperties.Name="New category"/>
                     <Separator DockPanel.Dock="Bottom" Margin="4,4"/>
                     <Button DockPanel.Dock="Top"
-                            Content="All"
+                            Content="All Tasks"
                             Command="{Binding SelectAllCommand}"
                             Style="{StaticResource QuietButton}"/>
                     <Separator DockPanel.Dock="Top" Margin="4,4"/>
