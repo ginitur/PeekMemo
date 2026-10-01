@@ -10,7 +10,7 @@ Core model: **Date, Category, Note, Task, Subtask, Completion.**
 
 Nothing else is part of v0.1: no priority, tags, projects, reminders, recurrence, notifications, calendar sync, kanban, statistics, charts, Markdown, attachments, iCloud, or accounts.
 
-Version: `0.1.0-rc.1`  
+Version: `0.1.0-rc.2`  
 Bundle identifier: `com.peekmemo.app`  
 Deployment target: macOS 14+
 

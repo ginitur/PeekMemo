@@ -134,6 +134,8 @@ jobs:
           - Resizable panel
           - Background images
           - Appearance preferences
+          - Cat app icon
+          - All Tasks filter and locale date header
 
           ### Windows
 
@@ -146,10 +148,14 @@ jobs:
           - Resizable panel
           - Appearance/background
           - System tray
+          - Cat app icon
+          - Category menu owned by the panel
+          - Live appearance preview
 
           ### Known limitations
 
           - Windows UI has automated logic/build validation but still needs device-level interaction validation
+          - Windows category-menu z-order is covered by hold-state tests; the HWND order itself is a device check
           - macOS build is not notarized
           - The macOS download is built on macos-15 for Apple silicon (arm64)
           - Top edge is not supported

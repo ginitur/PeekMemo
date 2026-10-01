@@ -2,7 +2,26 @@
 
 All notable changes to PeekMemo are recorded here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The current release candidate is `0.1.0-rc.1`.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The current release candidate is `0.1.0-rc.2`.
+
+## [0.1.0-rc.2] — 2026-10-01
+
+### Added
+
+- PeekMemo cat app icon on macOS (`AppIcon.icns`) and Windows (`PeekMemo.ico`), including the tray. Small sizes use a simplified version of the same cat.
+- Locale date header. Today in the current year includes the weekday and Today (`Oct 1 · Thu · Today`, or the system locale). Other years include the year.
+- A short French quotation under Add Task. It hides when the panel is shorter than 350 pt/DIP, and while a root editor is open.
+
+### Changed
+
+- All Tasks is a filter, not a category. Adding a task while All Tasks is selected stores no category. Uncategorized rows show no label.
+- macOS expand/collapse eases out from the attached edge. Reduce Motion skips the spring and scale.
+- Windows appearance sliders preview on the panel immediately. OK saves. Cancel or closing Settings restores the snapshot from when Settings opened.
+
+### Fixed
+
+- macOS edge drag uses an event-tracking loop, because a nonactivating panel does not deliver `mouseDragged`.
+- Windows category menu is an owned window so it stays above the topmost panel and can be clicked. HWND z-order still needs a device check.
 
 ## [0.1.0-rc.1] — 2026-10-01
 

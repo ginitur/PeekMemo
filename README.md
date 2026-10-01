@@ -29,12 +29,12 @@ Supported edges are Left, Right, and Bottom. Top is not a snap target.
 
 ## Download
 
-Release candidates are published on [GitHub Releases](https://github.com/ginitur/PeekMemo/releases). `v0.1.0-rc.1` is a pre-release for acceptance testing, not a stable `v0.1.0`.
+Release candidates are published on [GitHub Releases](https://github.com/ginitur/PeekMemo/releases). `v0.1.0-rc.2` is the current pre-release for acceptance testing, not a stable `v0.1.0`. `v0.1.0-rc.1` stays on the releases page.
 
 | Platform | Asset | Run |
 | --- | --- | --- |
-| macOS 14+ on Apple silicon | `PeekMemo-macOS-0.1.0-rc.1.zip` | Unzip and open `PeekMemo.app` |
-| Windows x64 | `PeekMemo-Windows-x64-0.1.0-rc.1.zip` | Unzip and double-click `PeekMemo.exe` |
+| macOS 14+ on Apple silicon | `PeekMemo-macOS-0.1.0-rc.2.zip` | Unzip and open `PeekMemo.app` |
+| Windows x64 | `PeekMemo-Windows-x64-0.1.0-rc.2.zip` | Unzip and double-click `PeekMemo.exe` |
 
 Check `SHA256SUMS.txt` on the release against the downloaded zip.
 
