@@ -185,8 +185,16 @@ Separate native client. Not a port of the AppKit UI.
 - [x] `windows/PeekMemo.Windows.sln`, `PeekMemo.Core` (net8.0), WPF app project, test project
 - [x] Core tests for daily query, category filter, hierarchy, completion, past unfinished, edge placement, resize grip ≤ 24×24, and settings JSON in a temp directory
 - [x] Windows CI workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, test
-- [ ] Tray, borderless window, and right-edge wedge (Phase 1)
+- [x] Tray (Show, Settings, Quit), borderless no-activate window, right-edge wedge, hover panel. Not run on a Windows machine
 - [ ] SQLite open and restart (later). Schema names are recorded. The database is not opened yet
+- [ ] Drag between edges and the resize grip UI (Phase 2). Grip geometry is already tested
+
+## Windows Phase 1 — Tray and edge wedge
+
+- [x] `NotifyIcon` menu. WinForms is not the main UI
+- [x] `WS_EX_NOACTIVATE` and `ShowActivated=false`. Hover does not call `Activate`
+- [x] Right working-area edge. Visible wedge is thinner than the hit window
+- [ ] PARTIAL: no Windows machine in this session, so hover, tray, and DPI were not clicked through
 
 ## Phase 12 — GitHub packaging
 

@@ -240,4 +240,6 @@ Geometry uses a top-left origin, Y down, in DIPs. The working rectangle comes fr
 
 Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
 
-The WPF UI has not been run on Windows from this macOS workspace. `windows-latest` is the build and test check.
+The phase 1 window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE`). It draws a right-edge wedge and expands a basic panel on hover. It does not call `Activate` for hover. The tray is `System.Windows.Forms.NotifyIcon` only. Drag, the resize grip, tasks, and SQLite are not in this window. The grip math is still tested.
+
+The WPF UI has not been run on Windows from this macOS workspace. `windows-latest` is the build and test check. A local `EnableWindowsTargeting` compile is not a device test.

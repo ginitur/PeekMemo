@@ -90,9 +90,21 @@ dotnet test PeekMemo.Windows.sln
 
 `windows/scripts/build.ps1` runs the same restore, Release build, and test. `windows/scripts/package.ps1` publishes an unpackaged build to `windows/dist`. There is no MSIX, signing, or Store package.
 
-The product model matches macOS: Date, Category, Note, Task, Subtask, Completion. Supported edges are Left, Right, and Bottom. Top is not a snap target. Phase 0 is the solution, the testable core library, and settings JSON under `%LOCALAPPDATA%\PeekMemo\`. The tray and the edge window are not in the bootstrap commit.
+The product model matches macOS: Date, Category, Note, Task, Subtask, Completion. Supported edges are Left, Right, and Bottom. Top is not a snap target.
 
-Startup, when enabled later, is one per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. It does not need administrator rights and it does not write `HKLM`. Memo data is not stored in the registry. SQLite (`PeekMemo.sqlite`) is not opened yet.
+What is in the app today:
+
+- A system tray icon: Show PeekMemo, Settings, Quit PeekMemo
+- A borderless, topmost window with no taskbar button
+- A right-edge wedge. The window is the hover target (about 14 DIP). The drawn wedge is thinner (about 3 DIP)
+- Hover expands a basic panel and leave collapses it, after a short delay. Hover does not call `Activate`
+- One process per session. A second launch asks the first to show the panel
+- Settings for launch at startup, theme, opacity, wedge, hover delay, and Reduce Motion
+- JSON settings at `%LOCALAPPDATA%\PeekMemo\settings.json`
+
+Not in this build: drag between edges, the resize grip, date and task UI, SQLite, and background images. The resize grip geometry is tested (22×22, at most 24×24) so the later grip cannot cover the panel. None of the WPF UI has been run on a Windows machine.
+
+Startup, when the user turns it on, is one per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. It does not need administrator rights and it does not write `HKLM`. Memo data is not stored in the registry. SQLite (`PeekMemo.sqlite`) is not opened yet.
 
 ## License
 
