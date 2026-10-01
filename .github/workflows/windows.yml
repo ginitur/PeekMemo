@@ -1,0 +1,28 @@
+name: Windows
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore windows/PeekMemo.Windows.sln
+
+      - name: Build
+        run: dotnet build windows/PeekMemo.Windows.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test windows/PeekMemo.Windows.sln --configuration Release --no-build

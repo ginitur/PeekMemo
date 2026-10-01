@@ -60,3 +60,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ### Added
 
 - Native Windows client bootstrap under `windows/`: .NET 8 class library, WPF project, solution, and core tests. No Electron, Tauri, or WebView UI. The WPF window is not device-verified.
+- GitHub Actions workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, and test. The macOS workflow is unchanged.

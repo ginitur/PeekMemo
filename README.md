@@ -75,7 +75,7 @@ Explicitly out of scope for v0.1: iCloud, AI, plugins, a full Markdown editor, a
 
 ## Windows
 
-Status: **under development**. The Windows version has not been verified on a Windows machine. This repository is developed on macOS, which cannot run the WPF UI. Build and test on Windows with the commands below. GitHub Actions on `windows-latest` runs the same commands.
+Status: **under development**. The Windows version has not been verified on a Windows machine. This repository is developed on macOS, which cannot run the WPF UI. Build and test on Windows with the commands below. GitHub Actions workflow `.github/workflows/windows.yml` runs the same commands on `windows-latest`. The macOS workflow is unchanged.
 
 Requirements:
 

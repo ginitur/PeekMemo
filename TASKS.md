@@ -184,7 +184,7 @@ Separate native client. Not a port of the AppKit UI.
 
 - [x] `windows/PeekMemo.Windows.sln`, `PeekMemo.Core` (net8.0), WPF app project, test project
 - [x] Core tests for daily query, category filter, hierarchy, completion, past unfinished, edge placement, resize grip ≤ 24×24, and settings JSON in a temp directory
-- [ ] Windows CI on `windows-latest` (next commit)
+- [x] Windows CI workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, test
 - [ ] Tray, borderless window, and right-edge wedge (Phase 1)
 - [ ] SQLite open and restart (later). Schema names are recorded. The database is not opened yet
 
