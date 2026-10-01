@@ -4,13 +4,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-APP_NAME="PeekMemo"
+APP_NAME="PeekMeow"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 BUILD="$(tr -d '[:space:]' < "$ROOT/BUILD")"
 COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 DIST="$ROOT/dist"
 APP="$DIST/${APP_NAME}.app"
-ZIP="$DIST/PeekMemo-macOS-${VERSION}.zip"
+ZIP="$DIST/PeekMeow-macOS-${VERSION}.zip"
 PLIST="$APP/Contents/Info.plist"
 
 echo "→ Building $APP_NAME (release)"
@@ -27,9 +27,9 @@ echo "→ Assembling $APP"
 rm -rf "$DIST"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
-cp "$ROOT/Sources/PeekMemo/Resources/Info.plist" "$PLIST"
+cp "$ROOT/Sources/PeekMeow/Resources/Info.plist" "$PLIST"
 ICON="$ROOT/Brand/AppIcon.icns"
-MARK="$ROOT/Brand/PeekMemo-Mark.png"
+MARK="$ROOT/Brand/PeekMeow-Mark.png"
 if [[ ! -f "$ICON" ]]; then
   echo "error: missing $ICON — run scripts/make-icons.py" >&2
   exit 1
@@ -39,7 +39,7 @@ if [[ ! -f "$MARK" ]]; then
   exit 1
 fi
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
-cp "$MARK" "$APP/Contents/Resources/PeekMemoMark.png"
+cp "$MARK" "$APP/Contents/Resources/PeekMeowMark.png"
 set_plist() {
   local key="$1"
   local value="$2"
@@ -51,7 +51,7 @@ set_plist() {
 }
 set_plist CFBundleShortVersionString "$VERSION"
 set_plist CFBundleVersion "$BUILD"
-set_plist PeekMemoCommit "$COMMIT"
+set_plist PeekMeowCommit "$COMMIT"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 chmod +x "$APP/Contents/MacOS/$APP_NAME"
 

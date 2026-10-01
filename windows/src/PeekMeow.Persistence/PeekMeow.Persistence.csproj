@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>PeekMeow.Persistence</RootNamespace>
+    <AssemblyName>PeekMeow.Persistence</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Description>PeekMeow SQLite persistence. No EF Core and no WPF.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PeekMeow.Core\PeekMeow.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+  </ItemGroup>
+</Project>

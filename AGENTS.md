@@ -1,8 +1,8 @@
-# Agent rules for PeekMemo
+# Agent rules for PeekMeow
 
-PeekMemo is a long-lived native macOS application. Follow these rules on every change.
+PeekMeow is a long-lived native macOS application. Follow these rules on every change.
 
-1. PeekMemo has two native clients. macOS UI is Swift, SwiftUI, and AppKit. Windows UI is C#, .NET 8, and WPF. Do not turn the macOS UI into a cross-platform toolkit, and do not run Swift or AppKit on Windows.
+1. PeekMeow has two native clients. macOS UI is Swift, SwiftUI, and AppKit. Windows UI is C#, .NET 8, and WPF. Do not turn the macOS UI into a cross-platform toolkit, and do not run Swift or AppKit on Windows.
 2. Do not introduce Electron, Tauri, MAUI, Avalonia, or a WebView as the main UI.
 3. Avoid unnecessary dependencies. GRDB.swift is the approved SQLite layer. Do not add a package to save a few dozen lines.
 4. Do not use private macOS APIs.
@@ -21,7 +21,7 @@ PeekMemo is a long-lived native macOS application. Follow these rules on every c
 ## Architecture constraints
 
 - Keep domain models, persistence, settings, hover state, and edge geometry free of AppKit.
-- AppKit / SwiftUI adapters live in the `PeekMemo` target: `NSScreen`, `NSPanel`, `NSEvent`, `SMAppService`.
+- AppKit / SwiftUI adapters live in the `PeekMeow` target: `NSScreen`, `NSPanel`, `NSEvent`, `SMAppService`.
 - Supported snap edges are Left, Right, and Bottom. `ScreenEdge.top` stays only so shared geometry switches compile. Do not offer Top in the UI, and do not snap to it. A stored Top placement restores to Right.
 - Visual size and hit-testing size are not the same. Do not make the Edge Tab as thick as its hover region.
 - Hover across Edge Item and Expanded Panel is one interaction region, owned by `HoverEngine`. Do not rely on a lone SwiftUI `onHover`.

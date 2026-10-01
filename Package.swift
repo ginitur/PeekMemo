@@ -2,35 +2,35 @@
 import PackageDescription
 
 let package = Package(
-    name: "PeekMemo",
+    name: "PeekMeow",
     platforms: [
         .macOS(.v14),
     ],
     products: [
-        .executable(name: "PeekMemo", targets: ["PeekMemo"]),
-        .executable(name: "PeekMemoCoreTests", targets: ["PeekMemoCoreTests"]),
-        .library(name: "PeekMemoCore", targets: ["PeekMemoCore"]),
+        .executable(name: "PeekMeow", targets: ["PeekMeow"]),
+        .executable(name: "PeekMeowCoreTests", targets: ["PeekMeowCoreTests"]),
+        .library(name: "PeekMeowCore", targets: ["PeekMeowCore"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.1"),
     ],
     targets: [
         .target(
-            name: "PeekMemoCore",
+            name: "PeekMeowCore",
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
-            path: "Sources/PeekMemoCore",
+            path: "Sources/PeekMeowCore",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]
         ),
         .executableTarget(
-            name: "PeekMemo",
+            name: "PeekMeow",
             dependencies: [
-                "PeekMemoCore",
+                "PeekMeowCore",
             ],
-            path: "Sources/PeekMemo",
+            path: "Sources/PeekMeow",
             exclude: [
                 "Resources/Info.plist",
             ],
@@ -42,11 +42,11 @@ let package = Package(
         // Command Line Tools does not ship XCTest, and Swift Testing cannot
         // dlopen Testing.framework from a CLT-built .xctest bundle.
         .executableTarget(
-            name: "PeekMemoCoreTests",
+            name: "PeekMeowCoreTests",
             dependencies: [
-                "PeekMemoCore",
+                "PeekMeowCore",
             ],
-            path: "Tests/PeekMemoCoreTests",
+            path: "Tests/PeekMeowCoreTests",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]

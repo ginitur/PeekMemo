@@ -19,22 +19,22 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore windows/PeekMemo.Windows.sln
+        run: dotnet restore windows/PeekMeow.Windows.sln
 
       - name: Build
-        run: dotnet build windows/PeekMemo.Windows.sln --configuration Release --no-restore
+        run: dotnet build windows/PeekMeow.Windows.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test windows/PeekMemo.Windows.sln --configuration Release --no-build
+        run: dotnet test windows/PeekMeow.Windows.sln --configuration Release --no-build
 
       - name: Publish self-contained win-x64
-        run: dotnet publish windows/src/PeekMemo.Windows/PeekMemo.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMemo-Windows-x64
+        run: dotnet publish windows/src/PeekMeow.Windows/PeekMeow.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMeow-Windows-x64
 
       - name: Reject packaged user data
         shell: pwsh
         run: |
-          $out = "windows/dist/PeekMemo-Windows-x64"
-          if (-not (Test-Path "$out/PeekMemo.exe")) { throw "PeekMemo.exe is missing." }
+          $out = "windows/dist/PeekMeow-Windows-x64"
+          if (-not (Test-Path "$out/PeekMeow.exe")) { throw "PeekMeow.exe is missing." }
           $bad = @(Get-ChildItem $out -Recurse -File | Where-Object {
             $_.Name -eq "settings.json" -or $_.Extension -in ".sqlite", ".sqlite-shm", ".sqlite-wal"
           })
@@ -44,20 +44,20 @@ jobs:
         timeout-minutes: 2
         shell: pwsh
         run: |
-          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMeow-Windows-x64") "PeekMeow.exe"
           $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru
           if (-not $process.WaitForExit(90000)) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "PeekMemo.exe --smoke did not exit within 90 seconds."
+            throw "PeekMeow.exe --smoke did not exit within 90 seconds."
           }
           $process.Refresh()
-          if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }
+          if ($process.ExitCode -ne 0) { throw "PeekMeow.exe --smoke exited $($process.ExitCode)." }
 
       - name: Version and UI resource smoke
         timeout-minutes: 2
         shell: pwsh
         run: |
-          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMeow-Windows-x64") "PeekMeow.exe"
           $version = (Get-Content VERSION -Raw).Trim()
           function Invoke-Peek([string]$Argument) {
             $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -71,11 +71,11 @@ jobs:
             $stderr = $proc.StandardError.ReadToEnd()
             if (-not $proc.WaitForExit(20000)) {
               Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-              throw "PeekMemo.exe $Argument did not exit."
+              throw "PeekMeow.exe $Argument did not exit."
             }
             Write-Host $stdout
             Write-Host $stderr
-            if ($proc.ExitCode -ne 0) { throw "PeekMemo.exe $Argument exited $($proc.ExitCode)." }
+            if ($proc.ExitCode -ne 0) { throw "PeekMeow.exe $Argument exited $($proc.ExitCode)." }
             return $stdout + $stderr
           }
           $reported = Invoke-Peek "--version"

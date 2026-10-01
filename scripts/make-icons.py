@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build PeekMemo.icns inputs and PeekMemo.ico from the two logo masters.
+"""Build PeekMeow.icns inputs and PeekMeow.ico from the two logo masters.
 
 Full art is used at 48 px and above. The simplified master is used at 32 px
 and below so the eyes, ears, and door edge survive.
@@ -14,11 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "Brand"
-FULL = BRAND / "PeekMemo-Logo.png"
-SMALL = BRAND / "PeekMemo-Logo-Small.png"
+FULL = BRAND / "PeekMeow-Logo.png"
+SMALL = BRAND / "PeekMeow-Logo-Small.png"
 ICONSET = BRAND / "AppIcon.iconset"
 ICNS = BRAND / "AppIcon.icns"
-ICO = ROOT / "windows" / "src" / "PeekMemo.Windows" / "Assets" / "PeekMemo.ico"
+ICO = ROOT / "windows" / "src" / "PeekMeow.Windows" / "Assets" / "PeekMeow.ico"
 
 # (filename, pixels, simplified)
 ICONSET_IMAGES = [

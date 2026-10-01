@@ -1,17 +1,17 @@
-# PeekMemo project spec
+# PeekMeow project spec
 
 Status: living document. Update this when an architecture decision lands.
 
 ## Product
 
-PeekMemo is intentionally simple. It is a macOS accessory app: a thin tab on a screen edge that expands into a daily memo. It is not Todoist, Things, Notion, or a project manager.
+PeekMeow is intentionally simple. It is a macOS accessory app: a thin tab on a screen edge that expands into a daily memo. It is not Todoist, Things, Notion, or a project manager.
 
 Core model: **Date, Category, Note, Task, Subtask, Completion.**
 
 Nothing else is part of v0.1: no priority, tags, projects, reminders, recurrence, notifications, calendar sync, kanban, statistics, charts, Markdown, attachments, iCloud, or accounts.
 
 Version: `0.1.0-rc.3` (published pre-release `v0.1.0-rc.3` at `820998a`; not stable `v0.1.0`)  
-Bundle identifier: `com.peekmemo.app`  
+Bundle identifier: `com.peekmeow.app`  
 Deployment target: macOS 14+
 
 ## Current development environment (2026-09-21)
@@ -23,32 +23,32 @@ Deployment target: macOS 14+
 | SDK | `MacOSX.sdk` via CLT — AppKit, SwiftUI, ServiceManagement present |
 | Xcode.app | **Not installed.** `xcodebuild` is unavailable locally. |
 | Git | 2.54.0 |
-| Workspace | The user home directory is not a git repository. The app lives in `/Users/weijiaren/PeekMemo`. |
+| Workspace | The user home directory is not a git repository. The app lives in `/Users/weijiaren/PeekMeow`. |
 
-Decision: **Swift Package Manager is the canonical build.** GitHub Actions runs `swift build --product PeekMemo` and `swift run PeekMemoCoreTests` on a macOS runner. A generated `.xcodeproj` is not required for v0.1. Installing Xcode.app is a system-level change and will not be done unless the user asks.
+Decision: **Swift Package Manager is the canonical build.** GitHub Actions runs `swift build --product PeekMeow` and `swift run PeekMeowCoreTests` on a macOS runner. A generated `.xcodeproj` is not required for v0.1. Installing Xcode.app is a system-level change and will not be done unless the user asks.
 
 ## Module split
 
 ```
-PeekMemo/                        # git root
-  Sources/PeekMemoCore/          # no AppKit, no SwiftUI, no SMAppService
-  Sources/PeekMemo/              # app executable, AppKit adapters, SwiftUI views
-  Tests/PeekMemoCoreTests/       # Swift Testing
+PeekMeow/                        # git root
+  Sources/PeekMeowCore/          # no AppKit, no SwiftUI, no SMAppService
+  Sources/PeekMeow/              # app executable, AppKit adapters, SwiftUI views
+  Tests/PeekMeowCoreTests/       # Swift Testing
 ```
 
 Folder mapping versus the original sketch:
 
 | Sketch | Lives in |
 | --- | --- |
-| `App/` | `Sources/PeekMemo/App/` |
-| `Models/` | `Sources/PeekMemoCore/Models/` |
-| `Core/AppState.swift` | `Sources/PeekMemo/App/AppState.swift` |
-| `Window/` | `Sources/PeekMemo/Window/` |
-| Geometry / hover | `Sources/PeekMemoCore/Geometry/`, `Hover/` |
-| `Persistence/` | `Sources/PeekMemoCore/Persistence/` (GRDB). Window placement stays in `Sources/PeekMemo/Persistence/` (UserDefaults). |
-| `Views/` | `Sources/PeekMemo/Views/` |
-| `Utilities/` | `Sources/PeekMemo/Utilities/` |
-| `Resources/` | `Sources/PeekMemo/Resources/` |
+| `App/` | `Sources/PeekMeow/App/` |
+| `Models/` | `Sources/PeekMeowCore/Models/` |
+| `Core/AppState.swift` | `Sources/PeekMeow/App/AppState.swift` |
+| `Window/` | `Sources/PeekMeow/Window/` |
+| Geometry / hover | `Sources/PeekMeowCore/Geometry/`, `Hover/` |
+| `Persistence/` | `Sources/PeekMeowCore/Persistence/` (GRDB). Window placement stays in `Sources/PeekMeow/Persistence/` (UserDefaults). |
+| `Views/` | `Sources/PeekMeow/Views/` |
+| `Utilities/` | `Sources/PeekMeow/Utilities/` |
+| `Resources/` | `Sources/PeekMeow/Resources/` |
 
 The macOS split stays. Windows is a separate native client under `windows/`. It does not reuse the Swift package, and the Swift package does not gain a Windows UI.
 
@@ -82,7 +82,7 @@ Dock / menu bar: the **along-edge** span is clamped to `visibleFrame`. The **per
 1. **Edge Tab** (default) — 4 pt visible wedge, 14 pt hit region.
 2. **Cloak** — hidden until the pointer enters the edge hit region.
 
-Visual thickness and hit thickness are independent constants in `LayoutMetrics`. Notch Cloak is not a mode. PeekMemo does not hide in the MacBook camera housing.
+Visual thickness and hit thickness are independent constants in `LayoutMetrics`. Notch Cloak is not a mode. PeekMeow does not hide in the MacBook camera housing.
 
 ## Window
 
@@ -100,7 +100,7 @@ There is no notch sensor window and no notch mouse monitor. The remaining global
 
 ## Product model
 
-PeekMemo is intentionally not a project-management application.
+PeekMeow is intentionally not a project-management application.
 
 Core model:
 
@@ -143,11 +143,11 @@ Supported snap targets: **Left, Right, Bottom**.
 
 Notch Cloak is removed. There is no notch placement, notch snap threshold, notch activation strip, or DEBUG notch menu. Old UserDefaults keys for that feature are ignored. There is no migration.
 
-The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI files; SwiftUI also defines `HoverPhase`.
+The Core type `HoverPhase` must be spelled `PeekMeowCore.HoverPhase` in SwiftUI files; SwiftUI also defines `HoverPhase`.
 
 ## Persistence (Phase 6)
 
-SQLite via GRDB.swift. The file is `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. It is never stored in the source tree. Tests open a database under the system temporary directory and must not touch Application Support.
+SQLite via GRDB.swift. The file is `~/Library/Application Support/PeekMeow/PeekMeow.sqlite`. It is never stored in the source tree. Tests open a database under the system temporary directory and must not touch Application Support.
 
 Window configuration stays in UserDefaults: edge, position, panel size, hover delays, and appearance. `selectedDate` is UI state and defaults to today on every launch. It is not stored.
 
@@ -189,7 +189,7 @@ A note may have a `scheduledDate` and a `categoryId`. It cannot have a parent or
 
 Preferences is a normal macOS window (General, Appearance, Behavior), opened from the menu bar. The menu bar icon stays visible so Settings and Quit cannot be lost.
 
-Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, through `PreferencesStore`. Views do not call `UserDefaults.set` themselves. Nothing in this window is written to SQLite.
+Appearance and behavior live in UserDefaults under `peekmeow.preferences.*`, through `PreferencesStore`. Views do not call `UserDefaults.set` themselves. Nothing in this window is written to SQLite.
 
 - Theme: System / Light / Dark. Default System. The panel follows it immediately. Text and controls follow the theme. A background image does not.
 - Panel opacity: 0.70–1.00. Default 0.94. Applied as the expanded window alpha.
@@ -198,7 +198,7 @@ Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, thr
 - Dragging the resize grip on the free corner (right edge: bottom-left, left edge: bottom-right, bottom edge: top-right) sets Custom and saves `panelWidth` and `panelHeight`. Width and height are independent. The edge anchor does not move. Auto-collapse pauses while the pointer is down on the grip.
 - Corner radius is 16 pt for the expanded card. The material, the image, the content, and the hairline border use that same rounded clip. The expanded window uses the system shadow. The collapsed wedge does not.
 - Background: System Material (default), Solid Color, or Image. Solid color has its own opacity (0.40–1.00). An opaque light or dark solid switches text contrast. Image fit is Fill (default) or Fit, never stretched, aligned Top, Center, or Bottom. Image opacity is 0.20–1.00, default 0.60. Overlay is 0–0.80, default 0.25, black in Dark and white in Light.
-- A chosen image is copied to `~/Library/Application Support/PeekMemo/Backgrounds/` under a `background-<uuid>` name. Preferences store that filename only, not the original path and not the bytes. Replace copies the new file before deleting the previous copy. Remove and Reset Appearance delete only that copy. A missing or unreadable image draws System Material and Settings says “Background image unavailable”.
+- A chosen image is copied to `~/Library/Application Support/PeekMeow/Backgrounds/` under a `background-<uuid>` name. Preferences store that filename only, not the original path and not the bytes. Replace copies the new file before deleting the previous copy. Remove and Reset Appearance delete only that copy. A missing or unreadable image draws System Material and Settings says “Background image unavailable”.
 - Edge tab: one Wedge. Thickness 2–6 pt (default 3), length 32–96 pt (default 56), opacity default 0.55. Color is System Accent or a custom color stored as hex RGBA. Hover raises wedge opacity slightly. No glow, gradient, or extra shapes. Panel size does not change the wedge.
 - The hit region stays 14 pt. Visual thickness does not change it.
 - Hover open delay: 0, 0.10, 0.16, 0.25, 0.40 s. Default 0.16. Close: 0.15, 0.25, 0.35, 0.50, 0.75 s. Default 0.35. `HoverEngine` reads the new values without a restart.
@@ -206,7 +206,7 @@ Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, thr
 - Categories in Appearance: rename, color, Move Up / Down, Archive, New Category. Color is a small label only. Defaults remain Work and Personal.
 - Reset Appearance to Defaults restores appearance and behavior only. It does not touch tasks, notes, categories, or Launch at Login.
 
-Launch at Login uses `SMAppService.mainApp` only. The switch shows the real system status. A failed register or unregister is shown; PeekMemo does not install a LaunchAgent or rewrite the status on launch.
+Launch at Login uses `SMAppService.mainApp` only. The switch shows the real system status. A failed register or unregister is shown; PeekMeow does not install a LaunchAgent or rewrite the status on launch.
 
 Hide-in-fullscreen is **experimental** and off by default. No private APIs. Top is not currently supported. Notch Cloak is not part of the product.
 
@@ -218,7 +218,7 @@ Duration window: 120–220 ms for expansion, 100–180 ms for handle reveal. No 
 
 Anything that does not need AppKit UI is a unit test: edge placement, offset clamping, screen migration, color serialization, hover transitions, resize-handle geometry, later database CRUD. Do not keep tests for removed Notch Cloak behavior.
 
-Tests live in the `PeekMemoCoreTests` **executable** (`swift run PeekMemoCoreTests`). Command Line Tools does not ship XCTest, and a CLT-built Swift Testing `.xctest` cannot `dlopen` `Testing.framework`. The harness is a few dozen lines in `Tests/PeekMemoCoreTests/Harness.swift` and covers the same geometry / hover / color cases. GitHub Actions runs the same command so local and CI stay aligned.
+Tests live in the `PeekMeowCoreTests` **executable** (`swift run PeekMeowCoreTests`). Command Line Tools does not ship XCTest, and a CLT-built Swift Testing `.xctest` cannot `dlopen` `Testing.framework`. The harness is a few dozen lines in `Tests/PeekMeowCoreTests/Harness.swift` and covers the same geometry / hover / color cases. GitHub Actions runs the same command so local and CI stay aligned.
 
 ## Out of scope for v0.1
 
@@ -226,13 +226,13 @@ iCloud, AI, agents, Workbench integration, plugins, a full Markdown editor, mobi
 
 ## Windows client
 
-Native C# / .NET 8 / WPF under `windows/PeekMemo.Windows.sln`. It is not Electron, Tauri, MAUI, Avalonia, or a WebView shell. macOS sources stay where they are.
+Native C# / .NET 8 / WPF under `windows/PeekMeow.Windows.sln`. It is not Electron, Tauri, MAUI, Avalonia, or a WebView shell. macOS sources stay where they are.
 
-`PeekMemo.Core` (`net8.0`) holds models, daily rules, edge and resize geometry, and JSON settings. It does not reference WPF. `PeekMemo.Windows` is the WPF app. Tests are `windows/tests/PeekMemo.Windows.Tests` and must use a temp directory, not the real `%LOCALAPPDATA%\PeekMemo`.
+`PeekMeow.Core` (`net8.0`) holds models, daily rules, edge and resize geometry, and JSON settings. It does not reference WPF. `PeekMeow.Windows` is the WPF app. Tests are `windows/tests/PeekMeow.Windows.Tests` and must use a temp directory, not the real `%LOCALAPPDATA%\PeekMeow`.
 
-Data root, when the app runs: `%LOCALAPPDATA%\PeekMemo\`. Settings file: `settings.json`. Database file, later: `PeekMemo.sqlite`. Backgrounds, later: `Backgrounds\`. IDs are uppercase `8-4-4-4-12` text, the same shape as Swift `UUID.uuidString`.
+Data root, when the app runs: `%LOCALAPPDATA%\PeekMeow\`. Settings file: `settings.json`. Database file, later: `PeekMeow.sqlite`. Backgrounds, later: `Backgrounds\`. IDs are uppercase `8-4-4-4-12` text, the same shape as Swift `UUID.uuidString`.
 
-The SQLite column lists in `MemoSchema` match macOS. Windows does not add task columns. The database is `%LOCALAPPDATA%\PeekMemo\PeekMemo.sqlite`. Appearance stays in `settings.json`.
+The SQLite column lists in `MemoSchema` match macOS. Windows does not add task columns. The database is `%LOCALAPPDATA%\PeekMeow\PeekMeow.sqlite`. Appearance stays in `settings.json`.
 
 Supported edges are Left, Right, and Bottom. Top is not a snap target. A stored Top value resolves to Right. Placement is monitor id + edge + offset, not absolute x/y.
 
@@ -244,7 +244,7 @@ Drag starts on the collapsed wedge or, when expanded, on a wedge-sized handle on
 
 The resize hit target is a 22×22 DIP corner, never larger than 24×24. Right uses the bottom-left, Left the bottom-right, Bottom the top-right. The saved size is the user’s request clamped to 280×300 through 2400×2400. A smaller working area shrinks the live window only. Hover uses the card plus the handle, not the bounding union of the collapsed and expanded rects. Drag and resize pause auto-collapse. Hover and drag do not call `Activate`. `WS_EX_NOACTIVATE` stays on in peek mode. An edit or the date picker clears it without moving the frame, then restores it. That is not a pin.
 
-Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
+Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMeow`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
 
 The window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE` while peeking). The expanded card is a daily memo: `DateOnly` for the selected day, category filter, root tasks and notes, one subtask level, in-place completion, and past unfinished only when the selected day is today. Rows live in `MemoBoard` and are written through SQLite. The sample seed is not used at startup. The tray is `System.Windows.Forms.NotifyIcon` with Show, Reset Position, Settings, and Quit. Reset Position returns to the primary monitor’s right edge, centered. Display and work-area changes come from system events, not a timer. The saved panel size is not replaced by the list.
 

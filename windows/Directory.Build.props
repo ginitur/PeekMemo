@@ -3,20 +3,20 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
-    <PeekMemoVersionFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\VERSION'))</PeekMemoVersionFile>
-    <PeekMemoBuildFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\BUILD'))</PeekMemoBuildFile>
-    <PeekMemoVersion>$([System.IO.File]::ReadAllText('$(PeekMemoVersionFile)').Trim())</PeekMemoVersion>
-    <PeekMemoBuild>$([System.IO.File]::ReadAllText('$(PeekMemoBuildFile)').Trim())</PeekMemoBuild>
-    <Version>0.1.0.$(PeekMemoBuild)</Version>
-    <AssemblyVersion>0.1.0.$(PeekMemoBuild)</AssemblyVersion>
-    <FileVersion>0.1.0.$(PeekMemoBuild)</FileVersion>
-    <InformationalVersion>$(PeekMemoVersion)</InformationalVersion>
-    <Product>PeekMemo</Product>
-    <Company>PeekMemo</Company>
+    <PeekMeowVersionFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\VERSION'))</PeekMeowVersionFile>
+    <PeekMeowBuildFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\BUILD'))</PeekMeowBuildFile>
+    <PeekMeowVersion>$([System.IO.File]::ReadAllText('$(PeekMeowVersionFile)').Trim())</PeekMeowVersion>
+    <PeekMeowBuild>$([System.IO.File]::ReadAllText('$(PeekMeowBuildFile)').Trim())</PeekMeowBuild>
+    <Version>0.1.0.$(PeekMeowBuild)</Version>
+    <AssemblyVersion>0.1.0.$(PeekMeowBuild)</AssemblyVersion>
+    <FileVersion>0.1.0.$(PeekMeowBuild)</FileVersion>
+    <InformationalVersion>$(PeekMeowVersion)</InformationalVersion>
+    <Product>PeekMeow</Product>
+    <Company>PeekMeow</Company>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
-  <Target Name="SetPeekMemoCommit" BeforeTargets="GenerateAssemblyInfo">
+  <Target Name="SetPeekMeowCommit" BeforeTargets="GenerateAssemblyInfo">
     <Exec Command="git rev-parse HEAD" WorkingDirectory="$(MSBuildThisFileDirectory).." ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="SourceRevisionId" />
     </Exec>

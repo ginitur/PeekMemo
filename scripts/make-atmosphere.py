@@ -17,11 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = Path(
     sys.argv[1]
     if len(sys.argv) > 1
-    else ROOT / "Brand" / "PeekMemo-Atmosphere.png"
+    else ROOT / "Brand" / "PeekMeow-Atmosphere.png"
 )
-MARK = ROOT / "Brand" / "PeekMemo-Mark.png"
+MARK = ROOT / "Brand" / "PeekMeow-Mark.png"
 COPIES = [
-    ROOT / "windows" / "src" / "PeekMemo.Windows" / "Assets" / "PeekMemoMark.png",
+    ROOT / "windows" / "src" / "PeekMeow.Windows" / "Assets" / "PeekMeowMark.png",
 ]
 
 

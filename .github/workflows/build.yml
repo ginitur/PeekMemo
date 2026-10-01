@@ -17,29 +17,29 @@ jobs:
         run: swift --version
 
       - name: Build
-        run: swift build --product PeekMemo
+        run: swift build --product PeekMeow
 
       - name: Test
-        run: swift run PeekMemoCoreTests
+        run: swift run PeekMeowCoreTests
 
       - name: Package app and check expanded resources
         run: |
           set -euo pipefail
           ./scripts/build-app.sh
-          app="dist/PeekMemo.app"
+          app="dist/PeekMeow.app"
           test -f "$app/Contents/Resources/AppIcon.icns"
-          test -f "$app/Contents/Resources/PeekMemoMark.png"
-          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMemoMark.png"
+          test -f "$app/Contents/Resources/PeekMeowMark.png"
+          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMeowMark.png"
           version="$(tr -d '[:space:]' < VERSION)"
           build="$(tr -d '[:space:]' < BUILD)"
           short="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
           bundled="$(plutil -extract CFBundleVersion raw -o - "$app/Contents/Info.plist")"
-          commit="$(plutil -extract PeekMemoCommit raw -o - "$app/Contents/Info.plist")"
+          commit="$(plutil -extract PeekMeowCommit raw -o - "$app/Contents/Info.plist")"
           test "$short" = "$version"
           test "$bundled" = "$build"
           test -n "$commit"
           test "$commit" != "unknown"
-          "$app/Contents/MacOS/PeekMemo" --version
-          smoke="$("$app/Contents/MacOS/PeekMemo" --smoke-expanded)"
+          "$app/Contents/MacOS/PeekMeow" --version
+          smoke="$("$app/Contents/MacOS/PeekMeow" --smoke-expanded)"
           printf '%s\n' "$smoke"
           printf '%s\n' "$smoke" | grep -q "mark: yes"

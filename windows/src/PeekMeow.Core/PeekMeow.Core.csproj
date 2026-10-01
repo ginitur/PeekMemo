@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>PeekMeow.Core</RootNamespace>
+    <AssemblyName>PeekMeow.Core</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Description>PeekMeow domain, geometry, and settings. No WPF and no SQLite driver.</Description>
+  </PropertyGroup>
+</Project>

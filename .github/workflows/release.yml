@@ -18,8 +18,8 @@ jobs:
 
       - name: Build and test
         run: |
-          swift build --product PeekMemo
-          swift run PeekMemoCoreTests
+          swift build --product PeekMeow
+          swift run PeekMeowCoreTests
 
       - name: Build app and zip
         run: ./scripts/build-app.sh
@@ -27,20 +27,20 @@ jobs:
       - name: Check packaged resources
         run: |
           set -euo pipefail
-          app="dist/PeekMemo.app"
+          app="dist/PeekMeow.app"
           test -f "$app/Contents/Resources/AppIcon.icns"
-          test -f "$app/Contents/Resources/PeekMemoMark.png"
-          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMemoMark.png"
+          test -f "$app/Contents/Resources/PeekMeowMark.png"
+          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMeowMark.png"
           version="$(tr -d '[:space:]' < VERSION)"
           tag="${GITHUB_REF_NAME#v}"
           test "$version" = "$tag"
           short="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
-          commit="$(plutil -extract PeekMemoCommit raw -o - "$app/Contents/Info.plist")"
+          commit="$(plutil -extract PeekMeowCommit raw -o - "$app/Contents/Info.plist")"
           test "$short" = "$tag"
           test -n "$commit"
           test "$commit" != "unknown"
-          "$app/Contents/MacOS/PeekMemo" --version
-          smoke="$("$app/Contents/MacOS/PeekMemo" --smoke-expanded)"
+          "$app/Contents/MacOS/PeekMeow" --version
+          smoke="$("$app/Contents/MacOS/PeekMeow" --smoke-expanded)"
           printf '%s\n' "$smoke"
           printf '%s\n' "$smoke" | grep -q "mark: yes"
 
@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-zip
-          path: dist/PeekMemo-macOS-*.zip
+          path: dist/PeekMeow-macOS-*.zip
           retention-days: 1
           if-no-files-found: error
 
@@ -65,47 +65,47 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore windows/PeekMemo.Windows.sln
+        run: dotnet restore windows/PeekMeow.Windows.sln
 
       - name: Build
-        run: dotnet build windows/PeekMemo.Windows.sln --configuration Release --no-restore
+        run: dotnet build windows/PeekMeow.Windows.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test windows/PeekMemo.Windows.sln --configuration Release --no-build
+        run: dotnet test windows/PeekMeow.Windows.sln --configuration Release --no-build
 
       - name: Publish self-contained win-x64
-        run: dotnet publish windows/src/PeekMemo.Windows/PeekMemo.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMemo-Windows-x64
+        run: dotnet publish windows/src/PeekMeow.Windows/PeekMeow.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMeow-Windows-x64
 
       - name: Reject packaged user data and zip
         shell: pwsh
         run: |
-          $out = "windows/dist/PeekMemo-Windows-x64"
-          if (-not (Test-Path "$out/PeekMemo.exe")) { throw "PeekMemo.exe is missing." }
+          $out = "windows/dist/PeekMeow-Windows-x64"
+          if (-not (Test-Path "$out/PeekMeow.exe")) { throw "PeekMeow.exe is missing." }
           $bad = @(Get-ChildItem $out -Recurse -File | Where-Object {
             $_.Name -eq "settings.json" -or $_.Extension -in ".sqlite", ".sqlite-shm", ".sqlite-wal"
           })
           if ($bad.Count -gt 0) { throw "User data was packaged." }
           $version = (Get-Content VERSION -Raw).Trim()
-          Compress-Archive -Path "$out/*" -DestinationPath "windows/dist/PeekMemo-Windows-x64-$version.zip"
+          Compress-Archive -Path "$out/*" -DestinationPath "windows/dist/PeekMeow-Windows-x64-$version.zip"
 
       - name: Startup smoke
         timeout-minutes: 2
         shell: pwsh
         run: |
-          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMeow-Windows-x64") "PeekMeow.exe"
           $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru
           if (-not $process.WaitForExit(90000)) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "PeekMemo.exe --smoke did not exit within 90 seconds."
+            throw "PeekMeow.exe --smoke did not exit within 90 seconds."
           }
           $process.Refresh()
-          if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }
+          if ($process.ExitCode -ne 0) { throw "PeekMeow.exe --smoke exited $($process.ExitCode)." }
 
       - name: Version and UI resource smoke
         timeout-minutes: 2
         shell: pwsh
         run: |
-          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMeow-Windows-x64") "PeekMeow.exe"
           $version = (Get-Content VERSION -Raw).Trim()
           $tag = "${{ github.ref_name }}"
           if ($tag -ne "v$version") { throw "VERSION $version does not match tag $tag." }
@@ -121,11 +121,11 @@ jobs:
             $stderr = $proc.StandardError.ReadToEnd()
             if (-not $proc.WaitForExit(20000)) {
               Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-              throw "PeekMemo.exe $Argument did not exit."
+              throw "PeekMeow.exe $Argument did not exit."
             }
             Write-Host $stdout
             Write-Host $stderr
-            if ($proc.ExitCode -ne 0) { throw "PeekMemo.exe $Argument exited $($proc.ExitCode)." }
+            if ($proc.ExitCode -ne 0) { throw "PeekMeow.exe $Argument exited $($proc.ExitCode)." }
             return $stdout + $stderr
           }
           $reported = Invoke-Peek "--version"
@@ -136,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-zip
-          path: windows/dist/PeekMemo-Windows-x64-*.zip
+          path: windows/dist/PeekMeow-Windows-x64-*.zip
           retention-days: 1
           if-no-files-found: error
 
@@ -161,8 +161,8 @@ jobs:
           mkdir -p release
           find artifacts -type f -name '*.zip' -exec cp {} release/ \;
           cd release
-          mac_zip="$(ls PeekMemo-macOS-*.zip)"
-          win_zip="$(ls PeekMemo-Windows-x64-*.zip)"
+          mac_zip="$(ls PeekMeow-macOS-*.zip)"
+          win_zip="$(ls PeekMeow-Windows-x64-*.zip)"
           test -n "$mac_zip"
           test -n "$win_zip"
           sha256sum "$mac_zip" "$win_zip" > SHA256SUMS.txt
@@ -170,7 +170,7 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           version="${tag#v}"
           cat > notes.md <<EOF
-          ## PeekMemo ${tag}
+          ## PeekMeow ${tag}
 
           This is a pre-release candidate for acceptance testing.
 
@@ -219,7 +219,7 @@ jobs:
 
           See SHA256SUMS.txt. The macOS zip is ${mac_zip}. The Windows zip is ${win_zip}. Version ${version}.
           EOF
-          args=(release create "$tag" --title "PeekMemo $tag" --notes-file notes.md)
+          args=(release create "$tag" --title "PeekMeow $tag" --notes-file notes.md)
           if [[ "$tag" == *-* ]]; then
             args+=(--prerelease)
           fi

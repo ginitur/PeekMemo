@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to PeekMemo are recorded here.
+All notable changes to PeekMeow are recorded here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-rc.3` is the published pre-release. `0.1.0-rc.2` failed device acceptance and stays published. This is not a stable `0.1.0`.
 
@@ -8,19 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-
 
 ### Fixed
 
-- macOS expand no longer traps when the gold mark cannot be loaded. The mark is read from `PeekMemo.app/Contents/Resources/PeekMemoMark.png`. If that file is missing, the panel still opens and the mark is absent.
-- A second Windows process no longer silently reveals an older PeekMemo. The same version still asks the running copy to show. A different or unknown version shows a dialog and exits.
+- macOS expand no longer traps when the gold mark cannot be loaded. The mark is read from `PeekMeow.app/Contents/Resources/PeekMeowMark.png`. If that file is missing, the panel still opens and the mark is absent.
+- A second Windows process no longer silently reveals an older PeekMeow. The same version still asks the running copy to show. A different or unknown version shows a dialog and exits.
 
 ### Added
 
-- macOS and Windows binaries carry the version, build number, and git commit. Settings shows the version. Windows also prints `PeekMemo.exe --version` and `--diagnose`, and the tray has About PeekMemo.
+- macOS and Windows binaries carry the version, build number, and git commit. Settings shows the version. Windows also prints `PeekMeow.exe --version` and `--diagnose`, and the tray has About PeekMeow.
 - Release checks decode the packaged mark and require `--version` plus `--smoke-ui` on the published Windows executable. Those checks do not replace a device click.
 
 ## [0.1.0-rc.2] — 2026-10-01
 
 ### Added
 
-- PeekMemo cat app icon on macOS (`AppIcon.icns`) and Windows (`PeekMemo.ico`), including the tray. Small sizes use a simplified version of the same cat.
+- PeekMeow cat app icon on macOS (`AppIcon.icns`) and Windows (`PeekMeow.ico`), including the tray. Small sizes use a simplified version of the same cat.
 - Locale date header. Today in the current year includes the weekday and Today (`Oct 1 · Thu · Today`, or the system locale). Other years include the year.
 - A short French quotation under Add Task. It hides when the panel is shorter than 350 pt/DIP, and while a root editor is open.
 - A faint gold mark in the expanded panel’s lower-right corner. It sits behind the tasks, ignores clicks, and fades further on a light or very small panel.
@@ -40,7 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-
 
 ### Added
 
-- Windows SQLite persistence (`Microsoft.Data.Sqlite`, no EF Core) at `%LOCALAPPDATA%\PeekMemo\PeekMemo.sqlite`. Migration `v1_initial_schema` is transactional and is not repaired by deleting the file. A fresh database contains Work and Personal and no sample rows.
+- Windows SQLite persistence (`Microsoft.Data.Sqlite`, no EF Core) at `%LOCALAPPDATA%\PeekMeow\PeekMeow.sqlite`. Migration `v1_initial_schema` is transactional and is not repaired by deleting the file. A fresh database contains Work and Personal and no sample rows.
 - Windows appearance settings in `settings.json`: theme, panel opacity, custom size, wedge color, background image (PNG, JPEG, WebP, BMP) copied into `Backgrounds\`.
 - Self-contained Windows x64 publish and a macOS `.app` bundle. GitHub Release workflow on `v*` tags.
 - Release candidate `v0.1.0-rc.1`. The macOS build is ad-hoc signed and not notarized. Windows interaction is build/test verified; device-level validation is still pending.
@@ -50,8 +50,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-
 ### Added
 
 - Project bootstrap: repository docs, MIT license, SPM package, CI workflow, release script.
-- `PeekMemoCore` platform-agnostic models, layout metrics, edge geometry, screen migration, and hover state machine.
-- Unit tests for geometry, offset clamping, and hover transitions (`swift run PeekMemoCoreTests`).
+- `PeekMeowCore` platform-agnostic models, layout metrics, edge geometry, screen migration, and hover state machine.
+- Unit tests for geometry, offset clamping, and hover transitions (`swift run PeekMeowCoreTests`).
 - Custom `PeekPanel` accessory window and a collapsed Edge Tab on the right screen edge (4 pt visible / 14 pt hit).
 - Stub menu bar extra so the accessory app can be quit.
 - Drag the Edge Tab to Left / Right / Bottom with 6 pt drag threshold and 24 pt magnetic snap. Top is not a snap target.
@@ -80,7 +80,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-
 
 ### Changed
 
-- PeekMemo is a date + category + task tool, not a project manager. The expanded panel is always a Date View. Today means `selectedDate == today`.
+- PeekMeow is a date + category + task tool, not a project manager. The expanded panel is always a Date View. Today means `selectedDate == today`.
 - `UserList` / `listId` are now `Category` / `categoryId`. Default categories are Work and Personal. Filter with All ▾ next to the date.
 - Inbox, Completed smart view, and bottom More navigation are withdrawn from v0.1 UI.
 - Completed tasks stay in place (checkbox, strikethrough, lower opacity). There is no Completed section.
@@ -90,7 +90,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-
 - The resize grip is a 22×22 pt corner target. The three ticks are drawn in 14×14 pt and no longer cover the memo.
 - Unfinished root tasks from earlier days appear above Today as “未完成 · N”. Their `scheduledDate` is not rewritten. Other dates show only that day’s items.
 - Items with no category have no badge. Right-click + Add Task to add a plain Note. Notes never enter the completion count.
-- Local SQLite (GRDB) at `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. Migration `v1_initial_schema` seeds Work and Personal once and does not recreate deleted rows. A failed open or migration leaves the file in place.
+- Local SQLite (GRDB) at `~/Library/Application Support/PeekMeow/PeekMeow.sqlite`. Migration `v1_initial_schema` seeds Work and Personal once and does not recreate deleted rows. A failed open or migration leaves the file in place.
 - Daily items, categories, notes, subtasks, completion, and Past Unfinished survive quit and relaunch. `selectedDate` still starts at today. Window placement stays in UserDefaults.
 
 ### Removed

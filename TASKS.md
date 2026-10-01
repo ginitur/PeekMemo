@@ -6,7 +6,7 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 
 - [x] Inspect environment and current directory
 - [x] Create `PROJECT_SPEC.md`, `AGENTS.md`, `TASKS.md`, `README.md`, `LICENSE`, `CHANGELOG.md`, `.gitignore`
-- [x] Create Swift package layout (`PeekMemoCore` + `PeekMemo`)
+- [x] Create Swift package layout (`PeekMeowCore` + `PeekMeow`)
 - [x] Add GitHub Actions workflow
 - [x] Add `scripts/build-release.sh`
 - [x] `git init` and initial commit
@@ -17,8 +17,8 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] `AppDelegate` + `.accessory` activation policy
 - [x] Show a collapsed Edge Tab on the **right** edge of the main display
 - [x] Visual thickness ≠ hit thickness (4 pt visible, 14 pt hit)
-- [x] `swift build --product PeekMemo` and `swift run PeekMemoCoreTests` pass
-- [x] Runtime check: PeekMemo window 14×96 at the right edge of the main display
+- [x] `swift build --product PeekMeow` and `swift run PeekMeowCoreTests` pass
+- [x] Runtime check: PeekMeow window 14×96 at the right edge of the main display
 - [x] Stub menu bar item with Quit (full menu is Phase 9)
 
 ## Phase 2 — Edge placement
@@ -106,7 +106,7 @@ Notch Cloak is not a current feature and is not on the roadmap. The runtime, sen
 
 ## Phase 6 — Local persistence
 
-- [x] GRDB.swift, `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`
+- [x] GRDB.swift, `~/Library/Application Support/PeekMeow/PeekMeow.sqlite`
 - [x] `v1_initial_schema` only. Never delete the database on failure
 - [x] `categories` and `memo_items`. No `forToday` column. Seed Work and Personal once
 - [x] `CategoryRepository` and `MemoRepository`. Views do not run SQL
@@ -121,7 +121,7 @@ Notch Cloak is not a current feature and is not on the roadmap. The runtime, sen
 The product model stays frozen. This phase does not add task-management features.
 
 - [x] Settings window: General, Appearance, Behavior
-- [x] `PreferencesStore` and `peekmemo.preferences.*` in UserDefaults. Not SQLite
+- [x] `PreferencesStore` and `peekmeow.preferences.*` in UserDefaults. Not SQLite
 - [x] Theme System / Light / Dark. Panel opacity 0.70–1.00, default 0.94
 - [x] Width Compact / Medium / Wide and maximum height Small / Medium / Large. Superseded by Phase 7.1; short lists no longer shrink the panel
 - [x] Edge tab stays one Wedge: thickness, length, opacity, System Accent or custom hex color
@@ -144,7 +144,7 @@ Still not a new task-management feature. SQLite, hover, and the edge anchor stay
 - [x] Saved size is `panelWidth` / `panelHeight` in UserDefaults. A smaller display clamps the window only; it does not overwrite the saved size
 - [x] Old Compact / Medium / Wide and height presets migrate once. The old default becomes 340×460, not 280×120
 - [x] Expanded panel corner radius is 16 pt. Material, image, and the hairline border share that clip. A light window shadow shows only while expanded
-- [x] Background: System Material, Solid Color, or Image. Image is copied to `~/Library/Application Support/PeekMemo/Backgrounds/`. Preferences store the filename only
+- [x] Background: System Material, Solid Color, or Image. Image is copied to `~/Library/Application Support/PeekMeow/Backgrounds/`. Preferences store the filename only
 - [x] Fill / Fit, top / center / bottom, image opacity 0.20–1.00 (default 0.60), overlay 0–0.80 (default 0.25). Remove deletes only the copied file
 - [x] A missing image falls back to System Material. Header stays put; the list scrolls; Add Task stays under the list
 - [ ] PARTIAL: dragging the grip and choosing a photo still need a hands-on pass. Background blur was not added
@@ -182,7 +182,7 @@ Folded into Phase 7. Do not start a new phase. Circle, pill, and rounded-square 
 
 Separate native client. Not a port of the AppKit UI.
 
-- [x] `windows/PeekMemo.Windows.sln`, `PeekMemo.Core` (net8.0), WPF app project, test project
+- [x] `windows/PeekMeow.Windows.sln`, `PeekMeow.Core` (net8.0), WPF app project, test project
 - [x] Core tests for daily query, category filter, hierarchy, completion, past unfinished, edge placement, resize grip ≤ 24×24, and settings JSON in a temp directory
 - [x] Windows CI workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, test
 - [x] Tray (Show, Settings, Quit), borderless no-activate window, right-edge wedge, hover panel. Not run on a Windows machine
@@ -201,7 +201,7 @@ Separate native client. Not a port of the AppKit UI.
 - [x] `EdgeAnchor` is monitor device name + Left/Right/Bottom + offset. Top restores to Right
 - [x] Drag starts on the wedge or the expanded edge handle, with a 6 DIP threshold and a 24 DIP magnet. Mouse-up snaps to the nearest legal edge
 - [x] Panel resize is free, 280×300 minimum, default 340×460. The grip hit target is 22×22 and at most 24×24. Offset does not change
-- [x] Placement and size persist in `%LOCALAPPDATA%\PeekMemo\settings.json` (temp file, then replace). A broken file is left in place
+- [x] Placement and size persist in `%LOCALAPPDATA%\PeekMeow\settings.json` (temp file, then replace). A broken file is left in place
 - [x] Core tests for anchor, corners, expand direction, resize contact edges, DPI, cross-monitor pixels, migration, and hover hold
 - [ ] PARTIAL: no Windows machine, so drag, resize, taskbar avoidance, and per-monitor DPI were not clicked through
 
