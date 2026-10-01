@@ -13,6 +13,7 @@ final class AppState {
     var showDatePicker = false
     var editingItemID: UUID?
     var composingParentID: UUID?
+    var composingType: ItemType = .task
     var draftText: String = ""
     var isComposing: Bool = false
     var expandedTaskIDs: Set<UUID> = []
@@ -38,12 +39,22 @@ final class AppState {
         DailyView.rootTaskStats(in: visibleDayItems, on: selectedDate)
     }
 
+    var isViewingToday: Bool {
+        DailyView.isViewingToday(selectedDate)
+    }
+
+    private var filteredCategoryID: UUID? {
+        if case .category(let id) = categoryFilter { return id }
+        return nil
+    }
+
     var visibleDayItems: [MemoItem] {
-        let categoryId: UUID? = {
-            if case .category(let id) = categoryFilter { return id }
-            return nil
-        }()
-        return DailyView.scheduledRoots(in: items, on: selectedDate, categoryId: categoryId)
+        DailyView.scheduledRoots(in: items, on: selectedDate, categoryId: filteredCategoryID)
+    }
+
+    var pastUnfinishedItems: [MemoItem] {
+        guard isViewingToday else { return [] }
+        return DailyView.pastUnfinishedRoots(in: items, before: selectedDate, categoryId: filteredCategoryID)
     }
 
     var isEditing: Bool {
@@ -91,6 +102,7 @@ final class AppState {
                 scheduledDate: yesterday
             ),
             MemoItem(categoryId: personal.id, type: .task, title: "Call the accountant", sortOrder: 0, scheduledDate: tomorrow),
+            MemoItem(categoryId: work.id, type: .task, title: "Finish the outline", sortOrder: 1, scheduledDate: yesterday),
         ]
         expandedTaskIDs = [parent.id]
     }
@@ -108,10 +120,11 @@ final class AppState {
         TaskHierarchy.progress(of: item, in: items)
     }
 
-    func beginComposing(parent: MemoItem? = nil) {
+    func beginComposing(parent: MemoItem? = nil, type: ItemType = .task) {
         editingItemID = nil
         isComposing = true
         composingParentID = parent?.id
+        composingType = parent == nil ? type : .task
         draftText = ""
         if let parent {
             expandedTaskIDs.insert(parent.id)
@@ -155,18 +168,21 @@ final class AppState {
         }
         if isComposing {
             let categoryId = targetCategoryID(for: parent)
+            let itemType: ItemType = parent == nil ? composingType : .task
             let siblings = parent == nil
                 ? visibleDayItems
                 : TaskHierarchy.children(of: parent!, in: items)
             let order = (siblings.last?.sortOrder ?? -1) + 1
+            let scheduled = parent.flatMap { id in items.first(where: { $0.id == id })?.scheduledDate }
+                ?? DailyView.startOfDay(selectedDate)
             items.append(
                 MemoItem(
                     categoryId: categoryId,
                     parentId: parent,
-                    type: .task,
+                    type: itemType,
                     title: text,
                     sortOrder: order,
-                    scheduledDate: DailyView.startOfDay(selectedDate),
+                    scheduledDate: scheduled,
                     createdAt: now,
                     updatedAt: now
                 )
@@ -198,6 +214,7 @@ final class AppState {
     func cancelEdit() {
         isComposing = false
         composingParentID = nil
+        composingType = .task
         editingItemID = nil
         draftText = ""
     }

@@ -45,3 +45,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Completed tasks stay in place (checkbox, strikethrough, lower opacity). There is no Completed section.
 - Subtasks indent 18 pt under their parent. Only two levels.
 - v0.1 edge snap is Left / Right / Bottom. Top and Notch Cloak are experimental (DEBUG menu) so ordinary drag cannot trap the tab on Top.
+- Unfinished root tasks from earlier days appear above Today as “未完成 · N”. Their `scheduledDate` is not rewritten. Other dates show only that day’s items.
+- Items with no category have no badge. Right-click + Add Task to add a plain Note. Notes never enter the completion count.

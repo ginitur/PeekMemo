@@ -118,6 +118,7 @@ Core model:
 
 - **Date** (`selectedDate` / `scheduledDate`) — which day a task is for
 - **Category** (`Category`, `categoryId`) — Work, Personal, or user-created. Not a separate page
+- **Note** — plain text, no checkbox, no subtasks, not in the completion count
 - **Task / Subtask** — one extra indent level only
 - **Completion** — stays in place with strikethrough
 
@@ -140,7 +141,11 @@ Full activity history / event log is a future enhancement.
 
 Completed tasks remain in the day’s list (checked + strikethrough). They are not moved to a Completed section.
 
-Notes with a `scheduledDate` appear on that day but never enter the task completion ratio.
+Notes with a `scheduledDate` appear on that day but never enter the task completion ratio. A note cannot have a subtask. Add a note from the context menu on + Add Task.
+
+On Today only, unfinished root tasks whose `scheduledDate` is before today appear above the day’s list as “未完成 · N”. Completing one does not change its date. Looking at a past day shows only items scheduled for that day.
+
+A nil `categoryId` is valid and included in All. The row does not show an Uncategorized badge.
 
 ## Edge snapping (v0.1)
 

@@ -22,11 +22,30 @@ struct PreviewPanelView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
+                    if state.isViewingToday, !state.pastUnfinishedItems.isEmpty {
+                        Text("未完成 · \(state.pastUnfinishedItems.count)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.disabled)
+                        ForEach(state.pastUnfinishedItems) { item in
+                            itemBlock(item)
+                        }
+                        Divider()
+                            .opacity(0.45)
+                            .padding(.vertical, 2)
+                        Text(state.dateTitle)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.disabled)
+                    }
                     ForEach(state.visibleDayItems) { item in
                         itemBlock(item)
                     }
                     if state.isComposing, state.composingParentID == nil {
-                        editorField(placeholder: "New task", isSubtask: false)
+                        editorField(
+                            placeholder: state.composingType == .note ? "New note" : "New task",
+                            isSubtask: false
+                        )
                     } else if !state.isEditing {
                         Button(action: addRoot) {
                             Text("+ Add Task")
@@ -36,6 +55,10 @@ struct PreviewPanelView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Add Task")
+                        .contextMenu {
+                            Button("Add Task") { addRoot() }
+                            Button("Add Note") { addNote() }
+                        }
                     }
                 }
                 .padding(.horizontal, 12)
@@ -227,8 +250,8 @@ struct PreviewPanelView: View {
                 .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
                 .opacity(item.isCompleted ? 0.55 : 1)
 
-                if !isSubtask, state.categoryFilter == .all {
-                    Text(state.categoryForItem(item)?.name ?? "Uncategorized")
+                if !isSubtask, state.categoryFilter == .all, let badge = DailyView.categoryBadgeName(for: item, in: state.categories) {
+                    Text(badge)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.tertiary)
                         .textSelection(.disabled)
@@ -292,7 +315,12 @@ struct PreviewPanelView: View {
     }
 
     private func addRoot() {
-        state.beginComposing()
+        state.beginComposing(type: .task)
+        onBeginEdit()
+    }
+
+    private func addNote() {
+        state.beginComposing(type: .note)
         onBeginEdit()
     }
 

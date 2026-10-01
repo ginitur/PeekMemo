@@ -101,6 +101,14 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] DEBUG: Show Interaction Regions, `[Hover]` / `[Interaction]` logs on state changes only.
 - [ ] PARTIAL: live pointer paths (hover leave, one-click All, drag vs content) were checked with an on-screen hit dump, not a full HID script. Needs a hands-on pass.
 
+## Phase 5.10 — Final product cleanup
+
+- [x] Past Unfinished root tasks appear only on Today, without rewriting `scheduledDate`
+- [x] Historical dates show only that day's schedule
+- [x] Nil category has no Uncategorized badge
+- [x] Notes stay simple text; context menu can add a note
+- [x] Daily progress counts root tasks only
+
 ## Phase 6 — Memo persistence
 
 - [ ] GRDB.swift

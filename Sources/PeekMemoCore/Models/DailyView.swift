@@ -10,6 +10,14 @@ public enum DailyView: Sendable {
         return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: start) ?? start
     }
 
+    public static func nextDayStart(_ date: Date, calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: 1, to: startOfDay(date, calendar: calendar)) ?? date
+    }
+
+    public static func isViewingToday(_ selected: Date, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        isSameDay(selected, now, calendar: calendar)
+    }
+
     public static func isSameDay(_ a: Date, _ b: Date, calendar: Calendar = .current) -> Bool {
         calendar.isDate(a, inSameDayAs: b)
     }
@@ -45,6 +53,37 @@ public enum DailyView: Sendable {
     public static func matches(_ item: MemoItem, filter categoryId: UUID?) -> Bool {
         guard let categoryId else { return true }
         return item.categoryId == categoryId
+    }
+
+    /// Unfinished root tasks from earlier days. Does not rewrite `scheduledDate`.
+    /// Shown only on Today. Subtasks follow their parent in the UI.
+    public static func pastUnfinishedRoots(
+        in items: [MemoItem],
+        before day: Date,
+        categoryId: UUID? = nil,
+        calendar: Calendar = .current
+    ) -> [MemoItem] {
+        let dayStart = startOfDay(day, calendar: calendar)
+        return items.filter { item in
+            item.parentId == nil
+                && item.type == .task
+                && !item.isArchived
+                && !item.isCompleted
+                && matches(item, filter: categoryId)
+                && (item.scheduledDate.map { $0 < dayStart } ?? false)
+        }
+        .sorted { lhs, rhs in
+            let a = lhs.scheduledDate ?? .distantPast
+            let b = rhs.scheduledDate ?? .distantPast
+            if a != b { return a > b }
+            return lhs.sortOrder < rhs.sortOrder
+        }
+    }
+
+    /// Category chip on a row. Nil category has no badge — never "Uncategorized".
+    public static func categoryBadgeName(for item: MemoItem, in categories: [Category]) -> String? {
+        guard let id = item.categoryId else { return nil }
+        return categories.first(where: { $0.id == id && !$0.isArchived })?.name
     }
 
     public static func dueRoots(
