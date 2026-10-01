@@ -2,9 +2,9 @@
 
 All notable changes to PeekMemo are recorded here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-rc.2` is the published pre-release and failed device acceptance. `0.1.0-rc.3` is the source fix and is not tagged yet.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-rc.3` is the published pre-release. `0.1.0-rc.2` failed device acceptance and stays published. This is not a stable `0.1.0`.
 
-## [0.1.0-rc.3] — unreleased
+## [0.1.0-rc.3] — 2026-10-02
 
 ### Fixed
 
