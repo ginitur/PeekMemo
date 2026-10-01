@@ -13,6 +13,7 @@ public class NonActivatingWindow : Window
     const uint SwpNoSize = 0x0001;
     const uint SwpNoMove = 0x0002;
 
+    readonly InteractionModeController _interactionMode = new();
     bool _hasLockedFrame;
     int _lockedX;
     int _lockedY;
@@ -42,16 +43,12 @@ public class NonActivatingWindow : Window
         _hasLockedFrame = true;
     }
 
-    /// Hover and drag stay in peek mode. A later edit action may pass Interactive.
+    /// Hover and drag stay in peek mode. Editing and the date picker pass Interactive.
     public void SetPresentationMode(PresentationMode mode)
     {
+        Focusable = mode == PresentationMode.Interactive;
         var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == IntPtr.Zero)
-        {
-            return;
-        }
-
-        WindowStyles.UsePeekMode(hwnd, peek: mode != PresentationMode.Interactive);
+        _interactionMode.Apply(hwnd, mode);
     }
 
     protected virtual void OnDisplayMetricsChanged()

@@ -63,3 +63,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - GitHub Actions workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, and test. The macOS workflow is unchanged.
 - Windows tray app and a right-edge wedge. Hover expands a basic panel and does not activate the window. Not device-verified.
 - Windows edge placement for Left, Right, and Bottom: drag snapping, corner resize, per-monitor DPI conversion, and monitor-name placement in `settings.json`. Not device-verified. Top is not a snap edge.
+- Windows daily memo panel, in memory only: date, category filter, tasks, subtasks, notes, past unfinished, and progress. Editing and the date picker can take focus; hover does not. Not device-verified. SQLite is still not opened.

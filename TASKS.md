@@ -205,6 +205,13 @@ Separate native client. Not a port of the AppKit UI.
 - [x] Core tests for anchor, corners, expand direction, resize contact edges, DPI, cross-monitor pixels, migration, and hover hold
 - [ ] PARTIAL: no Windows machine, so drag, resize, taskbar avoidance, and per-monitor DPI were not clicked through
 
+## Windows Phase 3 — Daily memo UI
+
+- [x] In-memory daily panel: date navigation, category filter, tasks, one subtask level, notes, past unfinished, and root-task progress
+- [x] Completed tasks stay in place. Peek mode does not activate on hover. Editing and the date picker may, then peek returns. Menus and checkboxes hold collapse without pinning
+- [x] Core tests for the daily session, filters, completion, notes, and activation-style flags. The panel does not open SQLite
+- [ ] PARTIAL: no Windows machine, so the memo panel was not clicked through
+
 ## Phase 12 — GitHub packaging
 
 - [ ] README screenshots

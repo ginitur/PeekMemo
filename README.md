@@ -98,13 +98,15 @@ What is in the app today:
 - A borderless, topmost window with no taskbar button
 - Left, Right, and Bottom edge placement. The window is the hover target (about 14 DIP). The drawn wedge is thinner (about 3 DIP). Top is not a snap edge
 - Drag the wedge between those edges. A short move is still a click. Releasing always snaps to the nearest legal edge. The position saved is monitor device name, edge, and offset, not a raw x/y
-- Hover expands a basic panel and leave collapses it, after a short delay. Drag and resize pause that collapse. Hover does not call `Activate`
-- Resize from the free corner (22×22 DIP hit target, never larger than 24×24). Right keeps the right edge, Left keeps the left edge, Bottom keeps the bottom edge. The anchor offset does not move
+- Hover expands the daily memo and leave collapses it, after a short delay. Drag, resize, menus, and editing pause that collapse. Hover does not call `Activate`
+- The memo is one day: previous and next arrows, a date picker on the title, and an All / category menu. Tasks, one level of subtasks, and notes stay in memory. Completed tasks stay on that day. Unfinished earlier tasks appear above today as “未完成 · N”. Progress counts root tasks only
+- Add, edit, and the date picker temporarily allow typing, then the window returns to peek mode. A category menu or a checkbox does not pin the panel
+- Resize from the free corner (22×22 DIP hit target, never larger than 24×24). Right keeps the right edge, Left keeps the left edge, Bottom keeps the bottom edge. The anchor offset does not move. The memo scrolls inside the saved size; it does not resize the window to fit the list
 - One process per session. A second launch asks the first to show the panel
 - Settings for launch at startup, theme, opacity, wedge, hover delay, and Reduce Motion. The window also shows the saved panel size
 - JSON settings at `%LOCALAPPDATA%\PeekMemo\settings.json`, written to a temporary file and then replaced
 
-Not in this build: date and task UI, SQLite, and background images. None of the WPF UI has been run on a Windows machine.
+Not in this build: SQLite, background images, reminders, and recurring tasks. The sample rows are memory only and are not written to disk. None of the WPF UI has been clicked through on a Windows machine.
 
 Startup, when the user turns it on, is one per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. It does not need administrator rights and it does not write `HKLM`. Memo data is not stored in the registry. SQLite (`PeekMemo.sqlite`) is not opened yet.
 

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using PeekMemo.Core.Daily;
 using PeekMemo.Core.Geometry;
 using CoreDpi = PeekMemo.Core.Geometry.DpiScale;
 using PeekMemo.Core.Hover;
@@ -22,11 +23,11 @@ public partial class EdgeWindow : NonActivatingWindow
     {
         None,
         DragCandidate,
-        Click,
         Resize
     }
 
     readonly EdgeSession _session;
+    readonly DailyMemoViewModel _memo;
     readonly SettingsStore _store;
     readonly DispatcherTimer _timer;
     PlacementLayout _layout;
@@ -50,6 +51,12 @@ public partial class EdgeWindow : NonActivatingWindow
         InitializeComponent();
         _store = store;
         _session = new EdgeSession(settings);
+        _memo = new DailyMemoViewModel(new DailySession(
+            MemoBoard.CreateSample(DateOnly.FromDateTime(DateTime.Now)),
+            _session.Interaction));
+        _memo.ModeChanged += mode => SetPresentationMode(mode);
+        _memo.InteractionReleased += OnInteractionReleased;
+        MemoView.DataContext = _memo;
         _timer = new DispatcherTimer();
         _timer.Tick += (_, _) => OnTimer();
         ApplyChrome();
@@ -181,9 +188,8 @@ public partial class EdgeWindow : NonActivatingWindow
             return;
         }
 
-        _press = PressKind.Click;
-        CaptureMouse();
-        e.Handled = true;
+        // Memo clicks are not a drag and not a pin.
+        _press = PressKind.None;
     }
 
     protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -191,6 +197,7 @@ public partial class EdgeWindow : NonActivatingWindow
         var kind = _press;
         var dragged = _dragging;
         var resized = _resizing;
+        _press = PressKind.None;
         if (dragged)
         {
             FinishDrag();
@@ -199,13 +206,16 @@ public partial class EdgeWindow : NonActivatingWindow
         {
             FinishResize();
         }
-        else if (kind is PressKind.DragCandidate or PressKind.Click)
+        else if (kind == PressKind.DragCandidate)
         {
             _session.Hover.TogglePin();
             ApplyFrame();
         }
+        else
+        {
+            return;
+        }
 
-        _press = PressKind.None;
         if (IsMouseCaptured)
         {
             ReleaseMouseCapture();
@@ -376,6 +386,8 @@ public partial class EdgeWindow : NonActivatingWindow
         }
     }
 
+    void OnInteractionReleased() => Advance();
+
     void OnTimer()
     {
         _timer.Stop();
@@ -503,12 +515,10 @@ public partial class EdgeWindow : NonActivatingWindow
         ExpandedChrome.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
         DragHandleChrome.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
         ResizeGrip.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
-        SubtitleText.Text = edge switch
+        if (!expanded)
         {
-            ScreenEdge.Left => "Left edge",
-            ScreenEdge.Bottom => "Bottom edge",
-            _ => "Right edge"
-        };
+            MemoView.DismissTransientUi();
+        }
 
         if (edge == ScreenEdge.Bottom)
         {
@@ -708,8 +718,7 @@ public partial class EdgeWindow : NonActivatingWindow
         var opacity = Math.Clamp(settings.PanelOpacity, 0.70, 1);
         ExpandedChrome.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 * opacity), card.R, card.G, card.B));
         ExpandedChrome.BorderBrush = new SolidColorBrush(line);
-        TitleText.Foreground = new SolidColorBrush(ink);
-        SubtitleText.Foreground = new SolidColorBrush(ink);
+        MemoView.ApplyTheme(ink, line, card);
         var wedgeBrush = new SolidColorBrush(wedge);
         CollapsedChrome.Background = wedgeBrush;
         DragHandleMark.Background = wedgeBrush;
