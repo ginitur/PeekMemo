@@ -15,8 +15,8 @@ public enum InteractionActivity
     Resizing
 }
 
-/// Drag and resize hold the hover engine so a leave cannot collapse the window mid-gesture.
-/// Interactive mode is reserved for a later explicit edit. Nothing in this type enters it on hover.
+/// Drag, resize, menus, and edits hold the hover engine so a leave cannot collapse the window mid-gesture.
+/// Interactive mode is an explicit edit or the date picker. Hover never enters it, and it is not a pin.
 public sealed class PanelInteraction
 {
     public HoverEngine Hover { get; } = new();
