@@ -85,6 +85,20 @@ public partial class EdgeWindow : NonActivatingWindow
         ApplyFrame();
     }
 
+    /// Slider preview. Does not replace placement and does not write settings.json.
+    public void PreviewAppearance(AppSettings preview)
+    {
+        var settings = _session.Settings;
+        var frame = Math.Abs(settings.WedgeThickness - preview.WedgeThickness) > 0.01
+            || Math.Abs(settings.WedgeLength - preview.WedgeLength) > 0.01;
+        settings.CopyAppearanceFrom(preview);
+        ApplyChrome();
+        if (frame)
+        {
+            ApplyFrame();
+        }
+    }
+
     public void ShowPinned()
     {
         _session.Hover.ShowPinned();

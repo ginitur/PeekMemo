@@ -15,18 +15,27 @@ public partial class SettingsWindow : Window
     readonly SettingsStore _store;
     readonly IStartupRegistration _startup;
     readonly AppSettings _settings;
+    readonly AppSettings _baseline;
     readonly BackgroundImageStore _backgrounds;
     string? _pendingImage;
     bool _removeImage;
+    bool _ready;
+    bool _saved;
 
     public event Action<AppSettings>? Saved;
+    public event Action<AppSettings>? Preview;
 
     public SettingsWindow(SettingsStore store, AppSettings settings, IStartupRegistration startup)
     {
         InitializeComponent();
+        if (Windowing.WindowIcons.Load() is System.Windows.Media.ImageSource icon)
+        {
+            Icon = icon;
+        }
         _store = store;
         _startup = startup;
         _settings = settings;
+        _baseline = SettingsStore.Clone(settings);
         var root = Path.GetDirectoryName(store.FilePath) ?? AppPaths.DefaultRoot();
         _backgrounds = new BackgroundImageStore(AppPaths.BackgroundsDirectory(root));
         LaunchAtStartupBox.IsChecked = settings.LaunchAtStartup;
@@ -69,6 +78,8 @@ public partial class SettingsWindow : Window
             "Panel size: {0:0} × {1:0} DIP",
             settings.PanelWidth,
             settings.PanelHeight);
+        AttachPreview();
+        _ready = true;
     }
 
     void Ok_Click(object sender, RoutedEventArgs e)
@@ -80,42 +91,7 @@ public partial class SettingsWindow : Window
         _settings.EdgeOffset = latest.EdgeOffset;
         _settings.MonitorDeviceName = latest.MonitorDeviceName;
         _settings.Placement = latest.Placement;
-        _settings.LaunchAtStartup = LaunchAtStartupBox.IsChecked == true;
-        _settings.Theme = ThemeBox.SelectedIndex switch
-        {
-            1 => ThemePreference.Light.ToString(),
-            2 => ThemePreference.Dark.ToString(),
-            _ => ThemePreference.System.ToString()
-        };
-        _settings.PanelOpacity = OpacitySlider.Value;
-        _settings.WedgeThickness = ThicknessSlider.Value;
-        _settings.WedgeLength = LengthSlider.Value;
-        _settings.WedgeOpacity = WedgeOpacitySlider.Value;
-        _settings.HoverOpenDelaySeconds = SelectedDelay(OpenDelayBox, _settings.HoverOpenDelaySeconds);
-        _settings.HoverCloseDelaySeconds = SelectedDelay(CloseDelayBox, _settings.HoverCloseDelaySeconds);
-        _settings.ReduceMotion = ReduceMotionBox.IsChecked == true;
-        _settings.WedgeColor = string.IsNullOrWhiteSpace(WedgeColorBox.Text) ? null : WedgeColorBox.Text.Trim();
-        _settings.BackgroundMode = BackgroundModeBox.SelectedIndex switch
-        {
-            1 => PanelBackgroundMode.Solid.ToString(),
-            2 => PanelBackgroundMode.Image.ToString(),
-            _ => PanelBackgroundMode.Default.ToString()
-        };
-        _settings.BackgroundSolidColor = string.IsNullOrWhiteSpace(SolidColorBox.Text)
-            ? "#F6F3EC"
-            : SolidColorBox.Text.Trim();
-        _settings.BackgroundSolidOpacity = SolidOpacitySlider.Value;
-        _settings.BackgroundImageContentMode = ImageFitBox.SelectedIndex == 1
-            ? BackgroundFit.Fit.ToString()
-            : BackgroundFit.Fill.ToString();
-        _settings.BackgroundImagePosition = ImagePositionBox.SelectedIndex switch
-        {
-            0 => BackgroundAnchor.Top.ToString(),
-            2 => BackgroundAnchor.Bottom.ToString(),
-            _ => BackgroundAnchor.Center.ToString()
-        };
-        _settings.BackgroundImageOpacity = ImageOpacitySlider.Value;
-        _settings.BackgroundOverlayOpacity = OverlayOpacitySlider.Value;
+        ApplyControls(_settings);
         if (!TryApplyPicture())
         {
             return;
@@ -123,11 +99,94 @@ public partial class SettingsWindow : Window
 
         _store.Save(_settings);
         _startup.Apply(_settings.LaunchAtStartup, Environment.ProcessPath ?? "");
+        _saved = true;
         Saved?.Invoke(_settings);
         Close();
     }
 
     void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_saved)
+        {
+            Preview?.Invoke(_baseline);
+        }
+
+        base.OnClosing(e);
+    }
+
+    void AttachPreview()
+    {
+        OpacitySlider.ValueChanged += (_, _) => PublishPreview();
+        ThicknessSlider.ValueChanged += (_, _) => PublishPreview();
+        LengthSlider.ValueChanged += (_, _) => PublishPreview();
+        WedgeOpacitySlider.ValueChanged += (_, _) => PublishPreview();
+        SolidOpacitySlider.ValueChanged += (_, _) => PublishPreview();
+        ImageOpacitySlider.ValueChanged += (_, _) => PublishPreview();
+        OverlayOpacitySlider.ValueChanged += (_, _) => PublishPreview();
+        ThemeBox.SelectionChanged += (_, _) => PublishPreview();
+        BackgroundModeBox.SelectionChanged += (_, _) => PublishPreview();
+        ImageFitBox.SelectionChanged += (_, _) => PublishPreview();
+        ImagePositionBox.SelectionChanged += (_, _) => PublishPreview();
+        ReduceMotionBox.Checked += (_, _) => PublishPreview();
+        ReduceMotionBox.Unchecked += (_, _) => PublishPreview();
+        WedgeColorBox.TextChanged += (_, _) => PublishPreview();
+        SolidColorBox.TextChanged += (_, _) => PublishPreview();
+    }
+
+    void PublishPreview()
+    {
+        if (!_ready)
+        {
+            return;
+        }
+
+        var draft = SettingsStore.Clone(_baseline);
+        ApplyControls(draft);
+        draft.BackgroundImageFilename = _baseline.BackgroundImageFilename;
+        Preview?.Invoke(draft);
+    }
+
+    void ApplyControls(AppSettings settings)
+    {
+        settings.LaunchAtStartup = LaunchAtStartupBox.IsChecked == true;
+        settings.Theme = ThemeBox.SelectedIndex switch
+        {
+            1 => ThemePreference.Light.ToString(),
+            2 => ThemePreference.Dark.ToString(),
+            _ => ThemePreference.System.ToString()
+        };
+        settings.PanelOpacity = OpacitySlider.Value;
+        settings.WedgeThickness = ThicknessSlider.Value;
+        settings.WedgeLength = LengthSlider.Value;
+        settings.WedgeOpacity = WedgeOpacitySlider.Value;
+        settings.HoverOpenDelaySeconds = SelectedDelay(OpenDelayBox, settings.HoverOpenDelaySeconds);
+        settings.HoverCloseDelaySeconds = SelectedDelay(CloseDelayBox, settings.HoverCloseDelaySeconds);
+        settings.ReduceMotion = ReduceMotionBox.IsChecked == true;
+        settings.WedgeColor = string.IsNullOrWhiteSpace(WedgeColorBox.Text) ? null : WedgeColorBox.Text.Trim();
+        settings.BackgroundMode = BackgroundModeBox.SelectedIndex switch
+        {
+            1 => PanelBackgroundMode.Solid.ToString(),
+            2 => PanelBackgroundMode.Image.ToString(),
+            _ => PanelBackgroundMode.Default.ToString()
+        };
+        settings.BackgroundSolidColor = string.IsNullOrWhiteSpace(SolidColorBox.Text)
+            ? "#F6F3EC"
+            : SolidColorBox.Text.Trim();
+        settings.BackgroundSolidOpacity = SolidOpacitySlider.Value;
+        settings.BackgroundImageContentMode = ImageFitBox.SelectedIndex == 1
+            ? BackgroundFit.Fit.ToString()
+            : BackgroundFit.Fill.ToString();
+        settings.BackgroundImagePosition = ImagePositionBox.SelectedIndex switch
+        {
+            0 => BackgroundAnchor.Top.ToString(),
+            2 => BackgroundAnchor.Bottom.ToString(),
+            _ => BackgroundAnchor.Center.ToString()
+        };
+        settings.BackgroundImageOpacity = ImageOpacitySlider.Value;
+        settings.BackgroundOverlayOpacity = OverlayOpacitySlider.Value;
+    }
 
     void ChoosePicture_Click(object sender, RoutedEventArgs e)
     {

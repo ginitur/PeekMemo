@@ -40,6 +40,12 @@ public sealed class SettingsStore
         }
     }
 
+    public static AppSettings Clone(AppSettings settings)
+    {
+        var json = JsonSerializer.Serialize(settings, Options);
+        return JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
+    }
+
     public void Save(AppSettings settings)
     {
         Directory.CreateDirectory(_directory);

@@ -90,6 +90,7 @@ public partial class App : Application
         }
 
         var window = new SettingsWindow(_store, _store.Load(), _startup);
+        window.Preview += preview => _edge.PreviewAppearance(preview);
         window.Saved += saved => _edge.ApplySettings(saved);
         window.Show();
         window.Activate();

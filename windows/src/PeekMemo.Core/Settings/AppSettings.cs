@@ -143,4 +143,23 @@ public sealed class AppSettings
     public string? ResolvedWedgeColor() => StoredColor.Normalize(WedgeColor);
 
     public string? ResolvedSolidColor() => StoredColor.Normalize(BackgroundSolidColor);
+
+    /// Live preview copies appearance only. Placement and the picture file stay put.
+    public void CopyAppearanceFrom(AppSettings source)
+    {
+        PanelOpacity = source.PanelOpacity;
+        Theme = source.Theme;
+        ReduceMotion = source.ReduceMotion;
+        WedgeThickness = source.WedgeThickness;
+        WedgeLength = source.WedgeLength;
+        WedgeOpacity = source.WedgeOpacity;
+        WedgeColor = source.WedgeColor;
+        BackgroundMode = source.BackgroundMode;
+        BackgroundSolidColor = source.BackgroundSolidColor;
+        BackgroundSolidOpacity = source.BackgroundSolidOpacity;
+        BackgroundImageContentMode = source.BackgroundImageContentMode;
+        BackgroundImagePosition = source.BackgroundImagePosition;
+        BackgroundImageOpacity = source.BackgroundImageOpacity;
+        BackgroundOverlayOpacity = source.BackgroundOverlayOpacity;
+    }
 }
