@@ -136,6 +136,7 @@ jobs:
           - Appearance preferences
           - Cat app icon
           - All Tasks filter and locale date header
+          - Faint gold mark in the panel corner
 
           ### Windows
 
@@ -151,6 +152,7 @@ jobs:
           - Cat app icon
           - Category menu owned by the panel
           - Live appearance preview
+          - Faint gold mark in the panel corner
 
           ### Known limitations
 

@@ -18,6 +18,7 @@
     <Content Include="Assets\PeekMemo.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Assets\PeekMemoMark.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PeekMemo.Core\PeekMemo.Core.csproj" />

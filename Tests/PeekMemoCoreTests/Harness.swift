@@ -91,6 +91,7 @@ enum PeekMemoCoreTestsMain {
             ("BrandQuote", BrandQuoteTests.run),
             ("CategoryFilterLabel", CategoryFilterLabelTests.run),
             ("EdgeRevealMotion", EdgeRevealMotionTests.run),
+            ("AtmosphereMark", AtmosphereMarkTests.run),
         ]
 
         var failed = 0

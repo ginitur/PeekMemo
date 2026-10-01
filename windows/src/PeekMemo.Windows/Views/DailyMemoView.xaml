@@ -265,6 +265,17 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        <Image x:Name="AtmosphereImage"
+               Grid.RowSpan="4"
+               Width="1"
+               HorizontalAlignment="Right"
+               VerticalAlignment="Bottom"
+               Stretch="Uniform"
+               IsHitTestVisible="False"
+               Focusable="False"
+               Opacity="0"
+               Visibility="Collapsed"
+               Source="/Assets/PeekMemoMark.png"/>
 
         <Grid Grid.Row="0">
             <Grid.RowDefinitions>

@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The cur
 - PeekMemo cat app icon on macOS (`AppIcon.icns`) and Windows (`PeekMemo.ico`), including the tray. Small sizes use a simplified version of the same cat.
 - Locale date header. Today in the current year includes the weekday and Today (`Oct 1 · Thu · Today`, or the system locale). Other years include the year.
 - A short French quotation under Add Task. It hides when the panel is shorter than 350 pt/DIP, and while a root editor is open.
+- A faint gold mark in the expanded panel’s lower-right corner. It sits behind the tasks, ignores clicks, and fades further on a light or very small panel.
 
 ### Changed
 

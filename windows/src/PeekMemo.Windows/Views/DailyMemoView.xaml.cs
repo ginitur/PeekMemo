@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using PeekMemo.Core.Daily;
+using PeekMemo.Core.Layout;
 using PeekMemo.Windows.ViewModels;
 
 namespace PeekMemo.Windows.Views;
@@ -18,13 +19,18 @@ public partial class DailyMemoView : UserControl
     bool _armingDate;
     bool _checkHold;
     bool _dismissQueued;
+    bool _atmosphereLight = true;
     Action? _afterCategoryClose;
 
     public DailyMemoView()
     {
         InitializeComponent();
         QuoteText.Text = BrandQuote.Text;
-        SizeChanged += (_, _) => UpdateQuote();
+        SizeChanged += (_, _) =>
+        {
+            UpdateQuote();
+            UpdateAtmosphere();
+        };
         DataContextChanged += (_, _) => HookModel();
     }
 
@@ -34,6 +40,12 @@ public partial class DailyMemoView : UserControl
         ReplaceBrush("MemoMuted", Color.FromArgb(128, ink.R, ink.G, ink.B));
         ReplaceBrush("MemoLine", line);
         ReplaceBrush("MemoPopup", popup);
+    }
+
+    public void SetAtmosphereLight(bool lightBackground)
+    {
+        _atmosphereLight = lightBackground;
+        UpdateAtmosphere();
     }
 
     public void DismissTransientUi()
@@ -222,6 +234,21 @@ public partial class DailyMemoView : UserControl
         var tall = BrandQuote.IsVisible(ActualHeight);
         var busy = _model is { IsAddingRoot: true } or { IsEditingCategory: true };
         QuoteText.Visibility = tall && !busy ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    void UpdateAtmosphere()
+    {
+        var layout = AtmosphereMark.Place(ActualWidth, ActualHeight, _atmosphereLight);
+        if (layout.Width < 1 || layout.Opacity < 0.01)
+        {
+            AtmosphereImage.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AtmosphereImage.Visibility = Visibility.Visible;
+        AtmosphereImage.Width = layout.Width;
+        AtmosphereImage.Opacity = layout.Opacity;
+        AtmosphereImage.Margin = new Thickness(0, 0, -layout.Bleed, -layout.Bleed);
     }
 
     public void OnCalendarSelected(object sender, SelectionChangedEventArgs e)

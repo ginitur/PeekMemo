@@ -18,6 +18,7 @@ struct PreviewPanelView: View {
     var onResizeChanged: () -> Void = {}
     var onResizeEnded: () -> Void = {}
     @FocusState private var editorFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     private var showsQuote: Bool {
         BrandQuote.isVisible(panelHeight: state.panelHeight) && !state.isEditing
@@ -67,6 +68,9 @@ struct PreviewPanelView: View {
         .textSelection(.disabled)
         .preferredColorScheme(readableScheme)
         .background {
+            atmosphereMark
+        }
+        .background {
             PanelBackgroundView(appearance: appearance, image: backgroundImage)
         }
         .clipShape(RoundedRectangle(cornerRadius: PanelSizeMetrics.cornerRadius, style: .continuous))
@@ -86,6 +90,36 @@ struct PreviewPanelView: View {
             .frame(width: PanelResizeGeometry.gripSize, height: PanelResizeGeometry.gripSize)
             .offset(gripOffset)
         }
+    }
+
+    private var markIsLight: Bool {
+        if let readableScheme {
+            return readableScheme == .light
+        }
+        return colorScheme == .light
+    }
+
+    /// Behind the tasks. Hit testing stays off so drag, resize, and editing are unchanged.
+    private var atmosphereMark: some View {
+        GeometryReader { proxy in
+            let layout = AtmosphereMark.layout(
+                panelWidth: proxy.size.width,
+                panelHeight: proxy.size.height,
+                lightBackground: markIsLight
+            )
+            Image("PeekMemoMark", bundle: .module)
+                .resizable()
+                .interpolation(.high)
+                .antialiased(true)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: layout.width)
+                .opacity(layout.opacity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .offset(x: layout.bleed, y: layout.bleed)
+                .accessibilityHidden(true)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var readableScheme: ColorScheme? {

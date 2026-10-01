@@ -748,6 +748,7 @@ public partial class EdgeWindow : NonActivatingWindow
         ExpandedChrome.BorderBrush = new SolidColorBrush(line);
         ApplyBackground(settings, card, opacity);
         MemoView.ApplyTheme(ink, line, card);
+        MemoView.SetAtmosphereLight(MarkFollowsLightFill(settings, card, light));
         var wedgeBrush = new SolidColorBrush(ParseColor(settings.ResolvedWedgeColor(), wedge));
         CollapsedChrome.Background = wedgeBrush;
         DragHandleMark.Background = wedgeBrush;
@@ -832,6 +833,28 @@ public partial class EdgeWindow : NonActivatingWindow
 
         image.Freeze();
         return image;
+    }
+
+    static bool MarkFollowsLightFill(AppSettings settings, Color card, bool themeLight)
+    {
+        if (settings.ResolvedBackgroundMode() != PanelBackgroundMode.Solid)
+        {
+            return themeLight;
+        }
+
+        var fill = ParseColor(settings.ResolvedSolidColor(), card);
+        return RelativeLuminance(fill) >= 0.62;
+    }
+
+    static double RelativeLuminance(Color color)
+    {
+        static double Channel(byte value)
+        {
+            var channel = value / 255d;
+            return channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4);
+        }
+
+        return 0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);
     }
 
     static Color ParseColor(string? hex, Color fallback)

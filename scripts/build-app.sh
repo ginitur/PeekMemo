@@ -13,9 +13,15 @@ ZIP="$DIST/PeekMemo-macOS-${VERSION}.zip"
 echo "→ Building $APP_NAME (release)"
 swift build -c release --product "$APP_NAME"
 
-BIN="$(swift build -c release --product "$APP_NAME" --show-bin-path)/$APP_NAME"
+BIN_DIR="$(swift build -c release --product "$APP_NAME" --show-bin-path)"
+BIN="$BIN_DIR/$APP_NAME"
+RESOURCE_BUNDLE="$BIN_DIR/${APP_NAME}_${APP_NAME}.bundle"
 if [[ ! -x "$BIN" ]]; then
   echo "error: expected executable at $BIN" >&2
+  exit 1
+fi
+if [[ ! -d "$RESOURCE_BUNDLE" ]]; then
+  echo "error: missing $RESOURCE_BUNDLE" >&2
   exit 1
 fi
 
@@ -30,6 +36,7 @@ if [[ ! -f "$ICON" ]]; then
   exit 1
 fi
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
+cp -R "$RESOURCE_BUNDLE" "$APP/Contents/Resources/"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 chmod +x "$APP/Contents/MacOS/$APP_NAME"
 
