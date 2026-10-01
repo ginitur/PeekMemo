@@ -2,7 +2,19 @@
 
 All notable changes to PeekMemo are recorded here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The current release candidate is `0.1.0-rc.2`.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). `0.1.0-rc.2` is the published pre-release and failed device acceptance. `0.1.0-rc.3` is the source fix and is not tagged yet.
+
+## [0.1.0-rc.3] — unreleased
+
+### Fixed
+
+- macOS expand no longer traps when the gold mark cannot be loaded. The mark is read from `PeekMemo.app/Contents/Resources/PeekMemoMark.png`. If that file is missing, the panel still opens and the mark is absent.
+- A second Windows process no longer silently reveals an older PeekMemo. The same version still asks the running copy to show. A different or unknown version shows a dialog and exits.
+
+### Added
+
+- macOS and Windows binaries carry the version, build number, and git commit. Settings shows the version. Windows also prints `PeekMemo.exe --version` and `--diagnose`, and the tray has About PeekMemo.
+- Release checks decode the packaged mark and require `--version` plus `--smoke-ui` on the published Windows executable. Those checks do not replace a device click.
 
 ## [0.1.0-rc.2] — 2026-10-01
 

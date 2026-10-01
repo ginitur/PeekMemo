@@ -132,6 +132,13 @@ public partial class EdgeWindow : NonActivatingWindow
 
     public void AllowClose() => _allowClose = true;
 
+    public string DescribeInterface(bool openCategoryMenu)
+    {
+        UpdateLayout();
+        MemoView.UpdateLayout();
+        return MemoView.DescribeInterface(openCategoryMenu);
+    }
+
     public void RevalidatePlacement()
     {
         if (_dragging || _resizing)

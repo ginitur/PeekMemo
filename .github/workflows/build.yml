@@ -21,3 +21,25 @@ jobs:
 
       - name: Test
         run: swift run PeekMemoCoreTests
+
+      - name: Package app and check expanded resources
+        run: |
+          set -euo pipefail
+          ./scripts/build-app.sh
+          app="dist/PeekMemo.app"
+          test -f "$app/Contents/Resources/AppIcon.icns"
+          test -f "$app/Contents/Resources/PeekMemoMark.png"
+          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMemoMark.png"
+          version="$(tr -d '[:space:]' < VERSION)"
+          build="$(tr -d '[:space:]' < BUILD)"
+          short="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
+          bundled="$(plutil -extract CFBundleVersion raw -o - "$app/Contents/Info.plist")"
+          commit="$(plutil -extract PeekMemoCommit raw -o - "$app/Contents/Info.plist")"
+          test "$short" = "$version"
+          test "$bundled" = "$build"
+          test -n "$commit"
+          test "$commit" != "unknown"
+          "$app/Contents/MacOS/PeekMemo" --version
+          smoke="$("$app/Contents/MacOS/PeekMemo" --smoke-expanded)"
+          printf '%s\n' "$smoke"
+          printf '%s\n' "$smoke" | grep -q "mark: yes"

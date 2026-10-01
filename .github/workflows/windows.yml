@@ -52,3 +52,32 @@ jobs:
           }
           $process.Refresh()
           if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }
+
+      - name: Version and UI resource smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $version = (Get-Content VERSION -Raw).Trim()
+          function Invoke-Peek([string]$Argument) {
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $exe
+            $psi.Arguments = $Argument
+            $psi.UseShellExecute = $false
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $stderr = $proc.StandardError.ReadToEnd()
+            if (-not $proc.WaitForExit(20000)) {
+              Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+              throw "PeekMemo.exe $Argument did not exit."
+            }
+            Write-Host $stdout
+            Write-Host $stderr
+            if ($proc.ExitCode -ne 0) { throw "PeekMemo.exe $Argument exited $($proc.ExitCode)." }
+            return $stdout + $stderr
+          }
+          $reported = Invoke-Peek "--version"
+          if ($reported -notlike "*$version*") { throw "version output did not contain ${version}: $reported" }
+          Invoke-Peek "--smoke-ui" | Out-Null

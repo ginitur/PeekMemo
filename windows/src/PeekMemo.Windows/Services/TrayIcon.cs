@@ -15,6 +15,7 @@ internal sealed class TrayIcon : IDisposable
         menu.Items.Add("Show PeekMemo", null, (_, _) => show());
         menu.Items.Add("Reset Position", null, (_, _) => resetPosition());
         menu.Items.Add("Settings", null, (_, _) => openSettings());
+        menu.Items.Add("About PeekMemo", null, (_, _) => ShowAbout());
         menu.Items.Add("Quit PeekMemo", null, (_, _) => quit());
 
         _ownedIcon = LoadLogo();
@@ -26,6 +27,15 @@ internal sealed class TrayIcon : IDisposable
             ContextMenuStrip = menu
         };
         _icon.DoubleClick += (_, _) => show();
+    }
+
+    static void ShowAbout()
+    {
+        Forms.MessageBox.Show(
+            "Version " + BuildIdentity.Version + "\nBuild " + BuildIdentity.Build + "\n\n" + (Environment.ProcessPath ?? ""),
+            "About PeekMemo",
+            Forms.MessageBoxButtons.OK,
+            Forms.MessageBoxIcon.Information);
     }
 
     public void Dispose()

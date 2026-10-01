@@ -6,8 +6,49 @@ namespace PeekMemo.Windows.Windowing;
 internal static class WindowStyles
 {
     const int GwlExStyle = -20;
+    const uint GwOwner = 4;
+    const long ExTopmost = 0x00000008;
     const uint SwpShowWindow = 0x0040;
     static readonly IntPtr HwndTopmost = new(-1);
+    static IntPtr _overlay;
+
+    public static bool HasOverlay => _overlay != IntPtr.Zero;
+
+    public static void TrackOverlay(IntPtr hwnd)
+    {
+        if (hwnd != IntPtr.Zero)
+        {
+            _overlay = hwnd;
+        }
+    }
+
+    public static void ReleaseOverlay(IntPtr hwnd)
+    {
+        if (_overlay == hwnd)
+        {
+            _overlay = IntPtr.Zero;
+        }
+    }
+
+    public static IntPtr OwnerOf(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        return GetWindow(hwnd, GwOwner);
+    }
+
+    public static bool IsTopmost(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        return (GetExStyle(hwnd).ToInt64() & ExTopmost) != 0;
+    }
 
     public static void MakeNoActivateToolWindow(IntPtr hwnd) => UsePeekMode(hwnd, peek: true);
 
@@ -26,6 +67,12 @@ internal static class WindowStyles
 
     public static void KeepTopmostWithoutActivating(IntPtr hwnd)
     {
+        if (PanelZOrder.PreserveOrder(HasOverlay) && hwnd != _overlay)
+        {
+            RaiseOverlay();
+            return;
+        }
+
         SetWindowPos(
             hwnd,
             HwndTopmost,
@@ -34,18 +81,48 @@ internal static class WindowStyles
             0,
             0,
             ActivationStyle.NoMove | ActivationStyle.NoSize | ActivationStyle.NoActivatePosition | SwpShowWindow);
+        if (hwnd != _overlay)
+        {
+            RaiseOverlay();
+        }
     }
 
     public static void PlaceWithoutActivating(IntPtr hwnd, int x, int y, int width, int height)
     {
+        var flags = ActivationStyle.NoActivatePosition | SwpShowWindow;
+        var insertAfter = HwndTopmost;
+        if (PanelZOrder.PreserveOrder(HasOverlay))
+        {
+            flags |= ActivationStyle.NoZOrder;
+            insertAfter = IntPtr.Zero;
+        }
+
         SetWindowPos(
             hwnd,
-            HwndTopmost,
+            insertAfter,
             x,
             y,
             Math.Max(1, width),
             Math.Max(1, height),
-            ActivationStyle.NoActivatePosition | SwpShowWindow);
+            flags);
+        RaiseOverlay();
+    }
+
+    static void RaiseOverlay()
+    {
+        if (_overlay == IntPtr.Zero)
+        {
+            return;
+        }
+
+        SetWindowPos(
+            _overlay,
+            HwndTopmost,
+            0,
+            0,
+            0,
+            0,
+            ActivationStyle.NoMove | ActivationStyle.NoSize | ActivationStyle.NoActivatePosition | SwpShowWindow);
     }
 
     static IntPtr GetExStyle(IntPtr hwnd) =>
@@ -76,4 +153,7 @@ internal static class WindowStyles
 
     [DllImport("user32.dll", SetLastError = true)]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+
+    [DllImport("user32.dll")]
+    static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 }

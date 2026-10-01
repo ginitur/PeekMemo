@@ -24,6 +24,26 @@ jobs:
       - name: Build app and zip
         run: ./scripts/build-app.sh
 
+      - name: Check packaged resources
+        run: |
+          set -euo pipefail
+          app="dist/PeekMemo.app"
+          test -f "$app/Contents/Resources/AppIcon.icns"
+          test -f "$app/Contents/Resources/PeekMemoMark.png"
+          sips -g pixelWidth -g pixelHeight "$app/Contents/Resources/PeekMemoMark.png"
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag="${GITHUB_REF_NAME#v}"
+          test "$version" = "$tag"
+          short="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
+          commit="$(plutil -extract PeekMemoCommit raw -o - "$app/Contents/Info.plist")"
+          test "$short" = "$tag"
+          test -n "$commit"
+          test "$commit" != "unknown"
+          "$app/Contents/MacOS/PeekMemo" --version
+          smoke="$("$app/Contents/MacOS/PeekMemo" --smoke-expanded)"
+          printf '%s\n' "$smoke"
+          printf '%s\n' "$smoke" | grep -q "mark: yes"
+
       - name: Upload macOS zip
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +100,37 @@ jobs:
           }
           $process.Refresh()
           if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }
+
+      - name: Version and UI resource smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $version = (Get-Content VERSION -Raw).Trim()
+          $tag = "${{ github.ref_name }}"
+          if ($tag -ne "v$version") { throw "VERSION $version does not match tag $tag." }
+          function Invoke-Peek([string]$Argument) {
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $exe
+            $psi.Arguments = $Argument
+            $psi.UseShellExecute = $false
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $stderr = $proc.StandardError.ReadToEnd()
+            if (-not $proc.WaitForExit(20000)) {
+              Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+              throw "PeekMemo.exe $Argument did not exit."
+            }
+            Write-Host $stdout
+            Write-Host $stderr
+            if ($proc.ExitCode -ne 0) { throw "PeekMemo.exe $Argument exited $($proc.ExitCode)." }
+            return $stdout + $stderr
+          }
+          $reported = Invoke-Peek "--version"
+          if ($reported -notlike "*$version*") { throw "version output did not contain ${version}: $reported" }
+          Invoke-Peek "--smoke-ui" | Out-Null
 
       - name: Upload Windows zip
         uses: actions/upload-artifact@v4
@@ -157,7 +208,8 @@ jobs:
           ### Known limitations
 
           - Windows UI has automated logic/build validation but still needs device-level interaction validation
-          - Windows category-menu z-order is covered by hold-state tests; the HWND order itself is a device check
+          - Windows category-menu z-order is guarded in code; a real Windows click is still required before acceptance
+          - Automated smoke does not replace device validation of hover, the category window, the quote, or the corner mark
           - macOS build is not notarized
           - The macOS download is built on macos-15 for Apple silicon (arm64)
           - Top edge is not supported

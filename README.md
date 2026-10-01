@@ -29,7 +29,7 @@ Supported edges are Left, Right, and Bottom. Top is not a snap target.
 
 ## Download
 
-Release candidates are published on [GitHub Releases](https://github.com/ginitur/PeekMemo/releases). `v0.1.0-rc.2` is the current pre-release for acceptance testing, not a stable `v0.1.0`. `v0.1.0-rc.1` stays on the releases page.
+Release candidates are published on [GitHub Releases](https://github.com/ginitur/PeekMemo/releases). `v0.1.0-rc.2` is the newest published pre-release and did not pass device acceptance. It is not a stable `v0.1.0`. `v0.1.0-rc.1` stays on the releases page. A newer candidate is not published until the packaged macOS app has been hovered by hand and the Windows artifact identity is confirmed.
 
 | Platform | Asset | Run |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ dotnet test windows/PeekMemo.Windows.sln -c Release
 
 `windows/scripts/package.ps1` publishes a self-contained `win-x64` build to `windows/dist/PeekMemo-Windows-x64/` and zips it. There is no MSIX and no Store package.
 
-GitHub Actions runs the macOS tests, the Windows tests, and a non-interactive `PeekMemo.exe --smoke` after publish. The Release workflow runs only when a `v*` tag is pushed. It does not publish a release from every push to `main`.
+GitHub Actions runs the macOS tests, a packaged macOS resource check, the Windows tests, and `PeekMemo.exe --smoke` plus `--version` and `--smoke-ui` after publish. Those commands do not prove the category window, quote, or corner mark on a real Windows desktop. The Release workflow runs only when a `v*` tag is pushed. It does not publish a release from every push to `main`.
 
 ## Out of scope
 

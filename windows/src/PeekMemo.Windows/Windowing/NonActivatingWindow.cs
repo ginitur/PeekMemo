@@ -96,6 +96,11 @@ public class NonActivatingWindow : Window
         var flagsOffset = xOffset + 16;
         var flags = (uint)Marshal.ReadInt32(lParam, flagsOffset);
         flags &= ~(SwpNoMove | SwpNoSize);
+        if (PanelZOrder.PreserveOrder(WindowStyles.HasOverlay))
+        {
+            flags |= ActivationStyle.NoZOrder;
+        }
+
         Marshal.WriteInt32(lParam, flagsOffset, unchecked((int)flags));
     }
 }

@@ -34,9 +34,6 @@ let package = Package(
             exclude: [
                 "Resources/Info.plist",
             ],
-            resources: [
-                .process("Resources/PeekMemoMark.png"),
-            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]

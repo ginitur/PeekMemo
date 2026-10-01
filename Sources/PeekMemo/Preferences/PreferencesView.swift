@@ -48,6 +48,21 @@ struct PreferencesView: View {
             } footer: {
                 Text("The menu bar icon stays available so Settings and Quit remain reachable.")
             }
+            Section {
+                LabeledContent("Version") {
+                    Text(AppIdentity.version)
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("Build") {
+                    Text(AppIdentity.build)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text(AppIdentity.commit)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 

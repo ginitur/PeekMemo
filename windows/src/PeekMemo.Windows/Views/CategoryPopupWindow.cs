@@ -67,8 +67,10 @@ sealed class CategoryPopupWindow : Window
         SourceInitialized += (_, _) =>
         {
             var hwnd = new WindowInteropHelper(this).Handle;
+            WindowStyles.TrackOverlay(hwnd);
             WindowStyles.KeepTopmostWithoutActivating(hwnd);
         };
+        Closed += (_, _) => WindowStyles.ReleaseOverlay(new WindowInteropHelper(this).Handle);
     }
 
     public void ShowNear(FrameworkElement anchor)
@@ -86,6 +88,9 @@ sealed class CategoryPopupWindow : Window
         Show();
         UpdateLayout();
         Place(anchor);
+        var hwnd = new WindowInteropHelper(this).Handle;
+        WindowStyles.TrackOverlay(hwnd);
+        WindowStyles.KeepTopmostWithoutActivating(hwnd);
         Activate();
         _acceptDismiss = true;
     }

@@ -107,7 +107,8 @@ struct PreviewPanelView: View {
                 panelHeight: proxy.size.height,
                 lightBackground: markIsLight
             )
-            Image("PeekMemoMark", bundle: .module)
+            if let image = AtmosphereArtwork.image {
+                Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)
                 .antialiased(true)
@@ -117,6 +118,7 @@ struct PreviewPanelView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .offset(x: layout.bleed, y: layout.bleed)
                 .accessibilityHidden(true)
+            }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

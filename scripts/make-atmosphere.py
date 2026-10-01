@@ -21,7 +21,6 @@ SOURCE = Path(
 )
 MARK = ROOT / "Brand" / "PeekMemo-Mark.png"
 COPIES = [
-    ROOT / "Sources" / "PeekMemo" / "Resources" / "PeekMemoMark.png",
     ROOT / "windows" / "src" / "PeekMemo.Windows" / "Assets" / "PeekMemoMark.png",
 ]
 

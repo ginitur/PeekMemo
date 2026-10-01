@@ -39,6 +39,8 @@ public partial class SettingsWindow : Window
         var root = Path.GetDirectoryName(store.FilePath) ?? AppPaths.DefaultRoot();
         _backgrounds = new BackgroundImageStore(AppPaths.BackgroundsDirectory(root));
         LaunchAtStartupBox.IsChecked = settings.LaunchAtStartup;
+        VersionText.Text = "Version " + PeekMemo.Windows.Services.BuildIdentity.Version;
+        BuildText.Text = "Build " + PeekMemo.Windows.Services.BuildIdentity.Build;
         ThemeBox.SelectedIndex = settings.ResolvedTheme() switch
         {
             ThemePreference.Light => 1,

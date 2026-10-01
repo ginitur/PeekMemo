@@ -3,11 +3,25 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
-    <InformationalVersion>0.1.0-rc.2</InformationalVersion>
+    <PeekMemoVersionFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\VERSION'))</PeekMemoVersionFile>
+    <PeekMemoBuildFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\BUILD'))</PeekMemoBuildFile>
+    <PeekMemoVersion>$([System.IO.File]::ReadAllText('$(PeekMemoVersionFile)').Trim())</PeekMemoVersion>
+    <PeekMemoBuild>$([System.IO.File]::ReadAllText('$(PeekMemoBuildFile)').Trim())</PeekMemoBuild>
+    <Version>0.1.0.$(PeekMemoBuild)</Version>
+    <AssemblyVersion>0.1.0.$(PeekMemoBuild)</AssemblyVersion>
+    <FileVersion>0.1.0.$(PeekMemoBuild)</FileVersion>
+    <InformationalVersion>$(PeekMemoVersion)</InformationalVersion>
     <Product>PeekMemo</Product>
     <Company>PeekMemo</Company>
+    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <Target Name="SetPeekMemoCommit" BeforeTargets="GenerateAssemblyInfo">
+    <Exec Command="git rev-parse HEAD" WorkingDirectory="$(MSBuildThisFileDirectory).." ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="SourceRevisionId" />
+    </Exec>
+    <PropertyGroup>
+      <SourceRevisionId>$([System.String]::Copy('$(SourceRevisionId)').Trim())</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
 </Project>

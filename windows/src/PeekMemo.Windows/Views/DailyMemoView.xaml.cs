@@ -1,12 +1,16 @@
+using System.Globalization;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using PeekMemo.Core.Daily;
 using PeekMemo.Core.Layout;
 using PeekMemo.Windows.ViewModels;
+using PeekMemo.Windows.Windowing;
 
 namespace PeekMemo.Windows.Views;
 
@@ -249,6 +253,45 @@ public partial class DailyMemoView : UserControl
         AtmosphereImage.Width = layout.Width;
         AtmosphereImage.Opacity = layout.Opacity;
         AtmosphereImage.Margin = new Thickness(0, 0, -layout.Bleed, -layout.Bleed);
+    }
+
+    public string DescribeInterface(bool openCategoryMenu)
+    {
+        if (openCategoryMenu && _categoryWindow is null && _model is not null)
+        {
+            OnCategoryClick(this, new RoutedEventArgs());
+        }
+
+        UpdateLayout();
+        UpdateQuote();
+        UpdateAtmosphere();
+        var tall = BrandQuote.IsVisible(ActualHeight);
+        var adding = _model?.IsAddingRoot == true;
+        var editingCategory = _model?.IsEditingCategory == true;
+        var popupHwnd = _categoryWindow is null ? IntPtr.Zero : new WindowInteropHelper(_categoryWindow).Handle;
+        var panel = Window.GetWindow(this);
+        var panelHwnd = panel is null ? IntPtr.Zero : new WindowInteropHelper(panel).Handle;
+        var ownerHwnd = WindowStyles.OwnerOf(popupHwnd);
+        var builder = new StringBuilder();
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Panel ActualWidth: {ActualWidth:0.##}"));
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Panel ActualHeight: {ActualHeight:0.##}"));
+        builder.AppendLine($"Quote Visibility: {QuoteText.Visibility}");
+        builder.AppendLine($"Quote eligibility: {(tall && !adding && !editingCategory ? "yes" : "no")}");
+        builder.AppendLine($"Quote tall enough: {(tall ? "yes" : "no")}");
+        builder.AppendLine($"IsAddingRoot: {(adding ? "yes" : "no")}");
+        builder.AppendLine($"IsEditingCategory: {(editingCategory ? "yes" : "no")}");
+        builder.AppendLine($"Atmosphere Visibility: {AtmosphereImage.Visibility}");
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Atmosphere Width: {AtmosphereImage.Width:0.##}"));
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Atmosphere ActualWidth: {AtmosphereImage.ActualWidth:0.##}"));
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Atmosphere ActualHeight: {AtmosphereImage.ActualHeight:0.##}"));
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Atmosphere Opacity: {AtmosphereImage.Opacity:0.###}"));
+        builder.AppendLine($"Atmosphere Source: {AtmosphereImage.Source}");
+        builder.AppendLine($"Category popup HWND: {popupHwnd}");
+        builder.AppendLine($"Panel HWND: {panelHwnd}");
+        builder.AppendLine($"Owner HWND: {ownerHwnd}");
+        builder.AppendLine($"Popup topmost: {(WindowStyles.IsTopmost(popupHwnd) ? "yes" : "no")}");
+        builder.Append($"Panel topmost: {(WindowStyles.IsTopmost(panelHwnd) ? "yes" : "no")}");
+        return builder.ToString();
     }
 
     public void OnCalendarSelected(object sender, SelectionChangedEventArgs e)

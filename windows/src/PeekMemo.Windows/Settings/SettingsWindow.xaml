@@ -11,6 +11,8 @@
         <StackPanel>
             <TextBlock Text="General" FontWeight="SemiBold" Margin="0,0,0,8"/>
             <CheckBox x:Name="LaunchAtStartupBox" Content="Launch at startup"/>
+            <TextBlock x:Name="VersionText" Margin="0,16,0,0" Opacity="0.7"/>
+            <TextBlock x:Name="BuildText" Margin="0,2,0,0" FontSize="11" Opacity="0.55"/>
 
             <TextBlock Text="Appearance" FontWeight="SemiBold" Margin="0,18,0,8"/>
             <TextBlock Text="Theme"/>

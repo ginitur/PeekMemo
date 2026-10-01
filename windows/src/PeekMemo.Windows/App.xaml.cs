@@ -13,6 +13,7 @@ namespace PeekMemo.Windows;
 public partial class App : Application
 {
     SingleInstance? _single;
+    string? _instanceFile;
     TrayIcon? _tray;
     EdgeWindow? _edge;
     SystemThemeWatcher? _theme;
@@ -24,22 +25,66 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Any(argument => argument == "--version"))
+        {
+            ConsoleAttach.Write(BuildIdentity.Report);
+            Environment.Exit(0);
+            return;
+        }
+
+        if (e.Args.Any(argument => argument == "--diagnose"))
+        {
+            ConsoleAttach.Write(ReleaseDiagnostics.Describe());
+            Environment.Exit(0);
+            return;
+        }
+
         if (e.Args.Any(argument => argument == "--smoke"))
         {
             Environment.Exit(RunSmoke());
             return;
         }
 
+        if (e.Args.Any(argument => argument == "--smoke-ui"))
+        {
+            Environment.Exit(ReleaseDiagnostics.RunSmokeUi());
+            return;
+        }
+
+        if (e.Args.Any(argument => argument == "--diagnose-ui"))
+        {
+            StartDiagnoseUi();
+            return;
+        }
+
         _single = new SingleInstance();
         if (!_single.IsFirst)
         {
-            _single.SignalShow();
+            var decision = InstanceHandoff.Decide(AppPaths.InstanceFile(AppPaths.DefaultRoot()), BuildIdentity.Version);
+            if (decision.Signal)
+            {
+                _single.SignalShow();
+            }
+            else
+            {
+                MessageBox.Show(decision.Refusal, "PeekMemo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
             Shutdown();
             return;
         }
 
         var root = AppPaths.DefaultRoot();
         Directory.CreateDirectory(root);
+        _instanceFile = AppPaths.InstanceFile(root);
+        try
+        {
+            InstanceHandoff.Publish(_instanceFile, BuildIdentity.Version, BuildIdentity.Commit);
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError("[Persistence] {0}", exception);
+        }
         _store = new SettingsStore(root);
         var settings = _store.Load();
         _startup = new CurrentUserStartupRegistration();
@@ -107,9 +152,63 @@ public partial class App : Application
         _theme?.Dispose();
         _display?.Dispose();
         _tray?.Dispose();
+        if (_instanceFile is not null)
+        {
+            InstanceHandoff.RemoveIfOurs(_instanceFile);
+        }
+
         _single?.Dispose();
         _database?.Dispose();
         base.OnExit(e);
+    }
+
+    void StartDiagnoseUi()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "peekmemo-diagnose-ui", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var store = new SettingsStore(root);
+            var settings = store.Load();
+            _database = MemoDatabase.Open(AppPaths.DatabaseFile(root));
+            _edge = new EdgeWindow(store, settings, _database);
+            _edge.Show();
+            _edge.ShowPinned();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    var report = BuildIdentity.Report + "\n" + _edge?.DescribeInterface(openCategoryMenu: true);
+                    ConsoleAttach.Write(report);
+                    _edge?.AllowClose();
+                    Shutdown(0);
+                }
+                catch (Exception exception)
+                {
+                    ConsoleAttach.Write(exception.ToString());
+                    Shutdown(1);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (Directory.Exists(root))
+                        {
+                            Directory.Delete(root, recursive: true);
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        Trace.TraceError("[Persistence] {0}", exception);
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+        catch (Exception exception)
+        {
+            ConsoleAttach.Write(exception.ToString());
+            Environment.Exit(1);
+        }
     }
 
     static int RunSmoke()
