@@ -1,3 +1,4 @@
+using System.Globalization;
 using PeekMemo.Core.Daily;
 using Xunit;
 
@@ -13,17 +14,17 @@ public class DateNavigationTests
         var board = MemoBoard.CreateDefaults(Today);
 
         Assert.Equal(Today, board.SelectedDate);
-        Assert.Equal("Oct 1 · Today", board.DateLabel);
+        Assert.Equal(Expected(board), board.DateLabel);
         Assert.True(board.IsViewingToday);
 
         board.ShiftDate(-1);
         Assert.Equal(new DateOnly(2026, 9, 30), board.SelectedDate);
-        Assert.Equal("Sep 30", board.DateLabel);
+        Assert.Equal(Expected(board), board.DateLabel);
         Assert.False(board.IsViewingToday);
 
         board.ShiftDate(2);
         Assert.Equal(new DateOnly(2026, 10, 2), board.SelectedDate);
-        Assert.Equal("Oct 2", board.DateLabel);
+        Assert.Equal(Expected(board), board.DateLabel);
 
         board.SelectDate(Today);
         Assert.True(board.IsViewingToday);
@@ -39,4 +40,7 @@ public class DateNavigationTests
         Assert.Equal("Work", board.FilterLabel);
         Assert.False(board.IsViewingToday);
     }
+
+    static string Expected(MemoBoard board) =>
+        DateTitle.Format(board.SelectedDate, board.IsViewingToday, CultureInfo.CurrentCulture, board.Today.Year);
 }

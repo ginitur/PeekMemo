@@ -25,16 +25,7 @@ final class AppState {
     }
 
     var dateTitle: String {
-        let calendar = Calendar.current
-        let day = DailyView.startOfDay(selectedDate, calendar: calendar)
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        if DailyView.isSameDay(day, Date(), calendar: calendar) {
-            formatter.dateFormat = "M月d日"
-            return "\(formatter.string(from: day)) · 今天"
-        }
-        formatter.dateFormat = "M月d日 · EEE"
-        return formatter.string(from: day)
+        DateHeaderText.format(selected: selectedDate, now: Date())
     }
 
     var dailyStats: (completed: Int, total: Int) {

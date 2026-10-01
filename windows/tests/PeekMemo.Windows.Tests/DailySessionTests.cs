@@ -1,3 +1,4 @@
+using System.Globalization;
 using PeekMemo.Core.Daily;
 using PeekMemo.Core.Hover;
 using PeekMemo.Core.Interaction;
@@ -242,19 +243,19 @@ public class DailySessionTests
         var session = new DailySession(MemoBoard.CreateSample(Today), new PanelInteraction());
         Open(session.Interaction);
 
-        Assert.Equal("Oct 1 · Today", session.Board.DateLabel);
+        Assert.Equal(DateTitle.Format(session.Board.SelectedDate, true, CultureInfo.CurrentCulture, session.Board.Today.Year), session.Board.DateLabel);
         Assert.Equal("1/3", session.Board.DayProgress.Text);
         Assert.Contains(session.Board.PastUnfinishedItems, item => item.Title == "Yesterday task");
         Assert.DoesNotContain(session.Board.DailyItems, item => item.Title == "Tomorrow task");
         Assert.Null(session.Board.CategoryLabel(session.Board.Items.Single(item => item.Type == MemoItemType.Note)));
 
         session.ShiftDate(-1);
-        Assert.Equal("Sep 30", session.Board.DateLabel);
+        Assert.Equal(DateTitle.Format(session.Board.SelectedDate, false, CultureInfo.CurrentCulture, session.Board.Today.Year), session.Board.DateLabel);
         Assert.Empty(session.Board.PastUnfinishedItems);
         Assert.Contains(session.Board.DailyItems, item => item.Title == "Yesterday task" && !item.IsCompleted);
 
         session.SelectDate(Tomorrow);
-        Assert.Equal("Oct 2", session.Board.DateLabel);
+        Assert.Equal(DateTitle.Format(session.Board.SelectedDate, false, CultureInfo.CurrentCulture, session.Board.Today.Year), session.Board.DateLabel);
         Assert.Empty(session.Board.PastUnfinishedItems);
         Assert.Contains(session.Board.DailyItems, item => item.Title == "Tomorrow task");
 

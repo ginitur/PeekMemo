@@ -87,6 +87,7 @@ enum PeekMemoCoreTestsMain {
             ("BackgroundDoesNotTouchSQLite", BackgroundDoesNotTouchSQLiteTests.run),
             ("HoverDelayPreference", HoverDelayPreferenceTests.run),
             ("ReduceMotionPreference", ReduceMotionPreferenceTests.run),
+            ("DateHeaderText", DateHeaderTextTests.run),
             ("CategoryFilterLabel", CategoryFilterLabelTests.run),
         ]
 

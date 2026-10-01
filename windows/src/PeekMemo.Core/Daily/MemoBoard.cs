@@ -1,3 +1,4 @@
+using System.Globalization;
 using PeekMemo.Core.Models;
 using PeekMemo.Core.Persistence;
 
@@ -47,7 +48,8 @@ public sealed class MemoBoard
     public DailyProgress DayProgress =>
         DailyQuery.GetProgress(_items, SelectedDate, SelectedCategoryId);
 
-    public string DateLabel => DateTitle.Format(SelectedDate, IsViewingToday);
+    public string DateLabel =>
+        DateTitle.Format(SelectedDate, IsViewingToday, CultureInfo.CurrentCulture, Today.Year);
 
     public string FilterLabel =>
         SelectedCategoryId is Guid id
