@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 final class PanelController {
     private let panel = PeekPanel()
-    private let positionManager = PanelPositionManager()
+    private var positionManager = PanelPositionManager()
     private let hostView = EdgeHostView()
     private let hover = HoverController()
     private var hostingView: NSHostingView<PeekRootView>?
@@ -18,7 +18,15 @@ final class PanelController {
     private var contentOpacity: Double = 1
     private var motionGeneration = 0
     private var suppressAnimatedCollapse = false
-    private let appState = AppState()
+    private let appState: AppState
+    private let preferences: PreferencesModel
+    private var measuredHeader: CGFloat = 56
+    private var measuredBody: CGFloat = 64
+    private var hasLiveMeasure = false
+    private var frameAnimating = false
+    private var suppressMeasureResize = false
+    private var pendingMeasureApply = false
+    private var measurePasses = 0
     private var currentExpansion: ExpansionLayout?
     private var outsideMoveMonitor: Any?
     private var editorScreenRect: CGRect?
@@ -27,10 +35,18 @@ final class PanelController {
     #endif
 
     private var previewSize: CGSize {
-        CGSize(width: LayoutMetrics.previewPanelWidth, height: LayoutMetrics.previewPanelHeight)
+        applyEstimateIfNeeded()
+        let edge = anchorPlacement?.edge ?? .right
+        return preferences.snapshot.expandedWindowSize(
+            edgeIsVertical: edge.isVertical,
+            header: measuredHeader,
+            body: measuredBody
+        )
     }
 
-    init() {
+    init(appState: AppState, preferences: PreferencesModel) {
+        self.appState = appState
+        self.preferences = preferences
         hostView.wantsLayer = true
         hostView.layer?.backgroundColor = NSColor.clear.cgColor
         hostView.onDragBegan = { [weak self] in
@@ -77,10 +93,16 @@ final class PanelController {
         notchSensor.onExit = { [weak self] in
             self?.hover.pointerExited()
         }
+        hover.setDelays(
+            open: preferences.snapshot.hoverOpenDelay,
+            close: preferences.snapshot.hoverCloseDelay
+        )
+        positionManager.stackLength = preferences.snapshot.edgeTabLength
         observeScreenChanges()
     }
 
     func showRestoredOrDefault() {
+        applyPreferences()
         guard let screen = ScreenManager.mainSnapshot() else {
             return
         }
@@ -131,6 +153,24 @@ final class PanelController {
     }
 
     func refreshChrome() {
+        syncChrome(animated: false)
+    }
+
+    func applyPreferences() {
+        let prefs = preferences.snapshot
+        hover.setDelays(open: prefs.hoverOpenDelay, close: prefs.hoverCloseDelay)
+        positionManager.stackLength = prefs.edgeTabLength
+        let appearance = preferences.windowAppearance
+        NSApp.appearance = appearance
+        panel.appearance = appearance
+        if let anchor = anchorPlacement, let screen = screenForAnchor(anchor) {
+            anchorPlacement = EdgeGeometry.placement(
+                from: anchor.stored,
+                screen: screen,
+                stackLength: positionManager.stackLength
+            )
+        }
+        guard anchorPlacement != nil else { return }
         syncChrome(animated: false)
     }
 
@@ -245,12 +285,15 @@ final class PanelController {
             if hover.isDragging || suppressAnimatedCollapse {
                 motionGeneration += 1
                 shellExpanded = false
+                hasLiveMeasure = false
                 contentOpacity = 1
                 syncChrome(animated: false)
             } else {
                 collapseChrome()
             }
-        case .none, .scheduleOpen, .scheduleClose, .cancelTimers:
+        case .scheduleOpen, .scheduleClose, .cancelTimers:
+            refreshPresentedContent()
+        case .none:
             break
         }
         if hover.engine.isPinned || hover.engine.phase == .collapsed {
@@ -264,10 +307,12 @@ final class PanelController {
         let generation = motionGeneration
         shellExpanded = true
         contentOpacity = 0
+        suppressMeasureResize = true
+        let duration = preferences.movementDuration(LayoutMetrics.expandDuration)
         syncChrome(
-            animated: !hover.isDragging,
+            animated: duration > 0 && !hover.isDragging,
             expanding: true,
-            duration: LayoutMetrics.expandDuration
+            duration: duration > 0 ? duration : LayoutMetrics.expandDuration
         )
         DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeDelay) { [weak self] in
             guard let self, self.motionGeneration == generation else { return }
@@ -280,14 +325,17 @@ final class PanelController {
         motionGeneration += 1
         let generation = motionGeneration
         contentOpacity = 0
+        suppressMeasureResize = true
         refreshPresentedContent()
         DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeOutDuration) { [weak self] in
             guard let self, self.motionGeneration == generation else { return }
             self.shellExpanded = false
+            self.hasLiveMeasure = false
+            let duration = self.preferences.movementDuration(LayoutMetrics.collapseDuration)
             self.syncChrome(
-                animated: !self.hover.isDragging,
+                animated: duration > 0 && !self.hover.isDragging,
                 expanding: false,
-                duration: LayoutMetrics.collapseDuration
+                duration: duration > 0 ? duration : LayoutMetrics.collapseDuration
             )
         }
     }
@@ -311,6 +359,7 @@ final class PanelController {
     ) {
         guard let anchor = anchorPlacement else { return }
         let framePlacement = displayedPlacement(anchor: anchor, expanded: shellExpanded)
+        panel.alphaValue = shellExpanded ? preferences.snapshot.panelOpacity : 1
         panel.allowNotchPlacement = anchor.isNotchCloak
         let requested = framePlacement.frame
         positionManager.apply(
@@ -321,8 +370,9 @@ final class PanelController {
             duration: duration
         )
         if animated {
-            let wait = duration
-            DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            frameAnimating = true
+            suppressMeasureResize = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
                 self?.finishFrameAnimation()
             }
         } else {
@@ -367,6 +417,8 @@ final class PanelController {
     }
 
     private func finishFrameAnimation() {
+        frameAnimating = false
+        suppressMeasureResize = false
         hostView.dragHandleRect = dragHandleRect(
             in: hostView.bounds,
             edge: anchorPlacement?.edge ?? .right,
@@ -374,6 +426,10 @@ final class PanelController {
         )
         hostView.installTrackingArea()
         evaluatePointer()
+        if pendingMeasureApply, shellExpanded, !hover.isDragging {
+            pendingMeasureApply = false
+            syncChrome(animated: false)
+        }
     }
 
     private func displayedPlacement(anchor: PanelPlacement, expanded: Bool) -> PanelPlacement {
@@ -398,11 +454,22 @@ final class PanelController {
         phase: PeekMemoCore.HoverPhase,
         notchOccludedHeight: CGFloat
     ) {
+        let emphasized = hover.engine.phase == .hovering
         let root = PeekRootView(
             edge: edge,
             isNotchCloak: isNotchCloak,
             phase: phase,
             accent: .accent,
+            tabColor: preferences.resolvedEdgeTabColor(),
+            tabThickness: preferences.snapshot.edgeTabThickness,
+            tabOpacity: AppearancePreferences.displayedEdgeTabOpacity(
+                base: preferences.snapshot.edgeTabOpacity,
+                emphasized: emphasized
+            ),
+            bodyViewport: bodyViewport,
+            onContentMeasured: { [weak self] header, body in
+                self?.noteContentMeasured(header: header, body: body)
+            },
             showHitRegions: DebugFlags.showHitRegions,
             showInteractionRegions: DebugFlags.showInteractionRegions,
             notchOccludedHeight: notchOccludedHeight,
@@ -433,6 +500,37 @@ final class PanelController {
         hostView.addSubview(hosting, positioned: .below, relativeTo: nil)
         hostView.clipsToBounds = false
         hostingView = hosting
+    }
+
+    private var bodyViewport: CGFloat {
+        applyEstimateIfNeeded()
+        return preferences.snapshot.bodyViewport(header: measuredHeader, body: measuredBody)
+    }
+
+    private func applyEstimateIfNeeded() {
+        guard !hasLiveMeasure else { return }
+        let rows = appState.visibleDayItems.count + appState.pastUnfinishedItems.count
+        measuredHeader = 56
+        measuredBody = rows == 0 ? 64 : min(CGFloat(rows) * 36 + 48, 320)
+    }
+
+    private func noteContentMeasured(header: CGFloat, body: CGFloat) {
+        guard header > 0, body > 0 else { return }
+        let changed = abs(header - measuredHeader) > 0.5 || abs(body - measuredBody) > 0.5
+        measuredHeader = header
+        measuredBody = body
+        hasLiveMeasure = true
+        guard changed else {
+            measurePasses = 0
+            return
+        }
+        measurePasses += 1
+        guard measurePasses <= 4 else { return }
+        guard shellExpanded, !hover.isDragging, !suppressMeasureResize, !frameAnimating else {
+            pendingMeasureApply = shellExpanded
+            return
+        }
+        syncChrome(animated: false)
     }
 
     private func dragHandleRect(in bounds: CGRect, edge: ScreenEdge, expanded: Bool) -> CGRect? {

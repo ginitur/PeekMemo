@@ -268,6 +268,78 @@ final class AppState {
         }
     }
 
+    @discardableResult
+    func renameCategory(id: UUID, name: String) -> Bool {
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return false
+        }
+        do {
+            try store.categories.renameCategory(id: id, name: name)
+            reloadFromStore()
+            return true
+        } catch {
+            Self.log(error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func recolorCategory(id: UUID, color: RGBAColor) -> Bool {
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return false
+        }
+        do {
+            try store.categories.updateColor(id: id, color: color)
+            reloadFromStore()
+            return true
+        } catch {
+            Self.log(error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func archiveCategory(id: UUID) -> Bool {
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return false
+        }
+        do {
+            try store.categories.archiveCategory(id: id)
+            if case .category(let selected) = categoryFilter, selected == id {
+                categoryFilter = .all
+            }
+            reloadFromStore()
+            return true
+        } catch {
+            Self.log(error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func moveCategory(_ id: UUID, by delta: Int) -> Bool {
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return false
+        }
+        var ids = activeCategories.map(\.id)
+        guard let index = ids.firstIndex(of: id) else { return false }
+        let target = index + delta
+        guard ids.indices.contains(target) else { return false }
+        ids.swapAt(index, target)
+        do {
+            try store.categories.reorderCategories(ids)
+            reloadFromStore()
+            return true
+        } catch {
+            Self.log(error)
+            return false
+        }
+    }
+
     private func targetCategoryID(for parent: UUID?) -> UUID? {
         if let parent, let item = items.first(where: { $0.id == parent }) {
             return item.categoryId

@@ -1,12 +1,13 @@
 import AppKit
 
-/// Accessory-app status item. Expanded in Phase 9.
+/// Accessory-app status item. The icon stays visible so Settings and Quit remain reachable.
 @MainActor
 final class StatusItemController {
     private let item: NSStatusItem
     private let onShow: () -> Void
     private let onHide: () -> Void
     private let onReset: () -> Void
+    private let onOpenSettings: () -> Void
     private let onToggleHitRegions: () -> Void
     private let onToggleNotchGeometry: () -> Void
     private let onMoveToNotch: () -> Void
@@ -21,7 +22,8 @@ final class StatusItemController {
         onToggleNotchGeometry: @escaping () -> Void = {},
         onMoveToNotch: @escaping () -> Void = {},
         onToggleAnchorGeometry: @escaping () -> Void = {},
-        onToggleInteractionRegions: @escaping () -> Void = {}
+        onToggleInteractionRegions: @escaping () -> Void = {},
+        onOpenSettings: @escaping () -> Void = {}
     ) {
         self.onShow = onShow
         self.onHide = onHide
@@ -31,6 +33,7 @@ final class StatusItemController {
         self.onMoveToNotch = onMoveToNotch
         self.onToggleAnchorGeometry = onToggleAnchorGeometry
         self.onToggleInteractionRegions = onToggleInteractionRegions
+        self.onOpenSettings = onOpenSettings
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
             button.image = NSImage(
@@ -119,12 +122,21 @@ final class StatusItemController {
         #endif
 
         menu.addItem(.separator())
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(
             title: "Quit PeekMemo",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         ))
         return menu
+    }
+
+    @objc private func openSettings() {
+        onOpenSettings()
     }
 
     @objc private func showPanel() {

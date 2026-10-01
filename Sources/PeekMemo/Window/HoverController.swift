@@ -17,6 +17,20 @@ final class HoverController {
         self.engine = engine
     }
 
+    /// Next hover uses these delays. An in-flight open or close timer is rescheduled.
+    func setDelays(open: TimeInterval, close: TimeInterval) {
+        let openChanged = engine.openDelay != open
+        let closeChanged = engine.closeDelay != close
+        engine.openDelay = open
+        engine.closeDelay = close
+        if openChanged, openWork != nil {
+            apply(.scheduleOpen(open))
+        }
+        if closeChanged, closeWork != nil {
+            apply(.scheduleClose(close))
+        }
+    }
+
     func pointerEntered() {
         guard !isDragging else { return }
         graceWork?.cancel()

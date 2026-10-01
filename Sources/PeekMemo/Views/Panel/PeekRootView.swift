@@ -6,6 +6,11 @@ struct PeekRootView: View {
     var isNotchCloak: Bool
     var phase: PeekMemoCore.HoverPhase
     var accent: RGBAColor = .accent
+    var tabColor: RGBAColor = .accent
+    var tabThickness: CGFloat = LayoutMetrics.visibleTabThickness
+    var tabOpacity: Double = AppearancePreferences.defaultEdgeTabOpacity
+    var bodyViewport: CGFloat = 120
+    var onContentMeasured: (CGFloat, CGFloat) -> Void = { _, _ in }
     var showHitRegions: Bool = false
     var showInteractionRegions: Bool = false
     /// Height of the physical housing, in the expanded window’s top. Content starts below it.
@@ -32,7 +37,9 @@ struct PeekRootView: View {
                 CollapsedEdgeView(
                     edge: edge,
                     isNotchCloak: isNotchCloak,
-                    accent: accent,
+                    color: tabColor,
+                    thickness: tabThickness,
+                    opacity: tabOpacity,
                     showHitRegions: showHitRegions
                 )
             }
@@ -52,12 +59,14 @@ struct PeekRootView: View {
         let preview = PreviewPanelView(
             state: appState,
             accent: accent,
+            bodyViewport: bodyViewport,
             showInteractionRegions: showInteractionRegions,
             onBeginEdit: onBeginEdit,
             onEndEdit: onEndEdit,
             onInteractionBegan: onInteractionBegan,
             onInteractionEnded: onInteractionEnded,
-            onEditorFrameChange: onEditorFrameChange
+            onEditorFrameChange: onEditorFrameChange,
+            onContentMeasured: onContentMeasured
         )
         return Group {
             switch edge {
@@ -90,7 +99,7 @@ struct PeekRootView: View {
 
     @ViewBuilder
     private func handleRail(vertical: Bool) -> some View {
-        let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: accent)
+        let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: tabColor)
         let thickness = LayoutMetrics.hoverHitThickness
         ZStack(alignment: vertical ? .top : .leading) {
             Color.clear.allowsHitTesting(false)

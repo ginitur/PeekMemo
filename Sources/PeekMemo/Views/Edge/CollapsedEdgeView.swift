@@ -4,7 +4,9 @@ import SwiftUI
 struct CollapsedEdgeView: View {
     var edge: ScreenEdge
     var isNotchCloak: Bool = false
-    var accent: RGBAColor = .accent
+    var color: RGBAColor = .accent
+    var thickness: CGFloat = LayoutMetrics.visibleTabThickness
+    var opacity: Double = AppearancePreferences.defaultEdgeTabOpacity
     var showHitRegions: Bool = false
 
     var body: some View {
@@ -21,7 +23,7 @@ struct CollapsedEdgeView: View {
                     Color.clear
                 } else {
                     EdgeTabShape(edge: edge)
-                        .fill(accent.color.opacity(0.55))
+                        .fill(color.color.opacity(opacity))
                         .frame(width: visualSize(in: proxy.size).width, height: visualSize(in: proxy.size).height)
                 }
             }
@@ -44,11 +46,12 @@ struct CollapsedEdgeView: View {
     }
 
     private func visualSize(in window: CGSize) -> CGSize {
-        switch edge {
+        let visible = min(max(thickness, AppearancePreferences.thicknessRange.lowerBound), AppearancePreferences.thicknessRange.upperBound)
+        return switch edge {
         case .left, .right:
-            CGSize(width: LayoutMetrics.visibleTabThickness, height: window.height)
+            CGSize(width: visible, height: window.height)
         case .top, .bottom:
-            CGSize(width: window.width, height: LayoutMetrics.visibleTabThickness)
+            CGSize(width: window.width, height: visible)
         }
     }
 }

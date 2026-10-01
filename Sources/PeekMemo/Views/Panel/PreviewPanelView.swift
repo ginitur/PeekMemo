@@ -2,15 +2,31 @@ import AppKit
 import PeekMemoCore
 import SwiftUI
 
+private struct PanelMeasure: Equatable {
+    var header: CGFloat = 0
+    var body: CGFloat = 0
+}
+
+private struct PanelMeasureKey: PreferenceKey {
+    static let defaultValue = PanelMeasure()
+    static func reduce(value: inout PanelMeasure, nextValue: () -> PanelMeasure) {
+        let next = nextValue()
+        if next.header > 0 { value.header = next.header }
+        if next.body > 0 { value.body = next.body }
+    }
+}
+
 struct PreviewPanelView: View {
     @Bindable var state: AppState
     var accent: RGBAColor = .accent
+    var bodyViewport: CGFloat = 120
     var showInteractionRegions: Bool = false
     var onBeginEdit: () -> Void
     var onEndEdit: () -> Void
     var onInteractionBegan: () -> Void = {}
     var onInteractionEnded: () -> Void = {}
     var onEditorFrameChange: (CGRect) -> Void = { _ in }
+    var onContentMeasured: (CGFloat, CGFloat) -> Void = { _, _ in }
     @FocusState private var editorFocused: Bool
 
     var body: some View {
@@ -19,52 +35,30 @@ struct PreviewPanelView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if state.isViewingToday, !state.pastUnfinishedItems.isEmpty {
-                        Text("未完成 · \(state.pastUnfinishedItems.count)")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.disabled)
-                        ForEach(state.pastUnfinishedItems) { item in
-                            itemBlock(item)
-                        }
-                        Divider()
-                            .opacity(0.45)
-                            .padding(.vertical, 2)
-                        Text(state.dateTitle)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.disabled)
-                    }
-                    ForEach(state.visibleDayItems) { item in
-                        itemBlock(item)
-                    }
-                    if state.isComposing, state.composingParentID == nil {
-                        editorField(
-                            placeholder: state.composingType == .note ? "New note" : "New task",
-                            isSubtask: false
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: PanelMeasureKey.self,
+                            value: PanelMeasure(header: proxy.size.height)
                         )
-                    } else if !state.isEditing {
-                        Button(action: addRoot) {
-                            Text("+ Add Task")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(accent.color)
-                                .textSelection(.disabled)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Add Task")
-                        .contextMenu {
-                            Button("Add Task") { addRoot() }
-                            Button("Add Note") { addNote() }
-                        }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+
+            ScrollView {
+                memoBody
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: PanelMeasureKey.self,
+                                value: PanelMeasure(body: proxy.size.height)
+                            )
+                        }
+                    }
             }
             .textSelection(.disabled)
+            .frame(height: max(bodyViewport, 1))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .textSelection(.disabled)
@@ -74,6 +68,56 @@ struct PreviewPanelView: View {
                 blendingMode: .behindWindow,
                 cornerRadius: 10
             )
+        }
+        .onPreferenceChange(PanelMeasureKey.self) { measure in
+            let header = measure.header
+            let body = measure.body
+            DispatchQueue.main.async {
+                onContentMeasured(header, body)
+            }
+        }
+    }
+
+    private var memoBody: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if state.isViewingToday, !state.pastUnfinishedItems.isEmpty {
+                Text("未完成 · \(state.pastUnfinishedItems.count)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.disabled)
+                ForEach(state.pastUnfinishedItems) { item in
+                    itemBlock(item)
+                }
+                Divider()
+                    .opacity(0.45)
+                    .padding(.vertical, 2)
+                Text(state.dateTitle)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.disabled)
+            }
+            ForEach(state.visibleDayItems) { item in
+                itemBlock(item)
+            }
+            if state.isComposing, state.composingParentID == nil {
+                editorField(
+                    placeholder: state.composingType == .note ? "New note" : "New task",
+                    isSubtask: false
+                )
+            } else if !state.isEditing {
+                Button(action: addRoot) {
+                    Text("+ Add Task")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(accent.color)
+                        .textSelection(.disabled)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add Task")
+                .contextMenu {
+                    Button("Add Task") { addRoot() }
+                    Button("Add Note") { addNote() }
+                }
+            }
         }
     }
 
@@ -94,6 +138,7 @@ struct PreviewPanelView: View {
                     Text(state.dateTitle)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .textSelection(.disabled)
                     let stats = state.dailyStats
                     if stats.total > 0 {
@@ -238,6 +283,12 @@ struct PreviewPanelView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(item.isCompleted ? "Mark incomplete" : "Mark complete")
+                } else {
+                    Image(systemName: "note.text")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 20, height: 20)
+                        .accessibilityLabel("Note")
                 }
 
                 NonInteractiveLabel(
@@ -251,12 +302,18 @@ struct PreviewPanelView: View {
                 .opacity(item.isCompleted ? 0.55 : 1)
 
                 if !isSubtask, state.categoryFilter == .all, let badge = DailyView.categoryBadgeName(for: item, in: state.categories) {
-                    Text(badge)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.tertiary)
-                        .textSelection(.disabled)
-                        .allowsHitTesting(false)
-                        .fixedSize()
+                    let tint = state.categoryForItem(item)?.color.color ?? Color.secondary
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(tint)
+                            .frame(width: 6, height: 6)
+                        Text(badge)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(tint.opacity(0.85))
+                            .textSelection(.disabled)
+                    }
+                    .allowsHitTesting(false)
+                    .fixedSize()
                 }
             }
             .padding(.leading, isSubtask ? LayoutMetrics.subtaskIndent : 0)
