@@ -12,6 +12,8 @@ namespace PeekMemo.Windows.Views;
 public partial class DailyMemoView : UserControl
 {
     DailyMemoViewModel? _model;
+    CategoryPopupWindow? _categoryWindow;
+    bool _categoryHold;
     bool _blurArmed;
     bool _armingDate;
     bool _checkHold;
@@ -36,7 +38,7 @@ public partial class DailyMemoView : UserControl
 
     public void DismissTransientUi()
     {
-        if (_dismissQueued || (!DatePopup.IsOpen && !CategoryPopup.IsOpen && !HasOpenContextMenu(this)))
+        if (_dismissQueued || (!DatePopup.IsOpen && _categoryWindow is null && !HasOpenContextMenu(this)))
         {
             return;
         }
@@ -78,20 +80,7 @@ public partial class DailyMemoView : UserControl
 
     void OnBlurSuspended() => _blurArmed = false;
 
-    void OnCloseCategoryMenu()
-    {
-        if (CategoryPopup.IsOpen)
-        {
-            CategoryPopup.IsOpen = false;
-        }
-    }
-
-    void UpdateQuote()
-    {
-        var tall = BrandQuote.IsVisible(ActualHeight);
-        var busy = _model is { IsAddingRoot: true } or { IsEditingCategory: true };
-        QuoteText.Visibility = tall && !busy ? Visibility.Visible : Visibility.Collapsed;
-    }
+    void OnCloseCategoryMenu() => _categoryWindow?.Close();
 
     void OnEditorFocusRequested() =>
         Dispatcher.BeginInvoke(new Action(FocusEditor), DispatcherPriority.Input);
@@ -179,13 +168,34 @@ public partial class DailyMemoView : UserControl
 
     public void OnCategoryClick(object sender, RoutedEventArgs e)
     {
-        if (CategoryPopup.IsOpen)
+        if (_categoryWindow is not null)
         {
-            CategoryPopup.IsOpen = false;
+            _categoryWindow.Close();
             return;
         }
 
-        OpenPopup(CategoryPopup);
+        if (_model is null)
+        {
+            return;
+        }
+
+        var window = new CategoryPopupWindow(_model, this);
+        _categoryWindow = window;
+        _categoryHold = true;
+        _model.BeginSurfaceHold();
+        window.Closed += (_, _) => OnCategoryWindowClosed();
+        window.ShowNear(CategoryButton);
+    }
+
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        if (_categoryWindow is null || e.OriginalSource is not DependencyObject source || IsInside(source, CategoryButton))
+        {
+            return;
+        }
+
+        _categoryWindow.Close();
     }
 
     public void OnDatePopupOpened(object sender, EventArgs e) => _model?.OpenDatePicker();
@@ -193,14 +203,25 @@ public partial class DailyMemoView : UserControl
     public void OnDatePopupClosed(object sender, EventArgs e) =>
         _model?.NotifyDatePopupClosed(DateTimeOffset.Now);
 
-    public void OnCategoryPopupOpened(object sender, EventArgs e) => _model?.BeginSurfaceHold();
-
-    public void OnCategoryPopupClosed(object sender, EventArgs e)
+    void OnCategoryWindowClosed()
     {
-        _model?.EndSurfaceHold(DateTimeOffset.Now);
+        _categoryWindow = null;
+        if (_categoryHold)
+        {
+            _categoryHold = false;
+            _model?.EndSurfaceHold(DateTimeOffset.Now);
+        }
+
         var follow = _afterCategoryClose;
         _afterCategoryClose = null;
         follow?.Invoke();
+    }
+
+    void UpdateQuote()
+    {
+        var tall = BrandQuote.IsVisible(ActualHeight);
+        var busy = _model is { IsAddingRoot: true } or { IsEditingCategory: true };
+        QuoteText.Visibility = tall && !busy ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public void OnCalendarSelected(object sender, SelectionChangedEventArgs e)
@@ -296,14 +317,14 @@ public partial class DailyMemoView : UserControl
 
     void CloseCategoryThen(Action follow)
     {
-        if (!CategoryPopup.IsOpen)
+        if (_categoryWindow is null)
         {
             Defer(follow);
             return;
         }
 
         _afterCategoryClose = () => Defer(follow);
-        CategoryPopup.IsOpen = false;
+        _categoryWindow.Close();
     }
 
     void Defer(Action action) =>
@@ -340,7 +361,7 @@ public partial class DailyMemoView : UserControl
     {
         _dismissQueued = false;
         DatePopup.IsOpen = false;
-        CategoryPopup.IsOpen = false;
+        _categoryWindow?.Close();
         CloseContextMenus(this);
     }
 
@@ -387,6 +408,22 @@ public partial class DailyMemoView : UserControl
             {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    static bool IsInside(DependencyObject source, DependencyObject ancestor)
+    {
+        var current = source;
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
         }
 
         return false;

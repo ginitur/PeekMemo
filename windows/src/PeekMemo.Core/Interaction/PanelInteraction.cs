@@ -23,6 +23,7 @@ public sealed class PanelInteraction
     public InteractionActivity Activity { get; private set; } = InteractionActivity.Idle;
     public PresentationMode Mode { get; private set; } = PresentationMode.Peek;
     public bool IsPinned => Hover.Phase == HoverPhase.Pinned;
+    public int InteractionHoldCount => Hover.InteractionHoldCount;
 
     int _interactiveDepth;
 

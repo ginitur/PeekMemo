@@ -14,6 +14,7 @@ public sealed class HoverEngine
     public TimeSpan OpenDelay { get; set; } = TimeSpan.FromMilliseconds(160);
     public TimeSpan CloseDelay { get; set; } = TimeSpan.FromMilliseconds(350);
     public bool InteractionHeld => _interactionHold > 0;
+    public int InteractionHoldCount => _interactionHold;
     public int Generation { get; private set; }
 
     DateTimeOffset? _openDue;

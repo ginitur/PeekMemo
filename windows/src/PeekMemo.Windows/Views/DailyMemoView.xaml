@@ -432,54 +432,5 @@
             </Border>
         </Popup>
 
-        <Popup x:Name="CategoryPopup"
-               PlacementTarget="{Binding ElementName=CategoryButton}"
-               Placement="Bottom"
-               StaysOpen="False"
-               AllowsTransparency="True"
-               PopupAnimation="None"
-               Opened="OnCategoryPopupOpened"
-               Closed="OnCategoryPopupClosed">
-            <Border Background="{DynamicResource MemoPopup}"
-                    BorderBrush="{DynamicResource MemoLine}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="4"
-                    MinWidth="168"
-                    MaxWidth="240">
-                <DockPanel>
-                    <Button DockPanel.Dock="Bottom"
-                            Content="+ New Category"
-                            Style="{StaticResource QuietButton}"
-                            Click="OnNewCategoryClick"
-                            AutomationProperties.Name="New category"/>
-                    <Separator DockPanel.Dock="Bottom" Margin="4,4"/>
-                    <Button DockPanel.Dock="Top"
-                            Content="All Tasks"
-                            Command="{Binding SelectAllCommand}"
-                            Style="{StaticResource QuietButton}"/>
-                    <Separator DockPanel.Dock="Top" Margin="4,4"/>
-                    <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                        <ItemsControl ItemsSource="{Binding Categories}" Focusable="False">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Content="{Binding Name}"
-                                            Command="{Binding SelectCommand}"
-                                            Style="{StaticResource QuietButton}"
-                                            HorizontalContentAlignment="Stretch">
-                                        <Button.ContextMenu>
-                                            <ContextMenu Opened="OnMenuOpened" Closed="OnMenuClosed"
-                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem Header="Rename" Click="OnRenameCategory"/>
-                                            </ContextMenu>
-                                        </Button.ContextMenu>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
-            </Border>
-        </Popup>
     </Grid>
 </UserControl>
