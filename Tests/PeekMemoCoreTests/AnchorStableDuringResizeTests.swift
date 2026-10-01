@@ -55,8 +55,6 @@ enum AnchorStableDuringResizeTests {
             let handle = DragHandleGeometry.rect(
                 in: window,
                 edge: edge,
-                isNotchCloak: false,
-                notchOccludedHeight: 0,
                 handleOffsetInsidePanel: window.height / 2,
                 stackLength: 56
             )

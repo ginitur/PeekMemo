@@ -49,8 +49,6 @@ enum DragHandleIsolationTests {
         let handle = DragHandleGeometry.rect(
             in: bounds,
             edge: .top,
-            isNotchCloak: false,
-            notchOccludedHeight: 0,
             handleOffsetInsidePanel: 140,
             stackLength: LayoutMetrics.defaultStackLength
         )
@@ -63,8 +61,6 @@ enum DragHandleIsolationTests {
         DragHandleGeometry.rect(
             in: bounds,
             edge: .right,
-            isNotchCloak: false,
-            notchOccludedHeight: 0,
             handleOffsetInsidePanel: offset,
             stackLength: LayoutMetrics.defaultStackLength
         )

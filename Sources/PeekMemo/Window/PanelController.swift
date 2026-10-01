@@ -2,7 +2,7 @@ import AppKit
 import PeekMemoCore
 import SwiftUI
 
-/// Owns the floating edge panel: placement, Notch Cloak, and hover reveal.
+/// Owns the floating edge panel: placement and hover reveal.
 @MainActor
 final class PanelController {
     private let panel = PeekPanel()
@@ -12,8 +12,6 @@ final class PanelController {
     private var hostingView: NSHostingView<PeekRootView>?
     private var anchorPlacement: PanelPlacement?
     private var screenChangeObserver: (any NSObjectProtocol)?
-    private let notchDebugOverlay = NotchDebugOverlay()
-    private let notchSensor = NotchActivationSensor()
     private var shellExpanded = false
     private var contentOpacity: Double = 1
     private var motionGeneration = 0
@@ -48,7 +46,6 @@ final class PanelController {
             self.motionGeneration += 1
             self.shellExpanded = false
             self.contentOpacity = 1
-            self.notchSensor.hide()
             self.hover.beginDrag()
             self.syncChrome(animated: false)
         }
@@ -62,15 +59,12 @@ final class PanelController {
             self?.hover.click()
         }
         hostView.onPointerEntered = { [weak self] in
-            self?.probeNotchHit(at: NSEvent.mouseLocation)
             self?.hover.pointerEntered()
         }
         hostView.onPointerExited = { [weak self] in
-            self?.probeNotchHit(at: NSEvent.mouseLocation)
             self?.hover.pointerExited()
         }
-        hostView.onPointerMoved = { [weak self] point in
-            self?.probeNotchHit(at: point)
+        hostView.onPointerMoved = { [weak self] _ in
             self?.evaluatePointer()
         }
         hover.regionContainsPointer = { [weak self] in
@@ -81,12 +75,6 @@ final class PanelController {
         }
         panel.contentView = hostView
         panel.allowsKey = false
-        notchSensor.onEnter = { [weak self] in
-            self?.hover.pointerEntered()
-        }
-        notchSensor.onExit = { [weak self] in
-            self?.hover.pointerExited()
-        }
         hover.setDelays(
             open: preferences.snapshot.hoverOpenDelay,
             close: preferences.snapshot.hoverCloseDelay
@@ -167,39 +155,6 @@ final class PanelController {
         }
         guard anchorPlacement != nil else { return }
         syncChrome(animated: false)
-    }
-
-    func moveToNotchCloak() {
-        PlacementPolicy.allowTopEdgeSnap = true
-        PlacementPolicy.allowNotchCloak = true
-        #if DEBUG
-        DebugFlags.experimentalTopEdge = true
-        #endif
-        guard let screen = ScreenManager.mainSnapshot(),
-              NotchGeometry.region(on: screen) != nil
-        else { return }
-        suppressAnimatedCollapse = true
-        hover.forceCollapse()
-        suppressAnimatedCollapse = false
-        let stored = DisplayPlacement(
-            displayIdentifier: screen.identifier,
-            edge: .top,
-            offset: NotchGeometry.cloakOffset(
-                stackLength: positionManager.stackLength,
-                screen: screen
-            ),
-            isNotchCloak: true
-        )
-        PlacementStore.upsert(stored)
-        setAnchor(
-            EdgeGeometry.placement(
-                from: stored,
-                screen: screen,
-                stackLength: positionManager.stackLength
-            ),
-            persist: false
-        )
-        panel.orderFrontRegardless()
     }
 
     func reposition() {
@@ -352,8 +307,6 @@ final class PanelController {
         let framePlacement = displayedPlacement(anchor: anchor, expanded: shellExpanded)
         panel.alphaValue = shellExpanded ? preferences.snapshot.panelOpacity : 1
         panel.hasShadow = shellExpanded
-        panel.allowNotchPlacement = anchor.isNotchCloak
-        let requested = framePlacement.frame
         positionManager.apply(
             framePlacement,
             to: panel,
@@ -369,9 +322,6 @@ final class PanelController {
             finishFrameAnimation()
         }
         refreshPresentedContent()
-        refreshNotchDebugOverlay()
-        refreshNotchSensor(anchor: anchor)
-        logNotchFrames(requested: requested, anchor: anchor)
         if DebugFlags.showAnchorGeometry, let expansion = currentExpansion {
             print(
                 "[Anchor] offset=\(anchor.offset) point=\(expansion.anchorPoint) panel=\(expansion.panelFrame) handle=\(expansion.handleAttachmentPoint) clamped=\(expansion.wasClamped)"
@@ -395,9 +345,7 @@ final class PanelController {
         guard let anchor = anchorPlacement else { return }
         installContent(
             edge: anchor.edge,
-            isNotchCloak: anchor.isNotchCloak,
-            phase: presentedPhase,
-            notchOccludedHeight: notchOccludedHeight(for: anchor)
+            phase: presentedPhase
         )
         hostView.dragHandleRect = dragHandleRect(
             in: hostView.bounds,
@@ -434,14 +382,11 @@ final class PanelController {
 
     private func installContent(
         edge: ScreenEdge,
-        isNotchCloak: Bool,
-        phase: PeekMemoCore.HoverPhase,
-        notchOccludedHeight: CGFloat
+        phase: PeekMemoCore.HoverPhase
     ) {
         let emphasized = hover.engine.phase == .hovering
         let root = PeekRootView(
             edge: edge,
-            isNotchCloak: isNotchCloak,
             phase: phase,
             appearance: preferences.snapshot,
             backgroundImage: shellExpanded ? preferences.currentBackgroundImage() : nil,
@@ -454,7 +399,6 @@ final class PanelController {
             ),
             showHitRegions: DebugFlags.showHitRegions,
             showInteractionRegions: DebugFlags.showInteractionRegions,
-            notchOccludedHeight: notchOccludedHeight,
             contentOpacity: contentOpacity,
             appState: appState,
             onBeginEdit: { [weak self] in self?.hover.enterEditing() },
@@ -552,14 +496,9 @@ final class PanelController {
 
     private func dragHandleRect(in bounds: CGRect, edge: ScreenEdge, expanded: Bool) -> CGRect? {
         guard expanded else { return nil }
-        let occluded = (anchorPlacement?.isNotchCloak == true)
-            ? (notchOccludedHeight(for: anchorPlacement!))
-            : 0
         return DragHandleGeometry.rect(
             in: bounds,
             edge: edge,
-            isNotchCloak: anchorPlacement?.isNotchCloak == true,
-            notchOccludedHeight: occluded,
             handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? bounds.height / 2,
             stackLength: positionManager.stackLength
         )
@@ -653,64 +592,6 @@ final class PanelController {
         }
         panel.orderFrontRegardless()
         publishInteractionLog(at: NSEvent.mouseLocation)
-    }
-
-    private func notchOccludedHeight(for placement: PanelPlacement) -> CGFloat {
-        guard placement.isNotchCloak, let screen = screenForAnchor(placement) else { return 0 }
-        return NotchGeometry.region(on: screen)?.frame.height ?? 0
-    }
-
-    private func probeNotchHit(at point: CGPoint) {
-        #if DEBUG
-        guard let anchor = anchorPlacement, anchor.isNotchCloak,
-              let screen = screenForAnchor(anchor),
-              let notch = NotchGeometry.region(on: screen)
-        else { return }
-        NotchHitProbe.record(point: point, notch: notch)
-        #endif
-    }
-
-    private func refreshNotchSensor(anchor: PanelPlacement) {
-        guard anchor.isNotchCloak, !shellExpanded, !hover.isDragging,
-              let screen = screenForAnchor(anchor),
-              let notch = NotchGeometry.region(on: screen)
-        else {
-            notchSensor.hide()
-            return
-        }
-        notchSensor.show(notch: notch, useFallbackStrip: true)
-    }
-
-    private func logNotchFrames(requested: CGRect, anchor: PanelPlacement) {
-        guard anchor.isNotchCloak else { return }
-        let actual = panel.frame
-        let contained: Bool
-        if let screen = screenForAnchor(anchor), let notch = NotchGeometry.region(on: screen) {
-            contained = NotchGeometry.isFullyContained(actual, in: notch.frame)
-            print("[Notch] notchRect \(notch.frame)")
-        } else {
-            contained = false
-        }
-        print("[Notch] requested \(requested)")
-        print("[Notch] actual    \(actual)")
-        print("[Notch] AppKit constrained=\(requested != actual) containedInNotch=\(contained)")
-        print("[Notch] activation \(notchSensor.mechanism)")
-    }
-
-    private func refreshNotchDebugOverlay() {
-        #if DEBUG
-        guard DebugFlags.showNotchGeometry,
-              let anchor = anchorPlacement, anchor.isNotchCloak,
-              let screen = screenForAnchor(anchor),
-              let notch = NotchGeometry.region(on: screen)
-        else {
-            notchDebugOverlay.hide()
-            return
-        }
-        notchDebugOverlay.show(notch: notch, anchor: anchor.frame, screen: screen)
-        #else
-        notchDebugOverlay.hide()
-        #endif
     }
 
     private func publishInteractionLog(at point: CGPoint, hits: HoverPointerHits? = nil) {

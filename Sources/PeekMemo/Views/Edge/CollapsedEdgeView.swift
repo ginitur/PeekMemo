@@ -3,7 +3,6 @@ import SwiftUI
 
 struct CollapsedEdgeView: View {
     var edge: ScreenEdge
-    var isNotchCloak: Bool = false
     var color: RGBAColor = .accent
     var thickness: CGFloat = LayoutMetrics.visibleTabThickness
     var opacity: Double = AppearancePreferences.defaultEdgeTabOpacity
@@ -13,30 +12,22 @@ struct CollapsedEdgeView: View {
         GeometryReader { proxy in
             ZStack(alignment: visualAlignment) {
                 if showHitRegions {
-                    HitRegionOverlay(
-                        kind: isNotchCloak ? .notch : .edge,
-                        edge: edge
-                    )
+                    HitRegionOverlay(kind: .edge, edge: edge)
                 }
 
-                if isNotchCloak {
-                    Color.clear
-                } else {
-                    EdgeTabShape(edge: edge)
-                        .fill(color.color.opacity(opacity))
-                        .frame(width: visualSize(in: proxy.size).width, height: visualSize(in: proxy.size).height)
-                }
+                EdgeTabShape(edge: edge)
+                    .fill(color.color.opacity(opacity))
+                    .frame(width: visualSize(in: proxy.size).width, height: visualSize(in: proxy.size).height)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: visualAlignment)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isNotchCloak ? "PeekMemo, hidden in notch" : "PeekMemo")
+        .accessibilityLabel("PeekMemo")
         .accessibilityHint("Hover to peek at your notes")
         .accessibilityAddTraits(.isButton)
     }
 
     private var visualAlignment: Alignment {
-        if isNotchCloak { return .top }
         switch edge {
         case .right: return .trailing
         case .left: return .leading

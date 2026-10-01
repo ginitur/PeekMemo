@@ -55,21 +55,8 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         edge: ScreenEdge,
         offset: CGFloat,
-        stackLength: CGFloat,
-        allowNotchCloak: Bool = true
+        stackLength: CGFloat
     ) -> PanelPlacement {
-        let cloak = allowNotchCloak
-            && NotchGeometry.shouldCloak(
-                edge: edge,
-                offset: offset,
-                stackLength: stackLength,
-                screen: screen
-            )
-
-        if cloak, let notch = NotchGeometry.region(on: screen) {
-            return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
-        }
-
         let clamped = clampOffset(offset, edge: edge, screen: screen, stackLength: stackLength)
         let size = collapsedWindowSize(edge: edge, stackLength: stackLength)
         let frame = collapsedFrame(
@@ -83,7 +70,6 @@ public enum EdgeGeometry: Sendable {
             edge: edge,
             offset: clamped,
             frame: frame,
-            isNotchCloak: false,
             isSnapped: true
         )
     }
@@ -93,21 +79,12 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         stackLength: CGFloat
     ) -> PanelPlacement {
-        if stored.isNotchCloak,
-           PlacementPolicy.allowNotchCloak,
-           let notch = NotchGeometry.region(on: screen)
-        {
-            return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
-        }
-        let edge: ScreenEdge = (stored.edge == .top && !PlacementPolicy.allowTopEdgeSnap)
-            ? .right
-            : stored.edge
+        let edge: ScreenEdge = PlacementPolicy.isSupported(stored.edge) ? stored.edge : .right
         return collapsedPlacement(
             screen: screen,
             edge: edge,
             offset: stored.offset,
-            stackLength: stackLength,
-            allowNotchCloak: edge == .top && PlacementPolicy.allowNotchCloak
+            stackLength: stackLength
         )
     }
 
@@ -128,8 +105,7 @@ public enum EdgeGeometry: Sendable {
                 screen: screen,
                 edge: edge,
                 offset: offset,
-                stackLength: stackLength,
-                allowNotchCloak: false
+                stackLength: stackLength
             )
         }
 
@@ -145,7 +121,6 @@ public enum EdgeGeometry: Sendable {
             edge: edge,
             offset: offset,
             frame: frame,
-            isNotchCloak: false,
             isSnapped: false
         )
     }
@@ -157,21 +132,12 @@ public enum EdgeGeometry: Sendable {
         stackLength: CGFloat
     ) -> PanelPlacement {
         let (edge, _) = nearestSnappableEdge(to: pointer, on: screen)
-        if edge == .top,
-           PlacementPolicy.allowNotchCloak,
-           NotchGeometry.pointerCommitsCloak(pointer, screen: screen)
-        {
-            if let notch = NotchGeometry.region(on: screen) {
-                return notchCloakPlacement(screen: screen, notch: notch, stackLength: stackLength)
-            }
-        }
         let offset = offsetAlongEdge(pointer: pointer, edge: edge, stackLength: stackLength, screen: screen)
         return collapsedPlacement(
             screen: screen,
             edge: edge,
             offset: offset,
-            stackLength: stackLength,
-            allowNotchCloak: false
+            stackLength: stackLength
         )
     }
 
@@ -180,11 +146,7 @@ public enum EdgeGeometry: Sendable {
     }
 
     public static func nearestSnappableEdge(to point: CGPoint, on screen: ScreenGeometry) -> (ScreenEdge, CGFloat) {
-        var excluded: Set<ScreenEdge> = []
-        if !PlacementPolicy.allowTopEdgeSnap {
-            excluded.insert(.top)
-        }
-        return nearestEdge(to: point, on: screen, excluding: excluded)
+        nearestEdge(to: point, on: screen, excluding: [.top])
     }
 
     public static func nearestEdge(
@@ -224,10 +186,6 @@ public enum EdgeGeometry: Sendable {
         screen: ScreenGeometry,
         panelSize: CGSize
     ) -> CGRect {
-        if collapsed.isNotchCloak, let notch = NotchGeometry.region(on: screen) {
-            return expandedNotchFrame(notch: notch, screen: screen, panelSize: panelSize)
-        }
-
         let stack = collapsed.edge.isVertical ? collapsed.frame.height : collapsed.frame.width
         let layout = ExpansionGeometry.layout(
             anchor: EdgeAnchor.from(collapsed.stored),
@@ -265,41 +223,4 @@ public enum EdgeGeometry: Sendable {
             return CGRect(x: x, y: outer, width: size.width, height: size.height)
         }
     }
-
-    /// Expanded cloak window keeps `maxY` at the top of the housing and grows downward
-    /// so content slides out from behind the notch. The occluded band is `notch.height`.
-    public static func expandedNotchFrame(
-        notch: NotchRegion,
-        screen: ScreenGeometry,
-        panelSize: CGSize
-    ) -> CGRect {
-        let width = min(max(panelSize.width, notch.frame.width), screen.visibleFrame.width)
-        let x = notch.frame.midX - width / 2
-        let clampedX = min(max(x, screen.visibleFrame.minX), screen.visibleFrame.maxX - width)
-        let height = notch.frame.height + panelSize.height
-        return CGRect(
-            x: clampedX,
-            y: notch.frame.maxY - height,
-            width: width,
-            height: height
-        )
-    }
-
-    private static func notchCloakPlacement(
-        screen: ScreenGeometry,
-        notch: NotchRegion,
-        stackLength: CGFloat
-    ) -> PanelPlacement {
-        let frame = NotchGeometry.collapsedWindowFrame(for: notch)
-        let offset = NotchGeometry.cloakOffset(stackLength: stackLength, screen: screen)
-        return PanelPlacement(
-            displayIdentifier: screen.identifier,
-            edge: .top,
-            offset: offset,
-            frame: frame,
-            isNotchCloak: true,
-            isSnapped: true
-        )
-    }
-
 }

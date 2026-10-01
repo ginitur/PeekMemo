@@ -9,8 +9,6 @@ final class StatusItemController {
     private let onReset: () -> Void
     private let onOpenSettings: () -> Void
     private let onToggleHitRegions: () -> Void
-    private let onToggleNotchGeometry: () -> Void
-    private let onMoveToNotch: () -> Void
     private let onToggleAnchorGeometry: () -> Void
     private let onToggleInteractionRegions: () -> Void
 
@@ -19,8 +17,6 @@ final class StatusItemController {
         onHide: @escaping () -> Void,
         onReset: @escaping () -> Void,
         onToggleHitRegions: @escaping () -> Void = {},
-        onToggleNotchGeometry: @escaping () -> Void = {},
-        onMoveToNotch: @escaping () -> Void = {},
         onToggleAnchorGeometry: @escaping () -> Void = {},
         onToggleInteractionRegions: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {}
@@ -29,8 +25,6 @@ final class StatusItemController {
         self.onHide = onHide
         self.onReset = onReset
         self.onToggleHitRegions = onToggleHitRegions
-        self.onToggleNotchGeometry = onToggleNotchGeometry
-        self.onMoveToNotch = onMoveToNotch
         self.onToggleAnchorGeometry = onToggleAnchorGeometry
         self.onToggleInteractionRegions = onToggleInteractionRegions
         self.onOpenSettings = onOpenSettings
@@ -76,23 +70,6 @@ final class StatusItemController {
         hits.state = DebugFlags.showHitRegions ? .on : .off
         menu.addItem(hits)
 
-        let notch = NSMenuItem(
-            title: "Show Notch Geometry",
-            action: #selector(toggleNotchGeometry),
-            keyEquivalent: ""
-        )
-        notch.target = self
-        notch.state = DebugFlags.showNotchGeometry ? .on : .off
-        menu.addItem(notch)
-
-        let cloak = NSMenuItem(
-            title: "Move to Notch Cloak",
-            action: #selector(moveToNotch),
-            keyEquivalent: ""
-        )
-        cloak.target = self
-        menu.addItem(cloak)
-
         let anchor = NSMenuItem(
             title: "Show Anchor Geometry",
             action: #selector(toggleAnchorGeometry),
@@ -101,15 +78,6 @@ final class StatusItemController {
         anchor.target = self
         anchor.state = DebugFlags.showAnchorGeometry ? .on : .off
         menu.addItem(anchor)
-
-        let experimental = NSMenuItem(
-            title: "Experimental Top / Notch",
-            action: #selector(toggleExperimentalTop),
-            keyEquivalent: ""
-        )
-        experimental.target = self
-        experimental.state = DebugFlags.experimentalTopEdge ? .on : .off
-        menu.addItem(experimental)
 
         let regions = NSMenuItem(
             title: "Show Interaction Regions",
@@ -157,22 +125,8 @@ final class StatusItemController {
         item.menu = makeMenu()
     }
 
-    @objc private func toggleNotchGeometry() {
-        onToggleNotchGeometry()
-        item.menu = makeMenu()
-    }
-
-    @objc private func moveToNotch() {
-        onMoveToNotch()
-    }
-
     @objc private func toggleAnchorGeometry() {
         onToggleAnchorGeometry()
-        item.menu = makeMenu()
-    }
-
-    @objc private func toggleExperimentalTop() {
-        DebugFlags.experimentalTopEdge.toggle()
         item.menu = makeMenu()
     }
 

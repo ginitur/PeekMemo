@@ -4,7 +4,6 @@ import SwiftUI
 
 struct PeekRootView: View {
     var edge: ScreenEdge
-    var isNotchCloak: Bool
     var phase: PeekMemoCore.HoverPhase
     var appearance: AppearancePreferences = .default
     var backgroundImage: NSImage? = nil
@@ -14,8 +13,6 @@ struct PeekRootView: View {
     var tabOpacity: Double = AppearancePreferences.defaultEdgeTabOpacity
     var showHitRegions: Bool = false
     var showInteractionRegions: Bool = false
-    /// Height of the physical housing, in the expanded window’s top. Content starts below it.
-    var notchOccludedHeight: CGFloat = 0
     var contentOpacity: Double = 1
     var appState: AppState
     var onBeginEdit: () -> Void = {}
@@ -40,7 +37,6 @@ struct PeekRootView: View {
             } else {
                 CollapsedEdgeView(
                     edge: edge,
-                    isNotchCloak: isNotchCloak,
                     color: tabColor,
                     thickness: tabThickness,
                     opacity: tabOpacity,
@@ -90,9 +86,6 @@ struct PeekRootView: View {
                 }
             case .top:
                 VStack(spacing: 0) {
-                    if isNotchCloak, notchOccludedHeight > 0 {
-                        Color.clear.frame(height: notchOccludedHeight)
-                    }
                     handleRail(vertical: false)
                     preview.opacity(contentOpacity)
                 }
@@ -107,7 +100,7 @@ struct PeekRootView: View {
 
     @ViewBuilder
     private func handleRail(vertical: Bool) -> some View {
-        let handle = DragHandleView(edge: edge, isNotchCloak: isNotchCloak, accent: tabColor)
+        let handle = DragHandleView(edge: edge, accent: tabColor)
         let thickness = LayoutMetrics.hoverHitThickness
         ZStack(alignment: vertical ? .top : .leading) {
             Color.clear.allowsHitTesting(false)
@@ -143,14 +136,13 @@ struct PeekRootView: View {
 
 struct DragHandleView: View {
     var edge: ScreenEdge
-    var isNotchCloak: Bool
     var accent: RGBAColor
 
     var body: some View {
         ZStack {
             Color.clear
             Capsule()
-                .fill(accent.color.opacity(isNotchCloak ? 0.7 : 0.45))
+                .fill(accent.color.opacity(0.45))
                 .frame(
                     width: edge.isVertical ? 3 : 22,
                     height: edge.isVertical ? 22 : 3

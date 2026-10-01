@@ -6,9 +6,9 @@ PeekMemo is a long-lived native macOS application. Follow these rules on every c
 2. Do not introduce Electron, Tauri, or a WebView as the main UI.
 3. Avoid unnecessary dependencies. GRDB.swift is the approved SQLite layer. Do not add a package to save a few dozen lines.
 4. Do not use private macOS APIs.
-5. Do not hard-code screen resolutions, notch sizes, or Mac models.
-6. Notch geometry must be derived at runtime from `NSScreen` (`frame`, `visibleFrame`, `safeAreaInsets`, `auxiliaryTopLeftArea`, `auxiliaryTopRightArea`) through the AppKit adapter. Core geometry takes generic rectangles, never `NSScreen`.
-7. After changing window behavior, verify all four edges: Left, Right, Top, Bottom.
+5. Do not hard-code screen resolutions or Mac models.
+6. Core geometry takes generic rectangles (`frame`, `visibleFrame`), never `NSScreen`. `ScreenManager` is the only `NSScreen` reader. Do not reintroduce Notch Cloak, a notch sensor, or notch hit-testing.
+7. After changing window behavior, verify Left, Right, and Bottom. Top is not a supported snap edge.
 8. After changing layout or placement, consider multiple displays and display disconnect.
 9. Idle CPU must stay near zero. No polling timers for mouse position, no continuous window refresh.
 10. Data migrations must be backward compatible.
@@ -22,7 +22,7 @@ PeekMemo is a long-lived native macOS application. Follow these rules on every c
 
 - Keep domain models, persistence, settings, hover state, and edge geometry free of AppKit.
 - AppKit / SwiftUI adapters live in the `PeekMemo` target: `NSScreen`, `NSPanel`, `NSEvent`, `SMAppService`.
-- Notch Cloak is a hide-in-notch feature, not a “push away from the notch” feature.
+- Supported snap edges are Left, Right, and Bottom. `ScreenEdge.top` stays only so shared geometry switches compile. Do not offer Top in the UI, and do not snap to it. A stored Top placement restores to Right.
 - Visual size and hit-testing size are not the same. Do not make the Edge Tab as thick as its hover region.
 - Hover across Edge Item and Expanded Panel is one interaction region, owned by `HoverEngine`. Do not rely on a lone SwiftUI `onHover`.
 - Editing may become key. Peeking must not steal keyboard focus from the front app.

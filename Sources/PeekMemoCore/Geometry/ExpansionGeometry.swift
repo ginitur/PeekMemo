@@ -9,16 +9,11 @@ public enum ExpansionGeometry: Sendable {
         panelSize: CGSize,
         stackLength: CGFloat
     ) -> ExpansionLayout {
-        if anchor.isNotchCloak, let notch = NotchGeometry.region(on: screen) {
-            return notchLayout(anchor: anchor, notch: notch, screen: screen, panelSize: panelSize, stackLength: stackLength)
-        }
-
         let collapsed = EdgeGeometry.collapsedPlacement(
             screen: screen,
             edge: anchor.edge,
             offset: anchor.offset,
-            stackLength: stackLength,
-            allowNotchCloak: false
+            stackLength: stackLength
         )
         let point = anchorPoint(anchor: anchor, screen: screen)
         let visible = screen.visibleFrame
@@ -80,26 +75,5 @@ public enum ExpansionGeometry: Sendable {
         case .top, .bottom:
             return CGPoint(x: visible.minX + anchor.offset, y: outer)
         }
-    }
-
-    private static func notchLayout(
-        anchor: EdgeAnchor,
-        notch: NotchRegion,
-        screen: ScreenGeometry,
-        panelSize: CGSize,
-        stackLength: CGFloat
-    ) -> ExpansionLayout {
-        let collapsed = NotchGeometry.collapsedWindowFrame(for: notch)
-        let panel = EdgeGeometry.expandedNotchFrame(notch: notch, screen: screen, panelSize: panelSize)
-        let point = NotchGeometry.anchorCenter(for: notch)
-        return ExpansionLayout(
-            panelFrame: panel,
-            collapsedFrame: collapsed,
-            anchorPoint: point,
-            handleAttachmentPoint: CGPoint(x: notch.frame.midX, y: notch.frame.minY),
-            handleOffsetInsidePanel: notch.frame.height,
-            offset: anchor.offset,
-            wasClamped: false
-        )
     }
 }

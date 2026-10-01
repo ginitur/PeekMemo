@@ -21,9 +21,11 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Runtime check: PeekMemo window 14×96 at the right edge of the main display
 - [x] Stub menu bar item with Quit (full menu is Phase 9)
 
-## Phase 2 — Four-edge placement
+## Phase 2 — Edge placement
 
-- [x] Left / Right / Top / Bottom collapsed frames (`EdgeGeometry` + Edge Tab shape)
+`ScreenEdge` still has a Top case for shared geometry. v0.1 snap and the release UI are Left, Right, and Bottom only.
+
+- [x] Left / Right / Bottom collapsed frames (`EdgeGeometry` + Edge Tab shape). Top geometry remains in Core and is not a snap target.
 - [x] Expand direction follows the edge (Core; UI expand is Phase 5)
 - [x] Offset clamping against `visibleFrame`
 
@@ -35,17 +37,12 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Persist `{display, edge, offset}` (UserDefaults for now; SQLite in Phase 6)
 - [x] Menu Bar: Show / Hide / Reset Position
 
-## Phase 4 — Notch Cloak positioning
+## Phase 4 — Notch Cloak positioning — withdrawn
 
-- [x] Derive notch from auxiliary areas + safe-area insets (`NotchGeometry.region`)
-- [x] Allow snap into the notch (do not push away); 26 pt `notchSnapThreshold` with smoothstep pull
-- [x] Collapsed cloak anchor sits **inside** `notchRect` (center = notch mid). Housing occludes it.
-- [x] Fallback activation extension: **3 pt** below `notchRect.minY` (not a 14 pt bar)
-- [ ] Native notch hit testing: **unconfirmed** in this environment (no HID injection). `NotchHitProbe` logs `notchRect` vs `activationExtension`. Treat as PARTIAL until a live mouse enter is observed.
-- [x] No Notch Cloak UI on screens without a notch
-- [x] Escape hatches: drag out of the notch, Reset Position
-- [x] Geometry tests: no notch, notch, enter L/R, exit L/R, offset clamp, screen size change
-- [x] Drag handle after hover — shown on the expanded panel (Phase 5)
+Notch Cloak is not a current feature and is not on the roadmap. The runtime, sensor, debug menu, and notch tests were removed. Git history keeps the old implementation. Do not restore it.
+
+- [x] Removed notch geometry, notch placement, notch snap threshold, notch sensor window, notch mouse monitors, and DEBUG notch controls
+- [x] Supported snap edges are Left, Right, and Bottom. Top is not offered. A stored Top placement restores to Right
 
 ## Phase 5 — Hover expansion
 
@@ -55,13 +52,12 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Click pins; second click collapses; pinned ignores pointer exit
 - [x] Peek does not become key (`allowsKey = false`). Editing key window is Phase 7
 - [x] Preview panel: Today + two example rows + Add Memo (visual only, no persistence)
-- [x] Expand direction follows edge; Notch Cloak expands downward
+- [x] Expand direction follows the supported edge
 - [x] Debug: Show Hit Regions (DEBUG menu only)
-- [x] PARTIAL: live four-edge + notch hover could not be HID-injected in this environment (no Accessibility for synthetic mouse). Geometry, region union, and collapsed window were verified.
+- [x] PARTIAL: live Left / Right / Bottom hover could not be HID-injected in this environment (no Accessibility for synthetic mouse). Geometry, region union, and collapsed window were verified.
 
 ## Phase 5.5 — Interaction correction
 
-- [x] Notch cloak collapsed frame inside `notchRect` (commit 1)
 - [x] Fixed-edge panel expansion via `PanelAnimator` + `NSAnimationContext` `animator().setFrame` (commit 2)
 - [x] In-memory interactive memos (Add / Edit / Checkbox / Delete / ⌘↩ / Esc)
 - [x] Peek vs Edit focus: hover stays non-key; Add/Edit calls `makeKey`
@@ -71,15 +67,14 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] EdgeAnchor: expand/collapse does not change offset; corner clamp keeps handle on the original anchor
 - [x] Hierarchical tasks + completed state
 - [x] Smart views + custom lists
-- [x] Notch collapsed visual frame 100% inside notchRect; `PeekPanel.constrainFrameRect` can skip AppKit visible-area shove
-- [x] NotchActivationSensor: invisible 3pt fallback strip + local/global mouse-location monitors (not a timer). Native in-cutout hits still PARTIAL until a live mouse enter is logged.
+- [x] Notch collapsed frame and `NotchActivationSensor` were removed with Phase 4. Do not add them back.
 
 ## Phase 5.7 — Daily workflow & navigation
 
 - [x] Inline continuous `+ Add subtask` (Enter keeps composing, ⌘↩ / Esc end)
 - [x] Parent disclosure ▸/▾ with progress `1/3` on the row
 - [x] Fixed bottom navigation; More uses `NSMenu.popUp` (first click opens, not clipped)
-- [x] Live drag never cloaks; sensor hidden while dragging; Top→other edges commit on mouse-up
+- [x] Live drag snaps to Left, Right, or Bottom. Top is not a snap target.
 - [x] Daily View with `selectedDate`, `scheduledDate`, historical completion via `completedAt`
 
 ## Phase 5.8 — Simplify the product
@@ -90,7 +85,7 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Completed tasks stay in place (check + strikethrough)
 - [x] Subtasks indent 18 pt
 - [x] `UserList` / `listId` renamed to `Category` / `categoryId`
-- [x] Top / Notch snap experimental, off by default
+- [x] Top is not supported. Notch Cloak is removed, not hidden behind a debug flag.
 
 ## Phase 5.9 — Mouse interaction stabilization
 
@@ -178,7 +173,7 @@ Folded into Phase 7. Do not start a new phase. Circle, pill, and rounded-square 
 
 ## Phase 11 — Polish + testing
 
-- [ ] Four-edge + notch + multi-display verification
+- [ ] Left / Right / Bottom + multi-display verification. Top is not in scope.
 - [ ] Accessibility labels
 - [x] Reduced motion (Phase 7). Movement is skipped; the content fade stays
 - [ ] Idle CPU check (no polling). Phase 7 added no timer; not yet measured in Instruments

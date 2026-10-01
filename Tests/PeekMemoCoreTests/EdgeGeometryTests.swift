@@ -17,6 +17,8 @@ enum EdgeGeometryTests {
         try dragFloatsOutsideMagnetRange()
         try mouseUpAlwaysSnaps()
         try expandedPanelOpensInwardFromRight()
+        try topOfTheScreenDoesNotSnapToTop()
+        try storedTopRestoresToRight()
     }
 
     static func rightEdgeSitsOnPhysicalOuterEdge() throws {
@@ -28,7 +30,6 @@ enum EdgeGeometryTests {
         )
         try expectEqual(placement.edge, .right)
         try expect(placement.isSnapped)
-        try expect(!placement.isNotchCloak)
         try expectEqual(placement.frame.maxX, Fixtures.external.frame.maxX)
         try expectEqual(placement.frame.width, LayoutMetrics.hoverHitThickness)
         try expectEqual(placement.frame.height, stack)
@@ -163,5 +164,31 @@ enum EdgeGeometryTests {
         try expectEqual(expanded.midY, collapsed.frame.midY)
         try expectEqual(expanded.width, 280)
         try expectEqual(expanded.height, 360)
+    }
+
+    static func topOfTheScreenDoesNotSnapToTop() throws {
+        let screen = Fixtures.external
+        let pointer = CGPoint(x: screen.frame.midX, y: screen.frame.maxY - 4)
+        let committed = EdgeGeometry.committedPlacement(
+            pointer: pointer,
+            screen: screen,
+            stackLength: stack
+        )
+        try expect(committed.edge != .top)
+        try expect(PlacementPolicy.isSupported(committed.edge))
+    }
+
+    static func storedTopRestoresToRight() throws {
+        let stored = DisplayPlacement(
+            displayIdentifier: Fixtures.external.identifier,
+            edge: .top,
+            offset: 200
+        )
+        let placement = EdgeGeometry.placement(
+            from: stored,
+            screen: Fixtures.external,
+            stackLength: stack
+        )
+        try expectEqual(placement.edge, .right)
     }
 }

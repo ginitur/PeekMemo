@@ -9,6 +9,7 @@ public enum ScreenMigration: Sendable {
         screens: [ScreenGeometry],
         mainScreenID: String
     ) -> (placement: DisplayPlacement, screen: ScreenGeometry?) {
+        let saved = supported(saved)
         if let match = screens.first(where: { $0.identifier == saved.displayIdentifier }) {
             return (saved, match)
         }
@@ -23,10 +24,19 @@ public enum ScreenMigration: Sendable {
         let migrated = DisplayPlacement(
             displayIdentifier: fallbackID,
             edge: saved.edge,
-            offset: saved.offset,
-            isNotchCloak: saved.isNotchCloak && screen.hasNotch && saved.edge == .top
+            offset: saved.offset
         )
         return (migrated, screen)
+    }
+
+    /// Top is not a supported snap edge. A stored top placement becomes Right.
+    private static func supported(_ saved: DisplayPlacement) -> DisplayPlacement {
+        guard saved.edge == .top else { return saved }
+        return DisplayPlacement(
+            displayIdentifier: saved.displayIdentifier,
+            edge: .right,
+            offset: saved.offset
+        )
     }
 
     public static func screenContaining(

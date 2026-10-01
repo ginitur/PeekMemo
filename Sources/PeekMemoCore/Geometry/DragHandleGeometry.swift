@@ -6,8 +6,6 @@ public enum DragHandleGeometry: Sendable {
     public static func rect(
         in bounds: CGRect,
         edge: ScreenEdge,
-        isNotchCloak: Bool,
-        notchOccludedHeight: CGFloat,
         handleOffsetInsidePanel: CGFloat,
         stackLength: CGFloat,
         thickness: CGFloat = LayoutMetrics.hoverHitThickness
@@ -30,10 +28,9 @@ public enum DragHandleGeometry: Sendable {
                 height: length
             )
         case .top:
-            let occluded = isNotchCloak ? notchOccludedHeight : 0
             return CGRect(
                 x: offset - length / 2,
-                y: bounds.height - occluded - thickness,
+                y: bounds.height - thickness,
                 width: length,
                 height: thickness
             )

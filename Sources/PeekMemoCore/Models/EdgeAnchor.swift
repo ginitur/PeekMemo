@@ -9,26 +9,22 @@ public struct EdgeAnchor: Equatable, Sendable, Codable {
     /// Left/Right: from the top of `visibleFrame` downward.
     /// Top/Bottom: from `visibleFrame.minX` rightward.
     public var offset: CGFloat
-    public var isNotchCloak: Bool
 
     public init(
         displayIdentifier: String,
         edge: ScreenEdge,
-        offset: CGFloat,
-        isNotchCloak: Bool = false
+        offset: CGFloat
     ) {
         self.displayIdentifier = displayIdentifier
         self.edge = edge
         self.offset = offset
-        self.isNotchCloak = isNotchCloak
     }
 
     public var asPlacement: DisplayPlacement {
         DisplayPlacement(
             displayIdentifier: displayIdentifier,
             edge: edge,
-            offset: offset,
-            isNotchCloak: isNotchCloak
+            offset: offset
         )
     }
 
@@ -36,8 +32,7 @@ public struct EdgeAnchor: Equatable, Sendable, Codable {
         EdgeAnchor(
             displayIdentifier: placement.displayIdentifier,
             edge: placement.edge,
-            offset: placement.offset,
-            isNotchCloak: placement.isNotchCloak
+            offset: placement.offset
         )
     }
 }

@@ -30,7 +30,6 @@ public enum EdgeItemSize: String, Codable, Sendable, CaseIterable {
 public enum CollapsedMode: String, Codable, Sendable, CaseIterable {
     case edgeTab
     case cloak
-    case notchCloak
 }
 
 public struct AppSettings: Equatable, Sendable, Codable {

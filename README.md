@@ -6,10 +6,9 @@ This is a native Swift / SwiftUI / AppKit app. It is not an Electron, Tauri, or 
 
 ## Features
 
-- Thin **Edge Tab** on Left, Right, Top, or Bottom
+- Thin **Edge Tab** on Left, Right, or Bottom. Top is not currently supported.
 - Hover to peek a memo group; click to pin; double-click to edit
 - Drag the stack to another edge with magnetic snapping
-- **Notch Cloak Mode** on notched MacBooks: hide in the camera housing and reveal from the notch underside
 - Local notes and checklists
 - Per-display placement
 - Menu bar extra + Launch at Login

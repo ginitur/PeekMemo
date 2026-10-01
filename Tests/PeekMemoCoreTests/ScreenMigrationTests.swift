@@ -5,7 +5,7 @@ enum ScreenMigrationTests {
     static func run() throws {
         try matchingDisplayIsKept()
         try missingDisplayMovesToMain()
-        try cloakFlagClearsWhenMainScreenHasNoNotch()
+        try storedTopBecomesRight()
         try pointPicksContainingScreen()
     }
 
@@ -13,8 +13,8 @@ enum ScreenMigrationTests {
         let saved = DisplayPlacement(displayIdentifier: "ext-1", edge: .left, offset: 80)
         let result = ScreenMigration.resolve(
             saved: saved,
-            screens: [Fixtures.external, Fixtures.notched],
-            mainScreenID: "notch-1"
+            screens: [Fixtures.external, Fixtures.builtin],
+            mainScreenID: "builtin-1"
         )
         try expectEqual(result.placement.displayIdentifier, "ext-1")
         try expectEqual(result.placement.edge, .left)
@@ -25,28 +25,28 @@ enum ScreenMigrationTests {
         let saved = DisplayPlacement(displayIdentifier: "gone", edge: .right, offset: 40)
         let result = ScreenMigration.resolve(
             saved: saved,
-            screens: [Fixtures.external, Fixtures.notched],
-            mainScreenID: "notch-1"
+            screens: [Fixtures.external, Fixtures.builtin],
+            mainScreenID: "builtin-1"
         )
-        try expectEqual(result.placement.displayIdentifier, "notch-1")
+        try expectEqual(result.placement.displayIdentifier, "builtin-1")
         try expectEqual(result.placement.edge, .right)
         try expectEqual(result.placement.offset, 40)
-        try expect(result.screen?.identifier == "notch-1")
+        try expect(result.screen?.identifier == "builtin-1")
     }
 
-    static func cloakFlagClearsWhenMainScreenHasNoNotch() throws {
+    static func storedTopBecomesRight() throws {
         let saved = DisplayPlacement(
-            displayIdentifier: "gone",
+            displayIdentifier: "ext-1",
             edge: .top,
-            offset: 10,
-            isNotchCloak: true
+            offset: 10
         )
         let result = ScreenMigration.resolve(
             saved: saved,
             screens: [Fixtures.external],
             mainScreenID: "ext-1"
         )
-        try expect(!result.placement.isNotchCloak)
+        try expectEqual(result.placement.edge, .right)
+        try expectEqual(result.placement.displayIdentifier, "ext-1")
     }
 
     static func pointPicksContainingScreen() throws {

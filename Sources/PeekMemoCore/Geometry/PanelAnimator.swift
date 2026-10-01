@@ -15,7 +15,7 @@ public enum PanelAnimator: Sendable {
 
     /// The screen edge that must not move during expand/collapse.
     public static func fixedEdge(for placement: PanelPlacement) -> ScreenEdge {
-        placement.isNotchCloak ? .top : placement.edge
+        placement.edge
     }
 
     public static func edgeCoordinate(_ edge: ScreenEdge, of rect: CGRect) -> CGFloat {

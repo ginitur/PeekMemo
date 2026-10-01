@@ -30,7 +30,6 @@ enum PeekMemoCoreTestsMain {
     static func main() {
         let suites: [(String, () throws -> Void)] = [
             ("EdgeGeometry", EdgeGeometryTests.run),
-            ("NotchGeometry", NotchGeometryTests.run),
             ("ScreenMigration", ScreenMigrationTests.run),
             ("HoverEngine", HoverEngineTests.run),
             ("HoverRegion", HoverRegionTests.run),
@@ -39,13 +38,11 @@ enum PeekMemoCoreTestsMain {
             ("CornerClampAnchor", CornerClampAnchorTests.run),
             ("TaskHierarchy", TaskHierarchyTests.run),
             ("TaskCompletion", TaskCompletionTests.run),
-            ("NotchContainedFrame", NotchContainedFrameTests.run),
             ("ColorSerialization", ColorSerializationTests.run),
             ("DailyViewQuery", DailyViewQueryTests.run),
             ("DailyCompletionAsOf", DailyCompletionAsOfTests.run),
             ("SelectedDateNavigation", SelectedDateNavigationTests.run),
             ("ScheduledDate", ScheduledDateTests.run),
-            ("TopEdgeDrag", TopEdgeDragTests.run),
             ("DragHandleHitRegion", DragHandleHitRegionTests.run),
             ("CategoryFilter", CategoryFilterTests.run),
             ("DailyCategoryQuery", DailyCategoryQueryTests.run),

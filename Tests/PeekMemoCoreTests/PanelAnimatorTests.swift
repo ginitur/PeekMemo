@@ -7,7 +7,6 @@ enum PanelAnimatorTests {
         try leftExpandKeepsMinX()
         try topExpandKeepsMaxY()
         try bottomExpandKeepsMinY()
-        try notchExpandKeepsNotchMaxY()
         try interpolationEndpoints()
         try midpointIsBetween()
     }
@@ -61,22 +60,6 @@ enum PanelAnimatorTests {
         try expectEqual(collapsed.frame.minY, expanded.minY)
     }
 
-    static func notchExpandKeepsNotchMaxY() throws {
-        let offset = NotchGeometry.cloakOffset(stackLength: 56, screen: Fixtures.notched)
-        let collapsed = EdgeGeometry.collapsedPlacement(
-            screen: Fixtures.notched, edge: .top, offset: offset, stackLength: 56
-        )
-        let expanded = EdgeGeometry.expandedFrame(
-            collapsed: collapsed, screen: Fixtures.notched, panelSize: CGSize(width: 260, height: 228)
-        )
-        try expect(collapsed.isNotchCloak)
-        try expectEqual(PanelAnimator.fixedEdge(for: collapsed), .top)
-        try expect(PanelAnimator.fixedEdgeHolds(from: collapsed.frame, to: expanded, edge: .top))
-        let notch = try unwrap(NotchGeometry.region(on: Fixtures.notched))
-        try expectEqual(collapsed.frame.maxY, notch.frame.maxY)
-        try expectEqual(expanded.maxY, notch.frame.maxY)
-    }
-
     static func interpolationEndpoints() throws {
         let a = CGRect(x: 100, y: 10, width: 14, height: 56)
         let b = CGRect(x: 100, y: 10, width: 260, height: 228)
@@ -94,10 +77,5 @@ enum PanelAnimatorTests {
         try expectEqual(mid.origin.y, 10)
         try expectEqual(mid.width, 20)
         try expectEqual(mid.height, 30)
-    }
-
-    private static func unwrap<T>(_ value: T?, _ message: String = "expected value") throws -> T {
-        guard let value else { throw CheckError(message: message) }
-        return value
     }
 }

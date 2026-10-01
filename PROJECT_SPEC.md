@@ -61,10 +61,8 @@ All geometry uses AppKit’s bottom-left origin (`CGRect` in screen space). Core
 - `identifier` — stable per-display id (`CGDirectDisplayID` as a string on macOS)
 - `frame`
 - `visibleFrame`
-- `safeAreaInsets`
-- `auxiliaryTopLeft` / `auxiliaryTopRight` — nil when the screen has no top auxiliary areas
 
-`ScreenManager` (app target) is the only type that reads `NSScreen`.
+`ScreenManager` (app target) is the only type that reads `NSScreen`. It does not read notch safe-area insets or auxiliary top areas.
 
 ## Placement
 
@@ -79,26 +77,12 @@ On mouse-up the stack always snaps to the nearest legal edge. Magnet range while
 
 Dock / menu bar: the **along-edge** span is clamped to `visibleFrame`. The **perpendicular** position uses `frame` unless that edge is inset by the Dock, in which case `visibleFrame` is used so the tab stays hittable.
 
-## Notch Cloak
-
-The MacBook notch is a hide anchor, not an obstacle.
-
-- Detected only when both auxiliary top areas exist and `safeAreaInsets.top > 0`.
-- If the user drops the Top-edge stack onto the notch’s horizontal range, placement is Notch Cloak.
-- Collapsed visuals may occupy zero pixels inside the physical notch. A transparent hover strip sits on the notch underside (`LayoutMetrics.hoverHitThickness`).
-- Hover expands the panel **downward** from the notch.
-- Screens without a notch never expose Notch Cloak.
-- No model names, no hard-coded notch sizes.
-
-Exiting cloak: drag handle after hover, Preferences → Reset Position, and Menu Bar → Show / Reposition (Phase 9).
-
 ## Collapsed modes
 
 1. **Edge Tab** (default) — 4 pt visible wedge, 14 pt hit region.
 2. **Cloak** — hidden until the pointer enters the edge hit region.
-3. **Notch Cloak** — Top edge + notched display only.
 
-Visual thickness and hit thickness are independent constants in `LayoutMetrics`.
+Visual thickness and hit thickness are independent constants in `LayoutMetrics`. Notch Cloak is not a mode. PeekMemo does not hide in the MacBook camera housing.
 
 ## Window
 
@@ -112,7 +96,7 @@ Visual thickness and hit thickness are independent constants in `LayoutMetrics`.
 
 Hover is owned by `HoverEngine` (Core) plus an AppKit `HoverController` that feeds pointer enter/exit for the **union** of the edge item and expanded panel (`HoverRegion`, 6 pt padding, 80 ms grace). SwiftUI `onHover` is not the source of truth.
 
-Live drag never cloaks. Notch Cloak is committed only on mouse-up. The Notch sensor is hidden while dragging and sits below the main panel’s window level.
+There is no notch sensor window and no notch mouse monitor. The remaining global `mouseMoved` monitor tracks hover enter and exit outside the panel. It is not a notch probe.
 
 ## Product model
 
@@ -153,11 +137,11 @@ A nil `categoryId` is valid and included in All. The row does not show an Uncate
 
 ## Edge snapping (v0.1)
 
-Default snap targets: **Left, Right, Bottom**.
+Supported snap targets: **Left, Right, Bottom**.
 
-**Top** and **Notch Cloak** are experimental. Code is kept. Enable via DEBUG → Experimental Top / Notch. Ordinary drag will not snap to Top, so users are not trapped there. A stored Top or Notch placement restores to Right while experimental snapping is off.
+**Top is not currently supported.** `ScreenEdge.top` remains so shared geometry can still describe a top frame, but `PlacementPolicy` does not snap to it, the release UI does not offer it, and a stored Top placement restores to Right. Do not keep fixing Top.
 
-Collapsed Notch Cloak uses only the underside hit strip (`notchCloakHitThickness`). The housing rectangle is never a drawing surface. Top-edge drag uses `notchSnapThreshold` (26 pt) with a smoothstep pull so cloak does not teleport.
+Notch Cloak is removed. There is no notch placement, notch snap threshold, notch activation strip, or DEBUG notch menu. Old UserDefaults keys for that feature are ignored. There is no migration.
 
 The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI files; SwiftUI also defines `HoverPhase`.
 
@@ -165,7 +149,7 @@ The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI 
 
 SQLite via GRDB.swift. The file is `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. It is never stored in the source tree. Tests open a database under the system temporary directory and must not touch Application Support.
 
-Window configuration stays in UserDefaults: edge, position, panel size, hover delays, appearance, experimental flags. `selectedDate` is UI state and defaults to today on every launch. It is not stored.
+Window configuration stays in UserDefaults: edge, position, panel size, hover delays, and appearance. `selectedDate` is UI state and defaults to today on every launch. It is not stored.
 
 ### Migration policy
 
@@ -224,7 +208,7 @@ Appearance and behavior live in UserDefaults under `peekmemo.preferences.*`, thr
 
 Launch at Login uses `SMAppService.mainApp` only. The switch shows the real system status. A failed register or unregister is shown; PeekMemo does not install a LaunchAgent or rewrite the status on launch.
 
-Hide-in-fullscreen is **experimental** and off by default. No private APIs. Top and Notch stay experimental.
+Hide-in-fullscreen is **experimental** and off by default. No private APIs. Top is not currently supported. Notch Cloak is not part of the product.
 
 ## Animation
 
@@ -232,7 +216,7 @@ Duration window: 120–220 ms for expansion, 100–180 ms for handle reveal. No 
 
 ## Testing policy
 
-Anything that does not need AppKit UI is a unit test: edge placement, offset clamping, notch range, screen migration, color serialization, hover transitions, later database CRUD.
+Anything that does not need AppKit UI is a unit test: edge placement, offset clamping, screen migration, color serialization, hover transitions, resize-handle geometry, later database CRUD. Do not keep tests for removed Notch Cloak behavior.
 
 Tests live in the `PeekMemoCoreTests` **executable** (`swift run PeekMemoCoreTests`). Command Line Tools does not ship XCTest, and a CLT-built Swift Testing `.xctest` cannot `dlopen` `Testing.framework`. The harness is a few dozen lines in `Tests/PeekMemoCoreTests/Harness.swift` and covers the same geometry / hover / color cases. GitHub Actions runs the same command so local and CI stay aligned.
 

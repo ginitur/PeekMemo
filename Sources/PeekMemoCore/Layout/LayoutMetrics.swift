@@ -15,16 +15,6 @@ public enum LayoutMetrics: Sendable {
     /// Mouse-tracking thickness of the collapsed window, in points.
     public static let hoverHitThickness: CGFloat = 14
 
-    /// Horizontal distance from the notch at which Top-edge drag starts pulling toward cloak.
-    public static let notchSnapThreshold: CGFloat = 26
-
-    /// Notch Cloak draws nothing. The housing occludes the window.
-    public static let notchCloakVisibleThickness: CGFloat = 0
-
-    /// If native hit-testing inside the cutout fails, extend this many points below `notchRect.minY`.
-    /// Keep at 2–4 pt. Never a 14 pt underside bar.
-    public static let notchActivationExtension: CGFloat = 3
-
     /// Extra padding around the union of tab + panel so a 1–2 px animation gap does not collapse hover.
     public static let hoverRegionPadding: CGFloat = 6
 
@@ -67,8 +57,9 @@ public enum LayoutMetrics: Sendable {
     public static let maximumOpacity: Double = 1.0
 }
 
-/// v0.1 snaps to Left / Right / Bottom. Top and Notch remain in code as experimental.
+/// v0.1 snaps to Left, Right, and Bottom. Top remains in `ScreenEdge` for shared geometry only.
 public enum PlacementPolicy: Sendable {
-    nonisolated(unsafe) public static var allowTopEdgeSnap = false
-    nonisolated(unsafe) public static var allowNotchCloak = false
+    public static func isSupported(_ edge: ScreenEdge) -> Bool {
+        edge != .top
+    }
 }

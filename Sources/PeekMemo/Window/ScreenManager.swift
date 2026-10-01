@@ -8,15 +8,7 @@ enum ScreenManager {
         ScreenGeometry(
             identifier: displayIdentifier(for: screen),
             frame: screen.frame,
-            visibleFrame: screen.visibleFrame,
-            safeAreaInsets: EdgeInsetsLTRB(
-                top: screen.safeAreaInsets.top,
-                left: screen.safeAreaInsets.left,
-                bottom: screen.safeAreaInsets.bottom,
-                right: screen.safeAreaInsets.right
-            ),
-            auxiliaryTopLeft: optionalArea(screen.auxiliaryTopLeftArea),
-            auxiliaryTopRight: optionalArea(screen.auxiliaryTopRightArea)
+            visibleFrame: screen.visibleFrame
         )
     }
 
@@ -37,12 +29,5 @@ enum ScreenManager {
             return String(number.uint32Value)
         }
         return screen.localizedName
-    }
-
-    private static func optionalArea(_ rect: CGRect?) -> CGRect? {
-        guard let rect, !rect.isNull, !rect.isInfinite, rect.width > 0, rect.height > 0 else {
-            return nil
-        }
-        return rect
     }
 }

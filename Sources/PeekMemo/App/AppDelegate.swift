@@ -37,15 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controller?.refreshChrome()
                 #endif
             },
-            onToggleNotchGeometry: { [weak controller] in
-                #if DEBUG
-                DebugFlags.showNotchGeometry.toggle()
-                controller?.refreshChrome()
-                #endif
-            },
-            onMoveToNotch: { [weak controller] in
-                controller?.moveToNotchCloak()
-            },
             onToggleAnchorGeometry: { [weak controller] in
                 #if DEBUG
                 DebugFlags.showAnchorGeometry.toggle()
