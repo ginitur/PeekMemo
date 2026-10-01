@@ -1,3 +1,4 @@
+using PeekMemo.Core.Geometry;
 using PeekMemo.Core.Layout;
 using PeekMemo.Core.Models;
 using PeekMemo.Core.Persistence;
@@ -80,6 +81,84 @@ public class SettingsPersistenceTests
                 Directory.Delete(directory, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void NestedPlacementWinsAndStillRoundTripsWithTheFlatFields()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "peekmemo-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new SettingsStore(directory);
+            var settings = new AppSettings
+            {
+                Edge = ScreenEdge.Right.ToString(),
+                EdgeOffset = 10,
+                MonitorDeviceName = @"\\.\DISPLAY1"
+            };
+            settings.Placement = new PlacementSettings
+            {
+                Monitor = @"\\.\DISPLAY2",
+                Edge = ScreenEdge.Bottom.ToString(),
+                Offset = 250
+            };
+            settings.WritePanelSize(100, 9000);
+
+            var work = new DipRect(0, 0, 2000, 1000);
+            var resolved = settings.ResolveAnchor(work);
+            Assert.Equal(ScreenEdge.Bottom, resolved.Edge);
+            Assert.Equal(250d, resolved.Offset);
+            Assert.Equal(@"\\.\DISPLAY2", resolved.MonitorIdentifier);
+            Assert.Equal(PanelSize.MinimumWidth, settings.PanelWidth);
+            Assert.Equal(PanelSize.AbsoluteMaximum, settings.PanelHeight);
+
+            store.Save(settings);
+            var json = File.ReadAllText(store.FilePath);
+            Assert.Contains("\"placement\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"monitor\"", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"x\"", json, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("\"y\"", json, StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(store.FilePath + ".tmp"));
+
+            var loaded = new SettingsStore(directory).Load();
+            var anchor = loaded.ResolveAnchor(work);
+            Assert.Equal(ScreenEdge.Bottom, anchor.Edge);
+            Assert.Equal(250d, anchor.Offset);
+            Assert.Equal(@"\\.\DISPLAY2", anchor.MonitorIdentifier);
+            Assert.Equal(PanelSize.MinimumWidth, loaded.PanelWidth);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void APhase1FileWithoutPlacementStillResolvesAndANullOffsetCenters()
+    {
+        var work = new DipRect(0, 0, 800, 600);
+        var flat = new AppSettings
+        {
+            Edge = ScreenEdge.Left.ToString(),
+            EdgeOffset = 80,
+            MonitorDeviceName = @"\\.\DISPLAY1"
+        };
+        var anchor = flat.ResolveAnchor(work);
+        Assert.Equal(ScreenEdge.Left, anchor.Edge);
+        Assert.Equal(80d, anchor.Offset);
+
+        var centered = new AppSettings().ResolveAnchor(work);
+        Assert.Equal(ScreenEdge.Right, centered.Edge);
+        Assert.Equal(work.Height / 2, centered.Offset);
+
+        var storedTop = new AppSettings
+        {
+            Placement = new PlacementSettings { Edge = ScreenEdge.Top.ToString(), Offset = 12, Monitor = "m" }
+        };
+        Assert.Equal(ScreenEdge.Right, storedTop.ResolveAnchor(work).Edge);
     }
 
     [Fact]

@@ -7,6 +7,8 @@ public static class LayoutMetrics
     public const double WedgeLength = 56;
     public const double HoverOpenDelaySeconds = 0.16;
     public const double HoverCloseDelaySeconds = 0.35;
+    public const double DragThreshold = 6;
+    public const double SnapThreshold = 24;
     public const double SubtaskIndent = 18;
     public const double PanelOpacity = 0.94;
     public const double WedgeOpacity = 0.55;

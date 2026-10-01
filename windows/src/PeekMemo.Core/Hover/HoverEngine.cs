@@ -13,10 +13,13 @@ public sealed class HoverEngine
     public HoverPhase Phase { get; private set; } = HoverPhase.Collapsed;
     public TimeSpan OpenDelay { get; set; } = TimeSpan.FromMilliseconds(160);
     public TimeSpan CloseDelay { get; set; } = TimeSpan.FromMilliseconds(350);
+    public bool InteractionHeld => _interactionHold > 0;
+    public int Generation { get; private set; }
 
     DateTimeOffset? _openDue;
     DateTimeOffset? _closeDue;
     bool _inside;
+    int _interactionHold;
 
     public DateTimeOffset? NextTransitionAt => Phase switch
     {
@@ -25,11 +28,44 @@ public sealed class HoverEngine
         _ => null
     };
 
+    public void BeginInteraction()
+    {
+        _interactionHold++;
+        _openDue = null;
+        _closeDue = null;
+        Generation++;
+    }
+
+    public void EndInteraction(DateTimeOffset now)
+    {
+        if (_interactionHold == 0)
+        {
+            return;
+        }
+
+        _interactionHold--;
+        Generation++;
+        if (_interactionHold > 0)
+        {
+            return;
+        }
+
+        if (Phase == HoverPhase.Expanded && !_inside)
+        {
+            _closeDue = now + CloseDelay;
+        }
+        else if (Phase == HoverPhase.Collapsed && _inside)
+        {
+            _openDue = now + OpenDelay;
+        }
+    }
+
     public void PointerEntered(DateTimeOffset now)
     {
         _inside = true;
         _closeDue = null;
-        if (Phase is HoverPhase.Expanded or HoverPhase.Pinned)
+        Generation++;
+        if (_interactionHold > 0 || Phase is HoverPhase.Expanded or HoverPhase.Pinned)
         {
             return;
         }
@@ -41,7 +77,8 @@ public sealed class HoverEngine
     {
         _inside = false;
         _openDue = null;
-        if (Phase != HoverPhase.Expanded)
+        Generation++;
+        if (_interactionHold > 0 || Phase != HoverPhase.Expanded)
         {
             return;
         }
@@ -73,6 +110,11 @@ public sealed class HoverEngine
 
     public bool Tick(DateTimeOffset now)
     {
+        if (_interactionHold > 0)
+        {
+            return false;
+        }
+
         var before = Phase;
         if (Phase == HoverPhase.Collapsed && _openDue is DateTimeOffset open && now >= open)
         {

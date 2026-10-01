@@ -15,3 +15,5 @@ public readonly record struct DipRect(double X, double Y, double Width, double H
     public bool ContainsPoint(double x, double y) =>
         x >= X && x < Right && y >= Y && y < Bottom;
 }
+
+public readonly record struct DipPoint(double X, double Y);
