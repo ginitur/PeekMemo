@@ -47,3 +47,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - v0.1 edge snap is Left / Right / Bottom. Top and Notch Cloak are experimental (DEBUG menu) so ordinary drag cannot trap the tab on Top.
 - Unfinished root tasks from earlier days appear above Today as “未完成 · N”. Their `scheduledDate` is not rewritten. Other dates show only that day’s items.
 - Items with no category have no badge. Right-click + Add Task to add a plain Note. Notes never enter the completion count.
+- Local SQLite (GRDB) at `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. Migration `v1_initial_schema` seeds Work and Personal once and does not recreate deleted rows. A failed open or migration leaves the file in place.
+- Daily items, categories, notes, subtasks, completion, and Past Unfinished survive quit and relaunch. `selectedDate` still starts at today. Window placement stays in UserDefaults.

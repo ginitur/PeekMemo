@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import PeekMemoCore
 
-/// In-memory prototype. Lost on quit. Persistence is Phase 6.
+/// UI state. SQLite is the source of truth; this object reloads after each successful write.
 @Observable
 @MainActor
 final class AppState {
@@ -17,6 +17,8 @@ final class AppState {
     var draftText: String = ""
     var isComposing: Bool = false
     var expandedTaskIDs: Set<UUID> = []
+
+    private let store: MemoStore?
 
     var activeCategories: [PeekMemoCore.Category] {
         categories.filter { !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
@@ -68,43 +70,21 @@ final class AppState {
         }
     }
 
-    init() {
-        let calendar = Calendar.current
-        let now = Date()
-        let today = DailyView.startOfDay(now, calendar: calendar)
-        let yesterday = DailyView.shiftDay(today, by: -1, calendar: calendar)
-        let tomorrow = DailyView.shiftDay(today, by: 1, calendar: calendar)
-        selectedDate = today
-        let work = PeekMemoCore.Category(name: "Work", icon: "briefcase", color: .today, sortOrder: 0)
-        let personal = PeekMemoCore.Category(name: "Personal", icon: "house", color: RGBAColor(red: 0.2, green: 0.7, blue: 0.45), sortOrder: 1)
-        categories = [work, personal]
-        let parent = MemoItem(
-            categoryId: work.id,
-            type: .task,
-            title: "Prepare report",
-            sortOrder: 0,
-            scheduledDate: today
-        )
-        items = [
-            parent,
-            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Collect data", isCompleted: true, completedAt: now, sortOrder: 0),
-            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Update charts", sortOrder: 1),
-            MemoItem(categoryId: work.id, parentId: parent.id, type: .task, title: "Final review", sortOrder: 2),
-            MemoItem(categoryId: work.id, type: .task, title: "Review pull request", sortOrder: 1, scheduledDate: today),
-            MemoItem(categoryId: personal.id, type: .note, title: "Remember to ask John about API", sortOrder: 2, scheduledDate: today),
-            MemoItem(
-                categoryId: work.id,
-                type: .task,
-                title: "Ship yesterday's notes",
-                isCompleted: true,
-                completedAt: yesterday.addingTimeInterval(15 * 3600),
-                sortOrder: 0,
-                scheduledDate: yesterday
-            ),
-            MemoItem(categoryId: personal.id, type: .task, title: "Call the accountant", sortOrder: 0, scheduledDate: tomorrow),
-            MemoItem(categoryId: work.id, type: .task, title: "Finish the outline", sortOrder: 1, scheduledDate: yesterday),
-        ]
-        expandedTaskIDs = [parent.id]
+    init(store: MemoStore? = nil) {
+        if let store {
+            self.store = store
+        } else {
+            do {
+                self.store = try MemoStore.openDefault()
+            } catch {
+                self.store = nil
+                Self.log(error)
+            }
+        }
+        categories = []
+        items = []
+        selectedDate = DailyView.startOfDay(Date())
+        reloadFromStore()
     }
 
     func categoryForItem(_ item: MemoItem) -> PeekMemoCore.Category? {
@@ -159,47 +139,55 @@ final class AppState {
             cancelEdit()
             return false
         }
-        let now = Date()
-        if let id = editingItemID, let index = items.firstIndex(where: { $0.id == id }) {
-            items[index].title = text
-            items[index].updatedAt = now
-            cancelEdit()
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
             return false
         }
-        if isComposing {
-            let categoryId = targetCategoryID(for: parent)
-            let itemType: ItemType = parent == nil ? composingType : .task
-            let siblings = parent == nil
-                ? visibleDayItems
-                : TaskHierarchy.children(of: parent!, in: items)
-            let order = (siblings.last?.sortOrder ?? -1) + 1
-            let scheduled = parent.flatMap { id in items.first(where: { $0.id == id })?.scheduledDate }
-                ?? DailyView.startOfDay(selectedDate)
-            items.append(
-                MemoItem(
-                    categoryId: categoryId,
-                    parentId: parent,
-                    type: itemType,
-                    title: text,
-                    sortOrder: order,
-                    scheduledDate: scheduled,
-                    createdAt: now,
-                    updatedAt: now
-                )
-            )
-            if let parent {
-                expandedTaskIDs.insert(parent)
+        do {
+            if let id = editingItemID {
+                guard var item = items.first(where: { $0.id == id }) else {
+                    Self.log(PersistenceError.notFound(id))
+                    return false
+                }
+                item.title = text
+                try store.memos.updateItem(item)
+                reloadFromStore()
+                cancelEdit()
+                return false
             }
-            if continueSubtask, parent != nil {
-                draftText = ""
-                isComposing = true
-                composingParentID = parent
-                editingItemID = nil
-                return true
+            if isComposing {
+                if let parent {
+                    try store.memos.createSubtask(parentID: parent, title: text)
+                    expandedTaskIDs.insert(parent)
+                } else if composingType == .note {
+                    try store.memos.createNote(
+                        title: text,
+                        scheduledDate: selectedDate,
+                        categoryId: targetCategoryID(for: nil)
+                    )
+                } else {
+                    try store.memos.createTask(
+                        title: text,
+                        scheduledDate: selectedDate,
+                        categoryId: targetCategoryID(for: nil)
+                    )
+                }
+                reloadFromStore()
+                if continueSubtask, parent != nil {
+                    draftText = ""
+                    isComposing = true
+                    composingParentID = parent
+                    composingType = .task
+                    editingItemID = nil
+                    return true
+                }
             }
+            cancelEdit()
+            return false
+        } catch {
+            Self.log(error)
+            return false
         }
-        cancelEdit()
-        return false
     }
 
     func commitComposerIfNeeded() {
@@ -220,33 +208,64 @@ final class AppState {
     }
 
     func toggleCompleted(_ item: MemoItem) {
-        TaskHierarchy.setCompleted(item.id, to: !item.isCompleted, items: &items)
-    }
-
-    func delete(_ item: MemoItem) {
-        items.removeAll { $0.id == item.id || $0.parentId == item.id }
-        if editingItemID == item.id {
-            cancelEdit()
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return
+        }
+        do {
+            try store.memos.toggleCompleted(id: item.id)
+            reloadFromStore()
+        } catch {
+            Self.log(error)
         }
     }
 
+    func delete(_ item: MemoItem) {
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return
+        }
+        do {
+            try store.memos.deleteItem(id: item.id)
+            if editingItemID == item.id || composingParentID == item.id {
+                cancelEdit()
+            }
+            expandedTaskIDs.remove(item.id)
+            reloadFromStore()
+        } catch {
+            Self.log(error)
+        }
+    }
+
+    func selectDate(_ date: Date) {
+        selectedDate = DailyView.startOfDay(date)
+        reloadFromStore()
+    }
+
     func goToPreviousDay() {
-        selectedDate = DailyView.shiftDay(selectedDate, by: -1)
+        selectDate(DailyView.shiftDay(selectedDate, by: -1))
     }
 
     func goToNextDay() {
-        selectedDate = DailyView.shiftDay(selectedDate, by: 1)
+        selectDate(DailyView.shiftDay(selectedDate, by: 1))
     }
 
     func goToToday() {
-        selectedDate = DailyView.startOfDay(Date())
+        selectDate(Date())
     }
 
     func addCategory(name: String = "New Category") {
-        let order = (activeCategories.last?.sortOrder ?? -1) + 1
-        let category = PeekMemoCore.Category(name: name, icon: "folder", color: .accent, sortOrder: order)
-        categories.append(category)
-        categoryFilter = .category(category.id)
+        guard let store else {
+            Self.log(PersistenceError.databaseUnavailable("database is not open"))
+            return
+        }
+        do {
+            let category = try store.categories.createCategory(name: name)
+            reloadFromStore()
+            categoryFilter = .category(category.id)
+        } catch {
+            Self.log(error)
+        }
     }
 
     private func targetCategoryID(for parent: UUID?) -> UUID? {
@@ -257,5 +276,36 @@ final class AppState {
             return id
         }
         return nil
+    }
+
+    /// Loads the selected day, and — on Today only — unfinished root tasks from earlier days.
+    /// A failed read leaves the previous UI state in place.
+    private func reloadFromStore() {
+        guard let store else { return }
+        do {
+            let storedCategories = try store.categories.fetchCategories()
+            let roots = try store.memos.fetchItems(for: selectedDate)
+            var loaded = roots
+            for root in roots {
+                loaded.append(contentsOf: try store.memos.fetchChildren(parentId: root.id))
+            }
+            if DailyView.isViewingToday(selectedDate) {
+                let past = try store.memos.fetchPastUnfinished(before: selectedDate)
+                for root in past where !loaded.contains(where: { $0.id == root.id }) {
+                    loaded.append(root)
+                    loaded.append(contentsOf: try store.memos.fetchChildren(parentId: root.id))
+                }
+            }
+            categories = storedCategories
+            items = loaded
+        } catch {
+            Self.log(error)
+        }
+    }
+
+    private static func log(_ error: Error) {
+        #if DEBUG
+        print("[Persistence] \(error)")
+        #endif
     }
 }

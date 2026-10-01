@@ -119,7 +119,7 @@ struct PreviewPanelView: View {
                     selection: Binding(
                         get: { state.selectedDate },
                         set: {
-                            state.selectedDate = DailyView.startOfDay($0)
+                            state.selectDate($0)
                             state.showDatePicker = false
                         }
                     ),
@@ -292,7 +292,7 @@ struct PreviewPanelView: View {
             .onSubmit {
                 if isSubtask {
                     let keep = state.saveDraft(continueSubtask: true)
-                    if keep {
+                    if keep || state.isEditing {
                         editorFocused = true
                     } else {
                         onEndEdit()
@@ -336,7 +336,9 @@ struct PreviewPanelView: View {
 
     private func save() {
         state.saveDraft(continueSubtask: false)
-        onEndEdit()
+        if !state.isEditing {
+            onEndEdit()
+        }
     }
 
     private func cancel() {

@@ -109,19 +109,21 @@ Progress is recorded with `[ ]` / `[x]`. If a feature cannot be finished reliabl
 - [x] Notes stay simple text; context menu can add a note
 - [x] Daily progress counts root tasks only
 
-## Phase 6 — Memo persistence
+## Phase 6 — Local persistence
 
-- [ ] GRDB.swift
-- [ ] `MemoGroup` / `Memo` / settings / placement tables
-- [ ] First-launch seed (once)
-- [ ] Backward-compatible migrations
+- [x] GRDB.swift, `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`
+- [x] `v1_initial_schema` only. Never delete the database on failure
+- [x] `categories` and `memo_items`. No `forToday` column. Seed Work and Personal once
+- [x] `CategoryRepository` and `MemoRepository`. Views do not run SQL
+- [x] Daily query, Past Unfinished, two-level subtasks, completion transaction
+- [x] Notes persist without completion or subtasks. Progress counts root tasks only
+- [x] AppState reloads after a successful write. `selectedDate` stays UI state
+- [x] Window placement stays in UserDefaults
+- [x] Temporary-database tests, including restart
 
-## Phase 7 — Memo CRUD + checklist
+## Phase 7 — not started
 
-- [ ] Notes and checklists
-- [ ] Add / edit / delete / complete
-- [ ] Drag reorder
-- [ ] Group context menu
+The product model is frozen. Do not extend task management past Date, Category, Note, Task, Subtask, and Completion.
 
 ## Phase 8 — Appearance settings
 

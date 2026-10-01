@@ -4,7 +4,11 @@ Status: living document. Update this when an architecture decision lands.
 
 ## Product
 
-PeekMemo is a macOS accessory app. It sits on a screen edge as a thin tab, expands a memo group on hover, and stores notes locally.
+PeekMemo is intentionally simple. It is a macOS accessory app: a thin tab on a screen edge that expands into a daily memo. It is not Todoist, Things, Notion, or a project manager.
+
+Core model: **Date, Category, Note, Task, Subtask, Completion.**
+
+Nothing else is part of v0.1: no priority, tags, projects, reminders, recurrence, notifications, calendar sync, kanban, statistics, charts, Markdown, attachments, iCloud, or accounts.
 
 Version: `0.1.0-dev`  
 Bundle identifier: `com.peekmemo.app`  
@@ -41,7 +45,7 @@ Folder mapping versus the original sketch:
 | `Core/AppState.swift` | `Sources/PeekMemo/App/AppState.swift` |
 | `Window/` | `Sources/PeekMemo/Window/` |
 | Geometry / hover | `Sources/PeekMemoCore/Geometry/`, `Hover/` |
-| `Persistence/` | `Sources/PeekMemo/Persistence/` (Phase 6) plus GRDB |
+| `Persistence/` | `Sources/PeekMemoCore/Persistence/` (GRDB). Window placement stays in `Sources/PeekMemo/Persistence/` (UserDefaults). |
 | `Views/` | `Sources/PeekMemo/Views/` |
 | `Utilities/` | `Sources/PeekMemo/Utilities/` |
 | `Resources/` | `Sources/PeekMemo/Resources/` |
@@ -159,16 +163,43 @@ The Core type `HoverPhase` must be spelled `PeekMemoCore.HoverPhase` in SwiftUI 
 
 ## Persistence (Phase 6)
 
-GRDB.swift, local SQLite. Schema sketched in models:
+SQLite via GRDB.swift. The file is `~/Library/Application Support/PeekMemo/PeekMemo.sqlite`. It is never stored in the source tree. Tests open a database under the system temporary directory and must not touch Application Support.
 
-- `Category(id, name, icon, color, sortOrder, isArchived, createdAt, updatedAt)`
-- `MemoItem(id, categoryId, parentId, type, title, body, isCompleted, completedAt, sortOrder, dueDate, scheduledDate, …)`
-- `type`: `note` | `task`
-- `AppSettings` and per-display `DisplayPlacement`
+Window configuration stays in UserDefaults: edge, position, panel size, hover delays, appearance, experimental flags. `selectedDate` is UI state and defaults to today on every launch. It is not stored.
 
-Color is stored as RGBA components, never as a SwiftUI `Color`.
+### Migration policy
 
-First launch seeds Work and Personal. Deleted rows are not recreated.
+`DatabaseMigrator` starts with `v1_initial_schema`. Later schema changes are new migrations. A mismatch, a failed migration, or a database that will not open must not delete or recreate the file. DEBUG builds print `[Persistence]`. A failed write does not update the UI as if it had succeeded.
+
+The first migration inserts Work and Personal and no sample tasks. That seed runs only inside the migration, so deleting or archiving those categories is permanent across launches.
+
+### Schema
+
+`categories`: `id` TEXT PK, `name` TEXT NOT NULL, `icon` TEXT NULL, `color` TEXT NULL, `sort_order` INTEGER NOT NULL, `is_archived` INTEGER NOT NULL DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL.
+
+`memo_items`: `id` TEXT PK, `category_id` TEXT NULL → `categories.id`, `parent_id` TEXT NULL → `memo_items.id`, `type` TEXT NOT NULL (`task` | `note`), `title` TEXT NOT NULL, `body` TEXT NULL, `is_completed` INTEGER NOT NULL DEFAULT 0, `completed_at` DATETIME NULL, `sort_order` INTEGER NOT NULL, `scheduled_date` DATETIME NULL, `due_date` DATETIME NULL, `is_archived` INTEGER NOT NULL DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL.
+
+There is no `forToday` column. `PRAGMA foreign_keys = ON`. Indexes: `scheduled_date`, `category_id`, `parent_id`, `is_completed`, and `(scheduled_date, category_id)`.
+
+Color is stored as an RGBA hex string, never as a SwiftUI `Color`.
+
+### Date semantics
+
+Values are absolute timestamps. A civil day is `[dayStart, nextDayStart)` from `Calendar.current` / `TimeZone.current`. Queries use `scheduled_date >= dayStart AND scheduled_date < nextDayStart`, not `DATE(scheduled_date)`.
+
+`scheduledDate` is the day the item appears. `dueDate` is a reserved deadline and is not shown in v0.1. `completedAt` is when a task was actually completed.
+
+### Queries
+
+Views do not run SQL. `CategoryRepository` and `MemoRepository` do.
+
+A daily query returns root rows (`parent_id IS NULL`, not archived) scheduled on the selected day, including completed tasks. A category filter adds `category_id = selected`. A nil `categoryId` still appears in All. Subtasks are loaded with their parent and are not roots.
+
+Past Unfinished runs only for Today: `scheduled_date < todayStart AND is_completed = 0 AND is_archived = 0 AND parent_id IS NULL AND type = 'task'`, ordered by `scheduled_date DESC, sort_order ASC`. The query does not rewrite `scheduledDate`. A past day shows only that day's rows.
+
+Completing a parent completes its children, completing the last child completes the parent, uncompleting a child reopens the parent, and uncompleting a parent leaves children as they were. Those updates are one SQLite transaction. Deleting a parent deletes its children in one transaction. Archiving a category hides it from the picker and leaves its items in place.
+
+A note may have a `scheduledDate` and a `categoryId`. It cannot have a parent or a subtask, and it has no completion state. Daily progress counts root tasks only.
 
 ## Settings (Phase 8–9)
 
