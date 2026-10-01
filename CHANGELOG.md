@@ -2,7 +2,16 @@
 
 All notable changes to PeekMemo are recorded here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows the project’s `0.1.0-dev` train until the first tagged release.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The current release candidate is `0.1.0-rc.1`.
+
+## [0.1.0-rc.1] — 2026-10-01
+
+### Added
+
+- Windows SQLite persistence (`Microsoft.Data.Sqlite`, no EF Core) at `%LOCALAPPDATA%\PeekMemo\PeekMemo.sqlite`. Migration `v1_initial_schema` is transactional and is not repaired by deleting the file. A fresh database contains Work and Personal and no sample rows.
+- Windows appearance settings in `settings.json`: theme, panel opacity, custom size, wedge color, background image (PNG, JPEG, WebP, BMP) copied into `Backgrounds\`.
+- Self-contained Windows x64 publish and a macOS `.app` bundle. GitHub Release workflow on `v*` tags.
+- Release candidate `v0.1.0-rc.1`. The macOS build is ad-hoc signed and not notarized. Windows interaction is build/test verified; device-level validation is still pending.
 
 ## [0.1.0-dev] — unreleased
 

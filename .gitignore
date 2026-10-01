@@ -26,8 +26,14 @@ xcuserdata/
 project.assets.json
 *.user
 
+# Local databases. Never commit a user's memo file.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
 # Build products
 dist/
+publish/
 .release/
 *.app
 !Resources/**/*.app

@@ -10,7 +10,7 @@ Core model: **Date, Category, Note, Task, Subtask, Completion.**
 
 Nothing else is part of v0.1: no priority, tags, projects, reminders, recurrence, notifications, calendar sync, kanban, statistics, charts, Markdown, attachments, iCloud, or accounts.
 
-Version: `0.1.0-dev`  
+Version: `0.1.0-rc.1`  
 Bundle identifier: `com.peekmemo.app`  
 Deployment target: macOS 14+
 
@@ -232,7 +232,7 @@ Native C# / .NET 8 / WPF under `windows/PeekMemo.Windows.sln`. It is not Electro
 
 Data root, when the app runs: `%LOCALAPPDATA%\PeekMemo\`. Settings file: `settings.json`. Database file, later: `PeekMemo.sqlite`. Backgrounds, later: `Backgrounds\`. IDs are uppercase `8-4-4-4-12` text, the same shape as Swift `UUID.uuidString`.
 
-The SQLite column lists in `MemoSchema` match macOS. Windows does not add task columns. The database is not opened in the current milestone.
+The SQLite column lists in `MemoSchema` match macOS. Windows does not add task columns. The database is `%LOCALAPPDATA%\PeekMemo\PeekMemo.sqlite`. Appearance stays in `settings.json`.
 
 Supported edges are Left, Right, and Bottom. Top is not a snap target. A stored Top value resolves to Right. Placement is monitor id + edge + offset, not absolute x/y.
 
@@ -246,6 +246,6 @@ The resize hit target is a 22×22 DIP corner, never larger than 24×24. Right us
 
 Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
 
-The window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE` while peeking). The expanded card is a daily memo: `DateOnly` for the selected day, category filter, root tasks and notes, one subtask level, in-place completion, and past unfinished only when the selected day is today. Rows live in `MemoBoard`. The sample seed is not persisted. The tray is `System.Windows.Forms.NotifyIcon` with Show, Reset Position, Settings, and Quit. Reset Position returns to the primary monitor’s right edge, centered. Display and work-area changes come from system events, not a timer. SQLite is not opened. The saved panel size is not replaced by the list.
+The window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE` while peeking). The expanded card is a daily memo: `DateOnly` for the selected day, category filter, root tasks and notes, one subtask level, in-place completion, and past unfinished only when the selected day is today. Rows live in `MemoBoard` and are written through SQLite. The sample seed is not used at startup. The tray is `System.Windows.Forms.NotifyIcon` with Show, Reset Position, Settings, and Quit. Reset Position returns to the primary monitor’s right edge, centered. Display and work-area changes come from system events, not a timer. The saved panel size is not replaced by the list.
 
 The WPF UI has not been run on Windows from this macOS workspace. `windows-latest` is the build and test check. A local `EnableWindowsTargeting` compile is not a device test.

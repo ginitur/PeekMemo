@@ -26,3 +26,29 @@ jobs:
 
       - name: Test
         run: dotnet test windows/PeekMemo.Windows.sln --configuration Release --no-build
+
+      - name: Publish self-contained win-x64
+        run: dotnet publish windows/src/PeekMemo.Windows/PeekMemo.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMemo-Windows-x64
+
+      - name: Reject packaged user data
+        shell: pwsh
+        run: |
+          $out = "windows/dist/PeekMemo-Windows-x64"
+          if (-not (Test-Path "$out/PeekMemo.exe")) { throw "PeekMemo.exe is missing." }
+          $bad = @(Get-ChildItem $out -Recurse -File | Where-Object {
+            $_.Name -eq "settings.json" -or $_.Extension -in ".sqlite", ".sqlite-shm", ".sqlite-wal"
+          })
+          if ($bad.Count -gt 0) { throw "User data was packaged." }
+
+      - name: Startup smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru
+          if (-not $process.WaitForExit(90000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "PeekMemo.exe --smoke did not exit within 90 seconds."
+          }
+          $process.Refresh()
+          if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }

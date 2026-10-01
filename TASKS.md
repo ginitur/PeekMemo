@@ -186,7 +186,7 @@ Separate native client. Not a port of the AppKit UI.
 - [x] Core tests for daily query, category filter, hierarchy, completion, past unfinished, edge placement, resize grip ≤ 24×24, and settings JSON in a temp directory
 - [x] Windows CI workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, test
 - [x] Tray (Show, Settings, Quit), borderless no-activate window, right-edge wedge, hover panel. Not run on a Windows machine
-- [ ] SQLite open and restart (later). Schema names are recorded. The database is not opened yet
+- [x] SQLite open and restart. Schema `v1_initial_schema`. Fresh databases seed Work and Personal only. Sample rows are not written.
 - [ ] Drag between edges and the resize grip UI (Phase 2). Grip geometry is already tested
 
 ## Windows Phase 1 — Tray and edge wedge

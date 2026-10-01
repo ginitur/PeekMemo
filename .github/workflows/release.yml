@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: macOS build and package
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test
+        run: |
+          swift build --product PeekMemo
+          swift run PeekMemoCoreTests
+
+      - name: Build app and zip
+        run: ./scripts/build-app.sh
+
+      - name: Upload macOS zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: dist/PeekMemo-macOS-*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+  windows:
+    name: Windows build and package
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore windows/PeekMemo.Windows.sln
+
+      - name: Build
+        run: dotnet build windows/PeekMemo.Windows.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test windows/PeekMemo.Windows.sln --configuration Release --no-build
+
+      - name: Publish self-contained win-x64
+        run: dotnet publish windows/src/PeekMemo.Windows/PeekMemo.Windows.csproj --configuration Release --runtime win-x64 --self-contained true --output windows/dist/PeekMemo-Windows-x64
+
+      - name: Reject packaged user data and zip
+        shell: pwsh
+        run: |
+          $out = "windows/dist/PeekMemo-Windows-x64"
+          if (-not (Test-Path "$out/PeekMemo.exe")) { throw "PeekMemo.exe is missing." }
+          $bad = @(Get-ChildItem $out -Recurse -File | Where-Object {
+            $_.Name -eq "settings.json" -or $_.Extension -in ".sqlite", ".sqlite-shm", ".sqlite-wal"
+          })
+          if ($bad.Count -gt 0) { throw "User data was packaged." }
+          $version = (Get-Content VERSION -Raw).Trim()
+          Compress-Archive -Path "$out/*" -DestinationPath "windows/dist/PeekMemo-Windows-x64-$version.zip"
+
+      - name: Startup smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe = Join-Path (Resolve-Path "windows/dist/PeekMemo-Windows-x64") "PeekMemo.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru
+          if (-not $process.WaitForExit(90000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "PeekMemo.exe --smoke did not exit within 90 seconds."
+          }
+          $process.Refresh()
+          if ($process.ExitCode -ne 0) { throw "PeekMemo.exe --smoke exited $($process.ExitCode)." }
+
+      - name: Upload Windows zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: windows/dist/PeekMemo-Windows-x64-*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+  github:
+    name: Create GitHub Release
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Checksums and pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          find artifacts -type f -name '*.zip' -exec cp {} release/ \;
+          cd release
+          mac_zip="$(ls PeekMemo-macOS-*.zip)"
+          win_zip="$(ls PeekMemo-Windows-x64-*.zip)"
+          test -n "$mac_zip"
+          test -n "$win_zip"
+          sha256sum "$mac_zip" "$win_zip" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          cat > notes.md <<EOF
+          ## PeekMemo ${tag}
+
+          This is a pre-release candidate for acceptance testing.
+
+          ### macOS
+
+          - Left / Right / Bottom edge
+          - Daily tasks
+          - Categories
+          - Notes
+          - Subtasks
+          - SQLite persistence
+          - Resizable panel
+          - Background images
+          - Appearance preferences
+
+          ### Windows
+
+          - Left / Right / Bottom edge
+          - Daily tasks
+          - Categories
+          - Notes
+          - Subtasks
+          - SQLite persistence
+          - Resizable panel
+          - Appearance/background
+          - System tray
+
+          ### Known limitations
+
+          - Windows UI has automated logic/build validation but still needs device-level interaction validation
+          - macOS build is not notarized
+          - The macOS download is built on macos-15 for Apple silicon (arm64)
+          - Top edge is not supported
+          - No cloud sync
+
+          ### Checksums
+
+          See SHA256SUMS.txt. The macOS zip is ${mac_zip}. The Windows zip is ${win_zip}. Version ${version}.
+          EOF
+          args=(release create "$tag" --title "PeekMemo $tag" --notes-file notes.md)
+          if [[ "$tag" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}" "$mac_zip" "$win_zip" SHA256SUMS.txt
