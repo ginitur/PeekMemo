@@ -1,0 +1,111 @@
+import Foundation
+
+/// Every appearance UserDefaults key. Views must not write these themselves.
+public enum PreferencesKey {
+    public static let prefix = "peekmemo.preferences."
+    public static let theme = prefix + "theme"
+    public static let panelOpacity = prefix + "panelOpacity"
+    public static let panelWidthPreset = prefix + "panelWidthPreset"
+    public static let panelHeightPreset = prefix + "panelHeightPreset"
+    public static let edgeTabThickness = prefix + "edgeTabThickness"
+    public static let edgeTabLength = prefix + "edgeTabLength"
+    public static let edgeTabColorMode = prefix + "edgeTabColorMode"
+    public static let edgeTabCustomColor = prefix + "edgeTabCustomColor"
+    public static let edgeTabOpacity = prefix + "edgeTabOpacity"
+    public static let hoverOpenDelay = prefix + "hoverOpenDelay"
+    public static let hoverCloseDelay = prefix + "hoverCloseDelay"
+    public static let reduceMotion = prefix + "reduceMotion"
+    public static let launchAtLogin = prefix + "launchAtLogin"
+
+    /// Reset Appearance removes these. `launchAtLogin` is not appearance.
+    public static let appearanceAndBehavior: [String] = [
+        theme,
+        panelOpacity,
+        panelWidthPreset,
+        panelHeightPreset,
+        edgeTabThickness,
+        edgeTabLength,
+        edgeTabColorMode,
+        edgeTabCustomColor,
+        edgeTabOpacity,
+        hoverOpenDelay,
+        hoverCloseDelay,
+        reduceMotion,
+    ]
+}
+
+public struct PreferencesStore {
+    private let defaults: UserDefaults
+
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    public func load() -> AppearancePreferences {
+        let fallback = AppearancePreferences.default
+        let loaded = AppearancePreferences(
+            theme: enumValue(PreferencesKey.theme, fallback: fallback.theme),
+            panelOpacity: double(PreferencesKey.panelOpacity, fallback: fallback.panelOpacity),
+            panelWidthPreset: enumValue(PreferencesKey.panelWidthPreset, fallback: fallback.panelWidthPreset),
+            panelHeightPreset: enumValue(PreferencesKey.panelHeightPreset, fallback: fallback.panelHeightPreset),
+            edgeTabThickness: CGFloat(double(PreferencesKey.edgeTabThickness, fallback: fallback.edgeTabThickness)),
+            edgeTabLength: CGFloat(double(PreferencesKey.edgeTabLength, fallback: fallback.edgeTabLength)),
+            edgeTabColorMode: enumValue(PreferencesKey.edgeTabColorMode, fallback: fallback.edgeTabColorMode),
+            edgeTabCustomColor: color(PreferencesKey.edgeTabCustomColor, fallback: fallback.edgeTabCustomColor),
+            edgeTabOpacity: double(PreferencesKey.edgeTabOpacity, fallback: fallback.edgeTabOpacity),
+            hoverOpenDelay: double(PreferencesKey.hoverOpenDelay, fallback: fallback.hoverOpenDelay),
+            hoverCloseDelay: double(PreferencesKey.hoverCloseDelay, fallback: fallback.hoverCloseDelay),
+            reduceMotion: bool(PreferencesKey.reduceMotion, fallback: fallback.reduceMotion),
+            launchAtLogin: bool(PreferencesKey.launchAtLogin, fallback: fallback.launchAtLogin)
+        )
+        return loaded.clamped()
+    }
+
+    public func save(_ preferences: AppearancePreferences) {
+        let value = preferences.clamped()
+        defaults.set(value.theme.rawValue, forKey: PreferencesKey.theme)
+        defaults.set(value.panelOpacity, forKey: PreferencesKey.panelOpacity)
+        defaults.set(value.panelWidthPreset.rawValue, forKey: PreferencesKey.panelWidthPreset)
+        defaults.set(value.panelHeightPreset.rawValue, forKey: PreferencesKey.panelHeightPreset)
+        defaults.set(Double(value.edgeTabThickness), forKey: PreferencesKey.edgeTabThickness)
+        defaults.set(Double(value.edgeTabLength), forKey: PreferencesKey.edgeTabLength)
+        defaults.set(value.edgeTabColorMode.rawValue, forKey: PreferencesKey.edgeTabColorMode)
+        defaults.set(value.edgeTabCustomColor.hex, forKey: PreferencesKey.edgeTabCustomColor)
+        defaults.set(value.edgeTabOpacity, forKey: PreferencesKey.edgeTabOpacity)
+        defaults.set(value.hoverOpenDelay, forKey: PreferencesKey.hoverOpenDelay)
+        defaults.set(value.hoverCloseDelay, forKey: PreferencesKey.hoverCloseDelay)
+        defaults.set(value.reduceMotion, forKey: PreferencesKey.reduceMotion)
+        defaults.set(value.launchAtLogin, forKey: PreferencesKey.launchAtLogin)
+    }
+
+    /// Restores appearance and behavior. Does not write SQLite and keeps Launch at Login.
+    public func resetAppearanceAndBehavior() {
+        for key in PreferencesKey.appearanceAndBehavior {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func double(_ key: String, fallback: Double) -> Double {
+        guard defaults.object(forKey: key) != nil else { return fallback }
+        return defaults.double(forKey: key)
+    }
+
+    private func bool(_ key: String, fallback: Bool) -> Bool {
+        guard defaults.object(forKey: key) != nil else { return fallback }
+        return defaults.bool(forKey: key)
+    }
+
+    private func enumValue<T: RawRepresentable>(_ key: String, fallback: T) -> T where T.RawValue == String {
+        guard let raw = defaults.string(forKey: key), let value = T(rawValue: raw) else {
+            return fallback
+        }
+        return value
+    }
+
+    private func color(_ key: String, fallback: RGBAColor) -> RGBAColor {
+        guard let raw = defaults.string(forKey: key), let parsed = RGBAColor.parse(hex: raw) else {
+            return fallback
+        }
+        return parsed
+    }
+}

@@ -51,6 +51,18 @@ public struct CategoryRepository: Sendable {
         }
     }
 
+    public func updateColor(id: UUID, color: RGBAColor) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "UPDATE categories SET color = ?, updated_at = ? WHERE id = ?",
+                arguments: [color.hex, Date(), id.uuidString]
+            )
+            if db.changesCount == 0 {
+                throw PersistenceError.notFound(id)
+            }
+        }
+    }
+
     public func archiveCategory(id: UUID) throws {
         try writer.write { db in
             try db.execute(

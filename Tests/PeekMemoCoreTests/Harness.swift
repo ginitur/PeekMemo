@@ -72,6 +72,13 @@ enum PeekMemoCoreTestsMain {
             ("PinnedVsInteractive", PinnedVsInteractiveTests.run),
             ("CategorySelectionState", CategorySelectionStateTests.run),
             ("DragHandleIsolation", DragHandleIsolationTests.run),
+            ("PreferencesDefaults", PreferencesDefaultsTests.run),
+            ("PreferencesPersistence", PreferencesPersistenceTests.run),
+            ("PreferencesReset", PreferencesResetTests.run),
+            ("ColorPreference", ColorPreferenceTests.run),
+            ("PanelSizingPreference", PanelSizingPreferenceTests.run),
+            ("HoverDelayPreference", HoverDelayPreferenceTests.run),
+            ("ReduceMotionPreference", ReduceMotionPreferenceTests.run),
         ]
 
         var failed = 0
