@@ -11,9 +11,15 @@ let package = Package(
         .executable(name: "PeekMemoCoreTests", targets: ["PeekMemoCoreTests"]),
         .library(name: "PeekMemoCore", targets: ["PeekMemoCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.1"),
+    ],
     targets: [
         .target(
             name: "PeekMemoCore",
+            dependencies: [
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ],
             path: "Sources/PeekMemoCore",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
