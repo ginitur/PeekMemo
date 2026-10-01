@@ -94,15 +94,17 @@ The product model matches macOS: Date, Category, Note, Task, Subtask, Completion
 
 What is in the app today:
 
-- A system tray icon: Show PeekMemo, Settings, Quit PeekMemo
+- A system tray icon: Show PeekMemo, Reset Position, Settings, Quit PeekMemo
 - A borderless, topmost window with no taskbar button
-- A right-edge wedge. The window is the hover target (about 14 DIP). The drawn wedge is thinner (about 3 DIP)
-- Hover expands a basic panel and leave collapses it, after a short delay. Hover does not call `Activate`
+- Left, Right, and Bottom edge placement. The window is the hover target (about 14 DIP). The drawn wedge is thinner (about 3 DIP). Top is not a snap edge
+- Drag the wedge between those edges. A short move is still a click. Releasing always snaps to the nearest legal edge. The position saved is monitor device name, edge, and offset, not a raw x/y
+- Hover expands a basic panel and leave collapses it, after a short delay. Drag and resize pause that collapse. Hover does not call `Activate`
+- Resize from the free corner (22×22 DIP hit target, never larger than 24×24). Right keeps the right edge, Left keeps the left edge, Bottom keeps the bottom edge. The anchor offset does not move
 - One process per session. A second launch asks the first to show the panel
-- Settings for launch at startup, theme, opacity, wedge, hover delay, and Reduce Motion
-- JSON settings at `%LOCALAPPDATA%\PeekMemo\settings.json`
+- Settings for launch at startup, theme, opacity, wedge, hover delay, and Reduce Motion. The window also shows the saved panel size
+- JSON settings at `%LOCALAPPDATA%\PeekMemo\settings.json`, written to a temporary file and then replaced
 
-Not in this build: drag between edges, the resize grip, date and task UI, SQLite, and background images. The resize grip geometry is tested (22×22, at most 24×24) so the later grip cannot cover the panel. None of the WPF UI has been run on a Windows machine.
+Not in this build: date and task UI, SQLite, and background images. None of the WPF UI has been run on a Windows machine.
 
 Startup, when the user turns it on, is one per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. It does not need administrator rights and it does not write `HKLM`. Memo data is not stored in the registry. SQLite (`PeekMemo.sqlite`) is not opened yet.
 

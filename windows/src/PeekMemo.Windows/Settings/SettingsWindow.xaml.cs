@@ -36,10 +36,22 @@ public partial class SettingsWindow : Window
         FillDelays(OpenDelayBox, OpenDelays, settings.HoverOpenDelaySeconds);
         FillDelays(CloseDelayBox, CloseDelays, settings.HoverCloseDelaySeconds);
         ReduceMotionBox.IsChecked = settings.ReduceMotion;
+        PanelSizeText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            "Panel size: {0:0} × {1:0} DIP",
+            settings.PanelWidth,
+            settings.PanelHeight);
     }
 
     void Ok_Click(object sender, RoutedEventArgs e)
     {
+        var latest = _store.Load();
+        _settings.PanelWidth = latest.PanelWidth;
+        _settings.PanelHeight = latest.PanelHeight;
+        _settings.Edge = latest.Edge;
+        _settings.EdgeOffset = latest.EdgeOffset;
+        _settings.MonitorDeviceName = latest.MonitorDeviceName;
+        _settings.Placement = latest.Placement;
         _settings.LaunchAtStartup = LaunchAtStartupBox.IsChecked == true;
         _settings.Theme = ThemeBox.SelectedIndex switch
         {

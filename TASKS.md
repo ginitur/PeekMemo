@@ -196,6 +196,15 @@ Separate native client. Not a port of the AppKit UI.
 - [x] Right working-area edge. Visible wedge is thinner than the hit window
 - [ ] PARTIAL: no Windows machine in this session, so hover, tray, and DPI were not clicked through
 
+## Windows Phase 2 — Edge placement, drag, and resize
+
+- [x] `EdgeAnchor` is monitor device name + Left/Right/Bottom + offset. Top restores to Right
+- [x] Drag starts on the wedge or the expanded edge handle, with a 6 DIP threshold and a 24 DIP magnet. Mouse-up snaps to the nearest legal edge
+- [x] Panel resize is free, 280×300 minimum, default 340×460. The grip hit target is 22×22 and at most 24×24. Offset does not change
+- [x] Placement and size persist in `%LOCALAPPDATA%\PeekMemo\settings.json` (temp file, then replace). A broken file is left in place
+- [x] Core tests for anchor, corners, expand direction, resize contact edges, DPI, cross-monitor pixels, migration, and hover hold
+- [ ] PARTIAL: no Windows machine, so drag, resize, taskbar avoidance, and per-monitor DPI were not clicked through
+
 ## Phase 12 — GitHub packaging
 
 - [ ] README screenshots

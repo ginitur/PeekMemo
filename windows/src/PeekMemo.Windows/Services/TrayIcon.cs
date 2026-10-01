@@ -6,10 +6,11 @@ internal sealed class TrayIcon : IDisposable
 {
     readonly Forms.NotifyIcon _icon;
 
-    public TrayIcon(Action show, Action openSettings, Action quit)
+    public TrayIcon(Action show, Action resetPosition, Action openSettings, Action quit)
     {
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Show PeekMemo", null, (_, _) => show());
+        menu.Items.Add("Reset Position", null, (_, _) => resetPosition());
         menu.Items.Add("Settings", null, (_, _) => openSettings());
         menu.Items.Add("Quit PeekMemo", null, (_, _) => quit());
 

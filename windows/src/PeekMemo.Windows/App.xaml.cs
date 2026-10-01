@@ -13,6 +13,7 @@ public partial class App : Application
     TrayIcon? _tray;
     EdgeWindow? _edge;
     SystemThemeWatcher? _theme;
+    DisplayWatcher? _display;
     SettingsStore? _store;
     CurrentUserStartupRegistration? _startup;
 
@@ -40,9 +41,12 @@ public partial class App : Application
         _edge = new EdgeWindow(_store, settings);
         _theme = new SystemThemeWatcher();
         _theme.Changed += () => Dispatcher.Invoke(RefreshFromDisk);
+        _display = new DisplayWatcher();
+        _display.Changed += () => Dispatcher.Invoke(() => _edge?.RevalidatePlacement());
         _single.WhenShowRequested(() => Dispatcher.Invoke(() => _edge?.ShowPinned()));
         _tray = new TrayIcon(
             show: () => Dispatcher.Invoke(() => _edge?.ShowPinned()),
+            resetPosition: () => Dispatcher.Invoke(() => _edge?.ResetToPrimaryRight()),
             openSettings: () => Dispatcher.Invoke(OpenSettings),
             quit: () => Dispatcher.Invoke(Quit));
         _edge.Show();
@@ -80,6 +84,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _theme?.Dispose();
+        _display?.Dispose();
         _tray?.Dispose();
         _single?.Dispose();
         base.OnExit(e);

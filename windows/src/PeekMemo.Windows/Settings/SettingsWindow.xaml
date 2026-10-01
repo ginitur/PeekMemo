@@ -28,6 +28,8 @@
             <TextBlock Text="Edge wedge opacity"/>
             <Slider x:Name="WedgeOpacitySlider" Minimum="0.20" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Margin="0,4,0,10"/>
 
+            <TextBlock x:Name="PanelSizeText" TextWrapping="Wrap" Margin="0,4,0,8"/>
+
             <TextBlock Text="Behavior" FontWeight="SemiBold" Margin="0,8,0,8"/>
             <TextBlock Text="Hover open delay"/>
             <ComboBox x:Name="OpenDelayBox" Margin="0,4,0,10"/>
@@ -36,7 +38,7 @@
             <CheckBox x:Name="ReduceMotionBox" Content="Reduce motion"/>
 
             <TextBlock x:Name="ScopeNote" TextWrapping="Wrap" Opacity="0.7" Margin="0,16,0,12"
-                       Text="This build is the right-edge wedge and hover panel. Categories, background images, drag, and resize are not in it yet. SQLite is not wired up yet."/>
+                       Text="Drag moves the wedge between Left, Right, and Bottom. The corner grip resizes the panel. Top is not a snap edge. Date, tasks, categories, background images, and SQLite are not in this build."/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" Width="88" Margin="0,0,8,0" IsCancel="True" Click="Cancel_Click"/>
                 <Button Content="OK" Width="88" IsDefault="True" Click="Ok_Click"/>

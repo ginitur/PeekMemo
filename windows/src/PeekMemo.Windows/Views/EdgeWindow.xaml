@@ -13,18 +13,21 @@
         Focusable="False"
         Width="14"
         Height="56">
-    <Grid>
+    <!-- Alpha 1 keeps the hit region clickable. Alpha 0 on a layered window is click-through. -->
+    <Grid Background="#01000000">
         <Border x:Name="CollapsedChrome"
                 HorizontalAlignment="Right"
                 Width="3"
                 CornerRadius="1.5"
+                IsHitTestVisible="False"
                 SnapsToDevicePixels="True"/>
         <Border x:Name="ExpandedChrome"
                 Margin="0,0,14,0"
                 CornerRadius="16"
                 BorderThickness="1"
                 Padding="20"
-                Visibility="Collapsed">
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="14" ShadowDepth="1" Opacity="0.16" Color="#000000"/>
             </Border.Effect>
@@ -32,6 +35,36 @@
                 <TextBlock x:Name="TitleText" Text="PeekMemo" FontSize="18" FontWeight="SemiBold"/>
                 <TextBlock x:Name="SubtitleText" Text="Right edge" Margin="0,6,0,0" Opacity="0.72"/>
             </StackPanel>
+        </Border>
+        <Border x:Name="DragHandleChrome"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Width="14"
+                Height="56"
+                Visibility="Collapsed"
+                Background="Transparent"
+                IsHitTestVisible="False">
+            <Border x:Name="DragHandleMark"
+                    HorizontalAlignment="Right"
+                    Width="3"
+                    CornerRadius="1.5"
+                    IsHitTestVisible="False"/>
+        </Border>
+        <Border x:Name="ResizeGrip"
+                Width="22"
+                Height="22"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Margin="6,0,0,6"
+                Visibility="Collapsed"
+                Background="Transparent"
+                IsHitTestVisible="False"
+                RenderTransformOrigin="0.5,0.5">
+            <Canvas Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                <Border x:Name="GripTickA" Height="1.5" Width="8" Canvas.Left="5" Canvas.Top="11" CornerRadius="0.75"/>
+                <Border x:Name="GripTickB" Height="1.5" Width="5" Canvas.Left="8" Canvas.Top="8" CornerRadius="0.75"/>
+                <Border x:Name="GripTickC" Height="1.5" Width="2" Canvas.Left="11" Canvas.Top="5" CornerRadius="0.75"/>
+            </Canvas>
         </Border>
     </Grid>
 </win:NonActivatingWindow>

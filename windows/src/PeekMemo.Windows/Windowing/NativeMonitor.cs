@@ -1,32 +1,84 @@
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using PeekMemo.Core.Geometry;
 
 namespace PeekMemo.Windows.Windowing;
 
-internal readonly record struct ScreenWorkArea(string DeviceName, DipRect Bounds);
-
 internal static class NativeMonitor
 {
-    const uint DefaultToPrimary = 1;
+    const uint DefaultToNearest = 2;
     const int EffectiveDpi = 0;
+    const uint PrimaryFlag = 1;
 
-    public static ScreenWorkArea? Primary()
+    public static IReadOnlyList<MonitorDescriptor> All()
     {
-        var monitor = MonitorFromPoint(new PointNative(), DefaultToPrimary);
-        return Read(monitor);
+        var found = new List<MonitorDescriptor>();
+        MonitorEnumProc callback = (IntPtr monitor, IntPtr _, IntPtr _, IntPtr _) =>
+        {
+            if (TryRead(monitor, out var descriptor))
+            {
+                found.Add(descriptor);
+            }
+
+            return true;
+        };
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
+        GC.KeepAlive(callback);
+        return found;
     }
 
-    public static ScreenWorkArea? Read(IntPtr monitor)
+    public static MonitorDescriptor? FromPoint(int x, int y) =>
+        Read(MonitorFromPoint(new PointNative { X = x, Y = y }, DefaultToNearest));
+
+    public static MonitorDescriptor? FromWindow(IntPtr hwnd)
     {
-        if (monitor == IntPtr.Zero)
+        if (hwnd == IntPtr.Zero)
         {
             return null;
         }
 
-        var info = new MonitorInfoEx { cbSize = Marshal.SizeOf<MonitorInfoEx>() };
+        return Read(MonitorFromWindow(hwnd, DefaultToNearest));
+    }
+
+    public static bool TryCursor(out int x, out int y)
+    {
+        if (!GetCursorPos(out var point))
+        {
+            x = 0;
+            y = 0;
+            return false;
+        }
+
+        x = point.X;
+        y = point.Y;
+        return true;
+    }
+
+    public static uint WindowDpi(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return 0;
+        }
+
+        return GetDpiForWindow(hwnd);
+    }
+
+    static MonitorDescriptor? Read(IntPtr monitor) =>
+        TryRead(monitor, out var descriptor) ? descriptor : null;
+
+    static bool TryRead(IntPtr monitor, out MonitorDescriptor descriptor)
+    {
+        descriptor = default;
+        if (monitor == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var info = new MonitorInfoEx { Size = Marshal.SizeOf<MonitorInfoEx>() };
         if (!GetMonitorInfo(monitor, ref info))
         {
-            return null;
+            return false;
         }
 
         var dpi = 96u;
@@ -35,12 +87,32 @@ internal static class NativeMonitor
             dpi = dpiX;
         }
 
-        var bounds = MonitorScale.ToDip(info.rcWork.Left, info.rcWork.Top, info.rcWork.Right, info.rcWork.Bottom, dpi);
-        return new ScreenWorkArea(info.szDevice ?? "", bounds);
+        var name = (info.Device ?? "").TrimEnd('\0').Trim();
+        descriptor = new MonitorDescriptor(
+            name,
+            new PixelRect(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom),
+            new PixelRect(info.Work.Left, info.Work.Top, info.Work.Right, info.Work.Bottom),
+            dpi,
+            (info.Flags & PrimaryFlag) != 0);
+        return true;
     }
+
+    delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, IntPtr lprcMonitor, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
 
     [DllImport("user32.dll")]
     static extern IntPtr MonitorFromPoint(PointNative pt, uint flags);
+
+    [DllImport("user32.dll")]
+    static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll")]
+    static extern bool GetCursorPos(out PointNative point);
+
+    [DllImport("user32.dll")]
+    static extern uint GetDpiForWindow(IntPtr hwnd);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx info);
@@ -67,11 +139,11 @@ internal static class NativeMonitor
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     struct MonitorInfoEx
     {
-        public int cbSize;
-        public RectNative rcMonitor;
-        public RectNative rcWork;
-        public uint dwFlags;
+        public int Size;
+        public RectNative Monitor;
+        public RectNative Work;
+        public uint Flags;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string szDevice;
+        public string Device;
     }
 }

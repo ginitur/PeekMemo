@@ -13,15 +13,25 @@ internal static class WindowStyles
     const uint SwpShowWindow = 0x0040;
     static readonly IntPtr HwndTopmost = new(-1);
 
-    public static void MakeNoActivateToolWindow(IntPtr hwnd)
+    public static void MakeNoActivateToolWindow(IntPtr hwnd) => UsePeekMode(hwnd, peek: true);
+
+    /// Peek keeps WS_EX_NOACTIVATE. Interactive mode, reserved for a later explicit edit, clears it.
+    public static void UsePeekMode(IntPtr hwnd, bool peek)
     {
         var style = GetExStyle(hwnd).ToInt64();
-        SetExStyle(hwnd, new IntPtr(style | WsExToolWindow | WsExNoActivate));
+        style |= WsExToolWindow;
+        style = peek ? style | WsExNoActivate : style & ~WsExNoActivate;
+        SetExStyle(hwnd, new IntPtr(style));
     }
 
     public static void KeepTopmostWithoutActivating(IntPtr hwnd)
     {
         SetWindowPos(hwnd, HwndTopmost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate | SwpShowWindow);
+    }
+
+    public static void PlaceWithoutActivating(IntPtr hwnd, int x, int y, int width, int height)
+    {
+        SetWindowPos(hwnd, HwndTopmost, x, y, Math.Max(1, width), Math.Max(1, height), SwpNoActivate | SwpShowWindow);
     }
 
     static IntPtr GetExStyle(IntPtr hwnd) =>

@@ -62,3 +62,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Native Windows client bootstrap under `windows/`: .NET 8 class library, WPF project, solution, and core tests. No Electron, Tauri, or WebView UI. The WPF window is not device-verified.
 - GitHub Actions workflow `.github/workflows/windows.yml` on `windows-latest`: restore, Release build, and test. The macOS workflow is unchanged.
 - Windows tray app and a right-edge wedge. Hover expands a basic panel and does not activate the window. Not device-verified.
+- Windows edge placement for Left, Right, and Bottom: drag snapping, corner resize, per-monitor DPI conversion, and monitor-name placement in `settings.json`. Not device-verified. Top is not a snap edge.

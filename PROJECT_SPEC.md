@@ -236,10 +236,16 @@ The SQLite column lists in `MemoSchema` match macOS. Windows does not add task c
 
 Supported edges are Left, Right, and Bottom. Top is not a snap target. A stored Top value resolves to Right. Placement is monitor id + edge + offset, not absolute x/y.
 
-Geometry uses a top-left origin, Y down, in DIPs. The working rectangle comes from the monitor work area (`rcWork`), so the taskbar is already excluded. Resize grip geometry is a 22×22 corner, never larger than 24×24, and it is not the card. The phase 1 window does not show a resize grip.
+Geometry uses a top-left origin, Y down, in DIPs. Win32 monitor rectangles are physical pixels and are converted at the `DpiScale` boundary (`dpi / 96`). Core placement does not mix the two. The working rectangle comes from the monitor work area (`rcWork`), so the taskbar is already excluded. Do not hard-code a taskbar height.
+
+The anchor is `{ monitor device name, edge, offset }`. The device name is `MONITORINFOEX.szDevice`, not a monitor index and not an absolute x/y. Left/Right offset is the anchor center measured down from the working-area top. Bottom offset is measured right from the working-area left. Expand, collapse, hover, and resize do not change it. Only a drag does. A missing monitor moves the window to the current primary. Top is stored only long enough to restore as Right.
+
+Drag starts on the collapsed wedge or, when expanded, on a wedge-sized handle on the outer edge. The panel itself is not a drag surface. Movement under 6 DIP stays a click. Within 24 DIP of a legal edge the wedge magnets; farther away it follows the pointer. Mouse-up always snaps to the nearest of Left, Right, and Bottom on the monitor under the pointer. Right grows left with max X fixed, Left grows right with min X fixed, and Bottom grows up with max Y fixed. Near a corner the panel body clamps and the handle stays on the anchor.
+
+The resize hit target is a 22×22 DIP corner, never larger than 24×24. Right uses the bottom-left, Left the bottom-right, Bottom the top-right. The saved size is the user’s request clamped to 280×300 through 2400×2400. A smaller working area shrinks the live window only. Hover uses the card plus the handle, not the bounding union of the collapsed and expanded rects. Drag and resize pause auto-collapse. Hover and drag do not call `Activate`. `WS_EX_NOACTIVATE` stays on until a future explicit edit.
 
 Launch at startup, when the user turns it on, is one `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value named `PeekMemo`. No administrator, no `HKLM`, no shell replacement. Memo data is not written to the registry.
 
-The phase 1 window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE`). It draws a right-edge wedge and expands a basic panel on hover. It does not call `Activate` for hover. The tray is `System.Windows.Forms.NotifyIcon` only. Drag, the resize grip, tasks, and SQLite are not in this window. The grip math is still tested.
+The window is a borderless topmost WPF window (`WindowStyle=None`, `ShowInTaskbar=false`, `ShowActivated=false`, `WS_EX_NOACTIVATE`). The tray is `System.Windows.Forms.NotifyIcon` with Show, Reset Position, Settings, and Quit. Reset Position returns to the primary monitor’s right edge, centered. Display and work-area changes come from system events, not a timer. Tasks and SQLite are not in this window.
 
 The WPF UI has not been run on Windows from this macOS workspace. `windows-latest` is the build and test check. A local `EnableWindowsTargeting` compile is not a device test.
