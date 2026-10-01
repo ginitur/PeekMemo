@@ -19,6 +19,8 @@ public static class MemoTypeNames
     };
 }
 
+/// <see cref="ScheduledDate"/> is the civil day the item belongs to, not a timestamp.
+/// <see cref="CompletedAt"/> is the instant it was checked. Due date is unused by the panel.
 public sealed record MemoItem(
     Guid Id,
     Guid? CategoryId,
@@ -29,8 +31,8 @@ public sealed record MemoItem(
     bool IsCompleted,
     DateTimeOffset? CompletedAt,
     int SortOrder,
-    DateTimeOffset? ScheduledDate,
-    DateTimeOffset? DueDate,
+    DateOnly ScheduledDate,
+    DateOnly? DueDate,
     bool IsArchived,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
@@ -38,30 +40,33 @@ public sealed record MemoItem(
     public static MemoItem Create(
         MemoItemType type,
         string title,
-        DateTimeOffset scheduled,
+        DateOnly scheduled,
         Guid? categoryId = null,
         Guid? parentId = null,
         int sortOrder = 0,
         bool isCompleted = false,
         DateTimeOffset? completedAt = null,
         bool isArchived = false,
-        DateTimeOffset? dueDate = null,
-        Guid? id = null)
+        DateOnly? dueDate = null,
+        Guid? id = null,
+        string? body = null,
+        DateTimeOffset? timestamp = null)
     {
+        var stamp = timestamp ?? DateTimeOffset.UtcNow;
         return new MemoItem(
             id ?? Guid.NewGuid(),
             categoryId,
             parentId,
             type,
             title,
-            Body: null,
+            body,
             isCompleted,
             completedAt,
             sortOrder,
             scheduled,
             dueDate,
             isArchived,
-            scheduled,
-            scheduled);
+            stamp,
+            stamp);
     }
 }

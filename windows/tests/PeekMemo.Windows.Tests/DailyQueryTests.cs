@@ -7,21 +7,20 @@ namespace PeekMemo.Windows.Tests;
 
 public class DailyQueryTests
 {
-    static readonly TimeZoneInfo Zone = TimeZoneInfo.Utc;
-    static readonly DateTimeOffset Today = new(2026, 10, 1, 9, 0, 0, TimeSpan.Zero);
-    static readonly DateTimeOffset Yesterday = Today.AddDays(-1);
-    static readonly CivilDay TodayDay = CivilDay.From(Today, Zone);
+    static readonly DateOnly TodayDate = new(2026, 10, 1);
+    static readonly DateOnly YesterdayDate = new(2026, 9, 30);
+    static readonly DateTimeOffset Stamp = new(2026, 10, 1, 9, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void DailyQueryReturnsThatDaysRootsOnly()
     {
         var work = Guid.NewGuid();
-        var parent = MemoItem.Create(MemoItemType.Task, "Parent", Today, work, sortOrder: 1);
-        var child = MemoItem.Create(MemoItemType.Task, "Child", Today, work, parent.Id, sortOrder: 0);
-        var note = MemoItem.Create(MemoItemType.Note, "Note", Today, sortOrder: 2);
-        var otherDay = MemoItem.Create(MemoItemType.Task, "Yesterday", Yesterday);
+        var parent = MemoItem.Create(MemoItemType.Task, "Parent", TodayDate, work, sortOrder: 1);
+        var child = MemoItem.Create(MemoItemType.Task, "Child", TodayDate, work, parent.Id, sortOrder: 0);
+        var note = MemoItem.Create(MemoItemType.Note, "Note", TodayDate, sortOrder: 2);
+        var otherDay = MemoItem.Create(MemoItemType.Task, "Yesterday", YesterdayDate);
 
-        var roots = DailyQuery.RootsOn([parent, child, note, otherDay], TodayDay, categoryId: null);
+        var roots = DailyQuery.GetDailyItems([parent, child, note, otherDay], TodayDate, categoryId: null);
 
         Assert.Equal([parent.Id, note.Id], roots.Select(item => item.Id).ToArray());
         Assert.DoesNotContain(roots, item => item.Id == child.Id);
@@ -32,12 +31,12 @@ public class DailyQueryTests
     {
         var work = Guid.NewGuid();
         var personal = Guid.NewGuid();
-        var workTask = MemoItem.Create(MemoItemType.Task, "Work", Today, work);
-        var personalTask = MemoItem.Create(MemoItemType.Task, "Personal", Today, personal);
-        var unlabeled = MemoItem.Create(MemoItemType.Task, "Loose", Today);
+        var workTask = MemoItem.Create(MemoItemType.Task, "Work", TodayDate, work);
+        var personalTask = MemoItem.Create(MemoItemType.Task, "Personal", TodayDate, personal);
+        var unlabeled = MemoItem.Create(MemoItemType.Task, "Loose", TodayDate);
 
-        var all = DailyQuery.RootsOn([workTask, personalTask, unlabeled], TodayDay, categoryId: null);
-        var onlyWork = DailyQuery.RootsOn([workTask, personalTask, unlabeled], TodayDay, work);
+        var all = DailyQuery.GetDailyItems([workTask, personalTask, unlabeled], TodayDate, categoryId: null);
+        var onlyWork = DailyQuery.GetDailyItems([workTask, personalTask, unlabeled], TodayDate, work);
 
         Assert.Equal(3, all.Count);
         Assert.Equal([workTask.Id], onlyWork.Select(item => item.Id).ToArray());
@@ -47,28 +46,28 @@ public class DailyQueryTests
     [Fact]
     public void PastUnfinishedAppearsOnlyOnTodayAndDoesNotMoveTheDate()
     {
-        var old = MemoItem.Create(MemoItemType.Task, "Old", Yesterday);
-        var done = MemoItem.Create(MemoItemType.Task, "Done", Yesterday, isCompleted: true, completedAt: Today);
-        var note = MemoItem.Create(MemoItemType.Note, "Note", Yesterday);
-        var todayTask = MemoItem.Create(MemoItemType.Task, "Today", Today);
+        var old = MemoItem.Create(MemoItemType.Task, "Old", YesterdayDate);
+        var done = MemoItem.Create(MemoItemType.Task, "Done", YesterdayDate, isCompleted: true, completedAt: Stamp);
+        var note = MemoItem.Create(MemoItemType.Note, "Note", YesterdayDate);
+        var todayTask = MemoItem.Create(MemoItemType.Task, "Today", TodayDate);
 
-        var onToday = DailyQuery.PastUnfinished([old, done, note, todayTask], TodayDay, TodayDay);
-        var onYesterday = DailyQuery.PastUnfinished([old], CivilDay.From(Yesterday, Zone), TodayDay);
+        var onToday = DailyQuery.GetPastUnfinished([old, done, note, todayTask], TodayDate, TodayDate);
+        var onYesterday = DailyQuery.GetPastUnfinished([old], YesterdayDate, TodayDate);
 
         Assert.Equal([old.Id], onToday.Select(item => item.Id).ToArray());
-        Assert.True(onToday[0].ScheduledDate == Yesterday);
+        Assert.Equal(YesterdayDate, onToday[0].ScheduledDate);
         Assert.Empty(onYesterday);
     }
 
     [Fact]
     public void ProgressIgnoresNotesAndSubtasks()
     {
-        var parent = MemoItem.Create(MemoItemType.Task, "Parent", Today, isCompleted: true, completedAt: Today);
-        var note = MemoItem.Create(MemoItemType.Note, "Note", Today);
-        var child = MemoItem.Create(MemoItemType.Task, "Child", Today, parentId: parent.Id, isCompleted: true, completedAt: Today);
-        var roots = DailyQuery.RootsOn([parent, note, child], TodayDay, categoryId: null);
+        var parent = MemoItem.Create(MemoItemType.Task, "Parent", TodayDate, isCompleted: true, completedAt: Stamp);
+        var note = MemoItem.Create(MemoItemType.Note, "Note", TodayDate);
+        var child = MemoItem.Create(MemoItemType.Task, "Child", TodayDate, parentId: parent.Id, isCompleted: true, completedAt: Stamp);
+        var roots = DailyQuery.GetDailyItems([parent, note, child], TodayDate, categoryId: null);
 
-        var progress = DailyQuery.Progress(roots);
+        var progress = DailyQuery.GetProgress(roots);
 
         Assert.Equal(1, progress.Completed);
         Assert.Equal(1, progress.Total);
