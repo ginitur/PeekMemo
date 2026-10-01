@@ -4,57 +4,71 @@ import PeekMemoCore
 
 enum PanelSizingPreferenceTests {
     static func run() throws {
-        try compactWindowAddsTheHitRail()
-        try shortContentDoesNotUseTheMaxHeight()
-        try overflowCapsTheBodyViewport()
-        try presetsChangeTheColumn()
+        try defaultCardIsTallerThanItIsWide()
+        try shortContentDoesNotShrinkTheCard()
+        try minimumSizeIsASmallNote()
+        try presetsUseFixedCards()
         try hitRegionIgnoresVisualThickness()
+        try edgeTabLengthIsIndependentOfPanelSize()
     }
 
-    static func compactWindowAddsTheHitRail() throws {
+    static func defaultCardIsTallerThanItIsWide() throws {
         let prefs = AppearancePreferences.default
-        let size = prefs.expandedWindowSize(edgeIsVertical: true, header: 44, body: 80)
-        try expectEqual(size.width, 280 + LayoutMetrics.hoverHitThickness)
-        try expectEqual(prefs.contentColumnHeight(header: 44, body: 80), 124)
-        try expectEqual(size.height, 124)
-        let horizontal = prefs.expandedWindowSize(edgeIsVertical: false, header: 44, body: 80)
-        try expectEqual(horizontal.width, 280)
-        try expectEqual(horizontal.height, 124 + LayoutMetrics.hoverHitThickness)
+        try expectEqual(prefs.panelSizeMode, .medium)
+        try expectEqual(prefs.panelWidth, 340)
+        try expectEqual(prefs.panelHeight, 460)
+        let visible = CGSize(width: 1512, height: 944)
+        let window = prefs.windowSize(edgeIsVertical: true, visible: visible)
+        try expectEqual(window.width, 340 + LayoutMetrics.hoverHitThickness)
+        try expectEqual(window.height, 460)
+        try expect(window.height > window.width)
+        let horizontal = prefs.windowSize(edgeIsVertical: false, visible: visible)
+        try expectEqual(horizontal.width, 340)
+        try expectEqual(horizontal.height, 460 + LayoutMetrics.hoverHitThickness)
     }
 
-    static func shortContentDoesNotUseTheMaxHeight() throws {
+    static func shortContentDoesNotShrinkTheCard() throws {
         let prefs = AppearancePreferences.default
-        let column = prefs.contentColumnHeight(header: 44, body: 30)
-        try expectEqual(column, AppearancePreferences.minimumContentHeight)
-        try expect(column < prefs.panelHeightPreset.maxContentHeight)
-        try expectEqual(prefs.bodyViewport(header: 44, body: 30), 30)
+        let visible = CGSize(width: 1440, height: 900)
+        let display = prefs.displayContentSize(visible: visible, edgeIsVertical: true)
+        try expectEqual(display.height, prefs.panelHeight)
+        try expect(display.height > PanelSizeMetrics.minimumHeight)
+        try expect(display.height > 120, "empty days must not collapse to a header strip")
     }
 
-    static func overflowCapsTheBodyViewport() throws {
-        let prefs = AppearancePreferences.default
-        try expectEqual(prefs.panelHeightPreset.maxContentHeight, 420)
-        let column = prefs.contentColumnHeight(header: 50, body: 900)
-        try expectEqual(column, 420)
-        try expectEqual(prefs.bodyViewport(header: 50, body: 900), 370)
+    static func minimumSizeIsASmallNote() throws {
+        let tiny = AppearancePreferences(panelSizeMode: .custom, panelWidth: 100, panelHeight: 40)
+        try expectEqual(tiny.panelWidth, PanelSizeMetrics.minimumWidth)
+        try expectEqual(tiny.panelHeight, PanelSizeMetrics.minimumHeight)
+        try expectEqual(PanelSizeMetrics.minimumWidth, 280)
+        try expectEqual(PanelSizeMetrics.minimumHeight, 300)
     }
 
-    static func presetsChangeTheColumn() throws {
-        let wide = AppearancePreferences(panelWidthPreset: .wide, panelHeightPreset: .large)
-        let size = wide.expandedWindowSize(edgeIsVertical: true, header: 40, body: 800)
-        try expectEqual(size.width, 420 + 14)
-        try expectEqual(size.height, 560)
-        let small = AppearancePreferences(panelWidthPreset: .medium, panelHeightPreset: .small)
-        try expectEqual(small.expandedWindowSize(edgeIsVertical: false, header: 40, body: 800).width, 340)
-        try expectEqual(small.contentColumnHeight(header: 40, body: 800), 280)
-        try expectEqual(small.bodyViewport(header: 40, body: 800), 240)
+    static func presetsUseFixedCards() throws {
+        let small = AppearancePreferences(panelSizeMode: .small, panelWidth: 999, panelHeight: 999)
+        try expectEqual(small.panelWidth, 300)
+        try expectEqual(small.panelHeight, 360)
+        let large = AppearancePreferences(panelSizeMode: .large)
+        try expectEqual(large.panelWidth, 420)
+        try expectEqual(large.panelHeight, 560)
+        let visible = CGSize(width: 1600, height: 1000)
+        try expectEqual(large.windowSize(edgeIsVertical: true, visible: visible).width, 420 + 14)
+        try expectEqual(large.windowSize(edgeIsVertical: true, visible: visible).height, 560)
     }
 
     static func hitRegionIgnoresVisualThickness() throws {
         for thickness in [CGFloat(2), 3, 6] {
             for length in [CGFloat(32), 56, 96] {
-                let prefs = AppearancePreferences(edgeTabThickness: thickness, edgeTabLength: length)
+                let prefs = AppearancePreferences(
+                    panelSizeMode: .custom,
+                    panelWidth: 368,
+                    panelHeight: 512,
+                    edgeTabThickness: thickness,
+                    edgeTabLength: length
+                )
                 try expectEqual(prefs.edgeTabThickness, thickness)
                 try expectEqual(prefs.edgeTabLength, length)
+                try expectEqual(prefs.panelWidth, 368)
                 try expectEqual(prefs.hitRegionThickness, 14)
                 let vertical = EdgeGeometry.collapsedWindowSize(edge: .right, stackLength: length)
                 try expectEqual(vertical.width, LayoutMetrics.hoverHitThickness)
@@ -64,5 +78,12 @@ enum PanelSizingPreferenceTests {
                 try expectEqual(horizontal.width, length)
             }
         }
+    }
+
+    static func edgeTabLengthIsIndependentOfPanelSize() throws {
+        let wide = AppearancePreferences(panelSizeMode: .large)
+        let narrow = AppearancePreferences(panelSizeMode: .small)
+        try expectEqual(wide.edgeTabLength, narrow.edgeTabLength)
+        try expectEqual(wide.hitRegionThickness, narrow.hitRegionThickness)
     }
 }

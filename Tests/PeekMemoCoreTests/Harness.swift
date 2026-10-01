@@ -77,6 +77,10 @@ enum PeekMemoCoreTestsMain {
             ("PreferencesReset", PreferencesResetTests.run),
             ("ColorPreference", ColorPreferenceTests.run),
             ("PanelSizingPreference", PanelSizingPreferenceTests.run),
+            ("PanelSizeMigration", PanelSizeMigrationTests.run),
+            ("CustomPanelSizePersistence", CustomPanelSizePersistenceTests.run),
+            ("PanelResizeClamp", PanelResizeClampTests.run),
+            ("AnchorStableDuringResize", AnchorStableDuringResizeTests.run),
             ("HoverDelayPreference", HoverDelayPreferenceTests.run),
             ("ReduceMotionPreference", ReduceMotionPreferenceTests.run),
         ]

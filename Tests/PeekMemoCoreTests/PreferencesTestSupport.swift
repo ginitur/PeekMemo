@@ -19,8 +19,9 @@ enum PreferencesTestSupport {
         AppearancePreferences(
             theme: .dark,
             panelOpacity: 0.80,
-            panelWidthPreset: .wide,
-            panelHeightPreset: .small,
+            panelSizeMode: .custom,
+            panelWidth: 400,
+            panelHeight: 520,
             edgeTabThickness: 6,
             edgeTabLength: 96,
             edgeTabColorMode: .custom,

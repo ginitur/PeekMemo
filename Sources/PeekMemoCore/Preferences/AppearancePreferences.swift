@@ -12,42 +12,13 @@ public enum EdgeTabColorMode: String, Codable, Sendable, CaseIterable {
     case custom
 }
 
-/// Memo-column width. The 14 pt hit rail is added beside it on Left / Right.
-public enum PanelWidthPreset: String, Codable, Sendable, CaseIterable {
-    case compact
-    case medium
-    case wide
-
-    public var contentWidth: CGFloat {
-        switch self {
-        case .compact: 280
-        case .medium: 340
-        case .wide: 420
-        }
-    }
-}
-
-/// Maximum memo-column height, including the header. Short content shrinks below this.
-public enum PanelHeightPreset: String, Codable, Sendable, CaseIterable {
-    case small
-    case medium
-    case large
-
-    public var maxContentHeight: CGFloat {
-        switch self {
-        case .small: 280
-        case .medium: 420
-        case .large: 560
-        }
-    }
-}
-
 /// Appearance and behavior. Persisted only through `PreferencesStore`.
 public struct AppearancePreferences: Equatable, Sendable {
     public var theme: ThemePreference
     public var panelOpacity: Double
-    public var panelWidthPreset: PanelWidthPreset
-    public var panelHeightPreset: PanelHeightPreset
+    public var panelSizeMode: PanelSizeMode
+    public var panelWidth: CGFloat
+    public var panelHeight: CGFloat
     public var edgeTabThickness: CGFloat
     public var edgeTabLength: CGFloat
     public var edgeTabColorMode: EdgeTabColorMode
@@ -66,8 +37,6 @@ public struct AppearancePreferences: Equatable, Sendable {
     public static let lengthRange: ClosedRange<CGFloat> = 32...96
     public static let openDelayChoices: [TimeInterval] = [0, 0.10, 0.16, 0.25, 0.40]
     public static let closeDelayChoices: [TimeInterval] = [0.15, 0.25, 0.35, 0.50, 0.75]
-    public static let minimumContentHeight: CGFloat = 120
-    public static let minimumBodyHeight: CGFloat = 40
     public static let hoverEmphasisBoost = 0.18
 
     public static let `default` = AppearancePreferences()
@@ -75,8 +44,9 @@ public struct AppearancePreferences: Equatable, Sendable {
     public init(
         theme: ThemePreference = .system,
         panelOpacity: Double = defaultPanelOpacity,
-        panelWidthPreset: PanelWidthPreset = .compact,
-        panelHeightPreset: PanelHeightPreset = .medium,
+        panelSizeMode: PanelSizeMode = .medium,
+        panelWidth: CGFloat = PanelSizeMetrics.defaultWidth,
+        panelHeight: CGFloat = PanelSizeMetrics.defaultHeight,
         edgeTabThickness: CGFloat = LayoutMetrics.visibleTabThickness,
         edgeTabLength: CGFloat = LayoutMetrics.defaultStackLength,
         edgeTabColorMode: EdgeTabColorMode = .systemAccent,
@@ -89,8 +59,9 @@ public struct AppearancePreferences: Equatable, Sendable {
     ) {
         self.theme = theme
         self.panelOpacity = panelOpacity
-        self.panelWidthPreset = panelWidthPreset
-        self.panelHeightPreset = panelHeightPreset
+        self.panelSizeMode = panelSizeMode
+        self.panelWidth = panelWidth
+        self.panelHeight = panelHeight
         self.edgeTabThickness = edgeTabThickness
         self.edgeTabLength = edgeTabLength
         self.edgeTabColorMode = edgeTabColorMode
@@ -106,6 +77,15 @@ public struct AppearancePreferences: Equatable, Sendable {
     public func clamped() -> AppearancePreferences {
         var copy = self
         copy.panelOpacity = min(max(panelOpacity, Self.opacityRange.lowerBound), Self.opacityRange.upperBound)
+        if copy.panelSizeMode == .custom {
+            let stored = PanelSizeMetrics.clampStored(PanelContentSize(width: panelWidth, height: panelHeight))
+            copy.panelWidth = stored.width
+            copy.panelHeight = stored.height
+        } else {
+            let preset = PanelSizeMetrics.preset(copy.panelSizeMode)
+            copy.panelWidth = preset.width
+            copy.panelHeight = preset.height
+        }
         copy.edgeTabOpacity = min(max(edgeTabOpacity, Self.edgeOpacityRange.lowerBound), Self.edgeOpacityRange.upperBound)
         copy.edgeTabThickness = min(max(edgeTabThickness, Self.thicknessRange.lowerBound), Self.thicknessRange.upperBound)
         copy.edgeTabLength = min(max(edgeTabLength, Self.lengthRange.lowerBound), Self.lengthRange.upperBound)
@@ -123,31 +103,24 @@ public struct AppearancePreferences: Equatable, Sendable {
         choices.min(by: { abs($0 - value) < abs($1 - value) }) ?? value
     }
 
-    /// Header plus body, at least `minimumContentHeight`, and never above the height preset.
-    public func contentColumnHeight(header: CGFloat, body: CGFloat) -> CGFloat {
-        let natural = max(0, header) + max(0, body)
-        let capped = min(natural, panelHeightPreset.maxContentHeight)
-        return max(capped, Self.minimumContentHeight)
+    /// Preferred card size. Short lists do not shrink this. The screen clamp is display-only.
+    public var contentSize: PanelContentSize {
+        PanelContentSize(width: panelWidth, height: panelHeight)
     }
 
-    /// Scroll viewport for the memo body. Short content keeps its natural height.
-    public func bodyViewport(header: CGFloat, body: CGFloat) -> CGFloat {
-        let header = max(0, header)
-        let body = max(0, body)
-        let maxHeight = panelHeightPreset.maxContentHeight
-        if header + body <= maxHeight {
-            return body
-        }
-        return max(Self.minimumBodyHeight, maxHeight - header)
+    public func displayContentSize(visible: CGSize, edgeIsVertical: Bool) -> PanelContentSize {
+        PanelSizeMetrics.clampToScreen(contentSize, visible: visible, edgeIsVertical: edgeIsVertical)
     }
 
-    public func expandedWindowSize(edgeIsVertical: Bool, header: CGFloat, body: CGFloat) -> CGSize {
-        let column = contentColumnHeight(header: header, body: body)
-        let contentWidth = panelWidthPreset.contentWidth
-        if edgeIsVertical {
-            return CGSize(width: contentWidth + hitRegionThickness, height: column)
-        }
-        return CGSize(width: contentWidth, height: column + hitRegionThickness)
+    public func windowSize(edgeIsVertical: Bool, visible: CGSize) -> CGSize {
+        PanelSizeMetrics.windowSize(
+            content: displayContentSize(visible: visible, edgeIsVertical: edgeIsVertical),
+            edgeIsVertical: edgeIsVertical
+        )
+    }
+
+    public var sizeLabel: String {
+        "\(Int(panelWidth.rounded())) × \(Int(panelHeight.rounded()))"
     }
 
     /// Hover raises the wedge only. The hit window and the panel alpha stay put.

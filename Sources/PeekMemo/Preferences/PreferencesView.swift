@@ -67,18 +67,19 @@ struct PreferencesView: View {
                 )
             }
             Section {
-                Picker("Width", selection: width) {
-                    Text("Compact").tag(PanelWidthPreset.compact)
-                    Text("Medium").tag(PanelWidthPreset.medium)
-                    Text("Wide").tag(PanelWidthPreset.wide)
+                Picker("Size", selection: sizeMode) {
+                    Text("Small").tag(PanelSizeMode.small)
+                    Text("Medium").tag(PanelSizeMode.medium)
+                    Text("Large").tag(PanelSizeMode.large)
+                    Text("Custom").tag(PanelSizeMode.custom)
                 }
-                Picker("Maximum Height", selection: height) {
-                    Text("Small").tag(PanelHeightPreset.small)
-                    Text("Medium").tag(PanelHeightPreset.medium)
-                    Text("Large").tag(PanelHeightPreset.large)
+                LabeledContent("Current") {
+                    Text(model.snapshot.sizeLabel)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             } footer: {
-                Text("Short lists shrink. Longer lists scroll inside the maximum height.")
+                Text("Default is a tall note. Short lists stay at this size and scroll when they grow. Drag the panel corner for a custom size.")
             }
             Section {
                 LabeledContent("Style") {
@@ -216,12 +217,8 @@ struct PreferencesView: View {
         Binding(get: { model.snapshot.theme }, set: { value in model.update { $0.theme = value } })
     }
 
-    private var width: Binding<PanelWidthPreset> {
-        Binding(get: { model.snapshot.panelWidthPreset }, set: { value in model.update { $0.panelWidthPreset = value } })
-    }
-
-    private var height: Binding<PanelHeightPreset> {
-        Binding(get: { model.snapshot.panelHeightPreset }, set: { value in model.update { $0.panelHeightPreset = value } })
+    private var sizeMode: Binding<PanelSizeMode> {
+        Binding(get: { model.snapshot.panelSizeMode }, set: { value in model.update { $0.panelSizeMode = value } })
     }
 
     private var thickness: Binding<Double> {

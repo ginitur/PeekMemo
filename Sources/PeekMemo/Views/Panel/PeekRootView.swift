@@ -9,8 +9,6 @@ struct PeekRootView: View {
     var tabColor: RGBAColor = .accent
     var tabThickness: CGFloat = LayoutMetrics.visibleTabThickness
     var tabOpacity: Double = AppearancePreferences.defaultEdgeTabOpacity
-    var bodyViewport: CGFloat = 120
-    var onContentMeasured: (CGFloat, CGFloat) -> Void = { _, _ in }
     var showHitRegions: Bool = false
     var showInteractionRegions: Bool = false
     /// Height of the physical housing, in the expanded window’s top. Content starts below it.
@@ -22,6 +20,9 @@ struct PeekRootView: View {
     var onInteractionBegan: () -> Void = {}
     var onInteractionEnded: () -> Void = {}
     var onEditorFrameChange: (CGRect) -> Void = { _ in }
+    var onResizeBegan: () -> Void = {}
+    var onResizeChanged: () -> Void = {}
+    var onResizeEnded: () -> Void = {}
     var handleOffsetInsidePanel: CGFloat = 0
     var stackLength: CGFloat = LayoutMetrics.defaultStackLength
 
@@ -58,15 +59,17 @@ struct PeekRootView: View {
     private var expandedBody: some View {
         let preview = PreviewPanelView(
             state: appState,
+            edge: edge,
             accent: accent,
-            bodyViewport: bodyViewport,
             showInteractionRegions: showInteractionRegions,
             onBeginEdit: onBeginEdit,
             onEndEdit: onEndEdit,
             onInteractionBegan: onInteractionBegan,
             onInteractionEnded: onInteractionEnded,
             onEditorFrameChange: onEditorFrameChange,
-            onContentMeasured: onContentMeasured
+            onResizeBegan: onResizeBegan,
+            onResizeChanged: onResizeChanged,
+            onResizeEnded: onResizeEnded
         )
         return Group {
             switch edge {

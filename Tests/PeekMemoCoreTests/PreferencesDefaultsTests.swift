@@ -16,8 +16,11 @@ enum PreferencesDefaultsTests {
         try expectEqual(loaded, AppearancePreferences.default)
         try expectEqual(loaded.theme, .system)
         try expectEqual(loaded.panelOpacity, 0.94)
-        try expectEqual(loaded.panelWidthPreset, .compact)
-        try expectEqual(loaded.panelHeightPreset, .medium)
+        try expectEqual(loaded.panelSizeMode, .medium)
+        try expectEqual(loaded.panelWidth, 340)
+        try expectEqual(loaded.panelHeight, 460)
+        let window = loaded.windowSize(edgeIsVertical: true, visible: CGSize(width: 1440, height: 900))
+        try expect(window.height > window.width, "default panel should be taller than it is wide")
         try expectEqual(loaded.edgeTabThickness, LayoutMetrics.visibleTabThickness)
         try expectEqual(loaded.edgeTabLength, LayoutMetrics.defaultStackLength)
         try expectEqual(loaded.edgeTabColorMode, .systemAccent)
@@ -54,14 +57,15 @@ enum PreferencesDefaultsTests {
     static func unknownEnumsStayDefault() throws {
         let isolated = try PreferencesTestSupport.isolate()
         defer { PreferencesTestSupport.finish(isolated.defaults, name: isolated.name) }
+        isolated.defaults.set(PanelSizeMetrics.layoutMigrationVersion, forKey: PreferencesKey.layoutMigrationVersion)
         isolated.defaults.set("neon", forKey: PreferencesKey.theme)
-        isolated.defaults.set("pill", forKey: PreferencesKey.panelWidthPreset)
-        isolated.defaults.set("huge", forKey: PreferencesKey.panelHeightPreset)
+        isolated.defaults.set("pill", forKey: PreferencesKey.panelSizeMode)
         isolated.defaults.set("glow", forKey: PreferencesKey.edgeTabColorMode)
         let loaded = PreferencesStore(defaults: isolated.defaults).load()
         try expectEqual(loaded.theme, .system)
-        try expectEqual(loaded.panelWidthPreset, .compact)
-        try expectEqual(loaded.panelHeightPreset, .medium)
+        try expectEqual(loaded.panelSizeMode, .medium)
+        try expectEqual(loaded.panelWidth, PanelSizeMetrics.defaultWidth)
+        try expectEqual(loaded.panelHeight, PanelSizeMetrics.defaultHeight)
         try expectEqual(loaded.edgeTabColorMode, .systemAccent)
     }
 

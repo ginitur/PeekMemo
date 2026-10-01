@@ -20,28 +20,22 @@ final class PanelController {
     private var suppressAnimatedCollapse = false
     private let appState: AppState
     private let preferences: PreferencesModel
-    private var measuredHeader: CGFloat = 56
-    private var measuredBody: CGFloat = 64
-    private var hasLiveMeasure = false
-    private var frameAnimating = false
-    private var suppressMeasureResize = false
-    private var pendingMeasureApply = false
-    private var measurePasses = 0
     private var currentExpansion: ExpansionLayout?
     private var outsideMoveMonitor: Any?
+    private var resizeMonitor: Any?
+    private var resizeStartMouse: CGPoint?
+    private var resizeStartSize: PanelContentSize?
+    private var resizeHolding = false
     private var editorScreenRect: CGRect?
     #if DEBUG
     private var lastInteractionLog: InteractionLogKey?
     #endif
 
     private var previewSize: CGSize {
-        applyEstimateIfNeeded()
         let edge = anchorPlacement?.edge ?? .right
-        return preferences.snapshot.expandedWindowSize(
-            edgeIsVertical: edge.isVertical,
-            header: measuredHeader,
-            body: measuredBody
-        )
+        let visible = anchorPlacement.flatMap { screenForAnchor($0)?.visibleFrame.size }
+            ?? CGSize(width: 1440, height: 900)
+        return preferences.snapshot.windowSize(edgeIsVertical: edge.isVertical, visible: visible)
     }
 
     init(appState: AppState, preferences: PreferencesModel) {
@@ -124,6 +118,7 @@ final class PanelController {
     }
 
     func hide() {
+        endPanelResize()
         stopOutsideMonitor()
         panel.orderOut(nil)
     }
@@ -285,7 +280,6 @@ final class PanelController {
             if hover.isDragging || suppressAnimatedCollapse {
                 motionGeneration += 1
                 shellExpanded = false
-                hasLiveMeasure = false
                 contentOpacity = 1
                 syncChrome(animated: false)
             } else {
@@ -307,7 +301,6 @@ final class PanelController {
         let generation = motionGeneration
         shellExpanded = true
         contentOpacity = 0
-        suppressMeasureResize = true
         let duration = preferences.movementDuration(LayoutMetrics.expandDuration)
         syncChrome(
             animated: duration > 0 && !hover.isDragging,
@@ -325,12 +318,10 @@ final class PanelController {
         motionGeneration += 1
         let generation = motionGeneration
         contentOpacity = 0
-        suppressMeasureResize = true
         refreshPresentedContent()
         DispatchQueue.main.asyncAfter(deadline: .now() + LayoutMetrics.contentFadeOutDuration) { [weak self] in
             guard let self, self.motionGeneration == generation else { return }
             self.shellExpanded = false
-            self.hasLiveMeasure = false
             let duration = self.preferences.movementDuration(LayoutMetrics.collapseDuration)
             self.syncChrome(
                 animated: duration > 0 && !self.hover.isDragging,
@@ -360,6 +351,7 @@ final class PanelController {
         guard let anchor = anchorPlacement else { return }
         let framePlacement = displayedPlacement(anchor: anchor, expanded: shellExpanded)
         panel.alphaValue = shellExpanded ? preferences.snapshot.panelOpacity : 1
+        panel.hasShadow = shellExpanded
         panel.allowNotchPlacement = anchor.isNotchCloak
         let requested = framePlacement.frame
         positionManager.apply(
@@ -370,8 +362,6 @@ final class PanelController {
             duration: duration
         )
         if animated {
-            frameAnimating = true
-            suppressMeasureResize = true
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
                 self?.finishFrameAnimation()
             }
@@ -417,8 +407,6 @@ final class PanelController {
     }
 
     private func finishFrameAnimation() {
-        frameAnimating = false
-        suppressMeasureResize = false
         hostView.dragHandleRect = dragHandleRect(
             in: hostView.bounds,
             edge: anchorPlacement?.edge ?? .right,
@@ -426,10 +414,6 @@ final class PanelController {
         )
         hostView.installTrackingArea()
         evaluatePointer()
-        if pendingMeasureApply, shellExpanded, !hover.isDragging {
-            pendingMeasureApply = false
-            syncChrome(animated: false)
-        }
     }
 
     private func displayedPlacement(anchor: PanelPlacement, expanded: Bool) -> PanelPlacement {
@@ -466,10 +450,6 @@ final class PanelController {
                 base: preferences.snapshot.edgeTabOpacity,
                 emphasized: emphasized
             ),
-            bodyViewport: bodyViewport,
-            onContentMeasured: { [weak self] header, body in
-                self?.noteContentMeasured(header: header, body: body)
-            },
             showHitRegions: DebugFlags.showHitRegions,
             showInteractionRegions: DebugFlags.showInteractionRegions,
             notchOccludedHeight: notchOccludedHeight,
@@ -483,6 +463,9 @@ final class PanelController {
                 self?.editorScreenRect = rect
                 self?.publishInteractionLog(at: NSEvent.mouseLocation)
             },
+            onResizeBegan: { [weak self] in self?.beginPanelResize() },
+            onResizeChanged: { [weak self] in self?.updatePanelResize() },
+            onResizeEnded: { [weak self] in self?.endPanelResize() },
             handleOffsetInsidePanel: currentExpansion?.handleOffsetInsidePanel ?? 0,
             stackLength: positionManager.stackLength
         )
@@ -502,35 +485,67 @@ final class PanelController {
         hostingView = hosting
     }
 
-    private var bodyViewport: CGFloat {
-        applyEstimateIfNeeded()
-        return preferences.snapshot.bodyViewport(header: measuredHeader, body: measuredBody)
+    private func beginPanelResize() {
+        guard shellExpanded, !resizeHolding else { return }
+        resizeHolding = true
+        resizeStartMouse = NSEvent.mouseLocation
+        resizeStartSize = displayedContentSize()
+        hover.beginInteraction()
+        resizeMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDragged, .leftMouseUp]
+        ) { [weak self] event in
+            MainActor.assumeIsolated {
+                self?.handleResizeEvent(event)
+            }
+            return event
+        }
     }
 
-    private func applyEstimateIfNeeded() {
-        guard !hasLiveMeasure else { return }
-        let rows = appState.visibleDayItems.count + appState.pastUnfinishedItems.count
-        measuredHeader = 56
-        measuredBody = rows == 0 ? 64 : min(CGFloat(rows) * 36 + 48, 320)
+    private func handleResizeEvent(_ event: NSEvent) {
+        if event.type == .leftMouseUp {
+            endPanelResize()
+            return
+        }
+        updatePanelResize()
     }
 
-    private func noteContentMeasured(header: CGFloat, body: CGFloat) {
-        guard header > 0, body > 0 else { return }
-        let changed = abs(header - measuredHeader) > 0.5 || abs(body - measuredBody) > 0.5
-        measuredHeader = header
-        measuredBody = body
-        hasLiveMeasure = true
-        guard changed else {
-            measurePasses = 0
-            return
+    private func updatePanelResize() {
+        guard resizeHolding,
+              let origin = resizeStartMouse,
+              let start = resizeStartSize,
+              let edge = anchorPlacement?.edge
+        else { return }
+        let mouse = NSEvent.mouseLocation
+        let translation = CGSize(width: mouse.x - origin.x, height: origin.y - mouse.y)
+        let visible = anchorPlacement.flatMap { screenForAnchor($0)?.visibleFrame.size }
+            ?? CGSize(width: 1440, height: 900)
+        let next = PanelResizeGeometry.resizedContent(
+            start: start,
+            translation: translation,
+            edge: edge,
+            visible: visible
+        )
+        preferences.applyLivePanelSize(width: next.width, height: next.height)
+    }
+
+    private func endPanelResize() {
+        guard resizeHolding else { return }
+        resizeHolding = false
+        if let resizeMonitor {
+            NSEvent.removeMonitor(resizeMonitor)
         }
-        measurePasses += 1
-        guard measurePasses <= 4 else { return }
-        guard shellExpanded, !hover.isDragging, !suppressMeasureResize, !frameAnimating else {
-            pendingMeasureApply = shellExpanded
-            return
-        }
-        syncChrome(animated: false)
+        resizeMonitor = nil
+        resizeStartMouse = nil
+        resizeStartSize = nil
+        preferences.commitPanelSize()
+        hover.endInteraction()
+    }
+
+    private func displayedContentSize() -> PanelContentSize {
+        let edge = anchorPlacement?.edge ?? .right
+        let visible = anchorPlacement.flatMap { screenForAnchor($0)?.visibleFrame.size }
+            ?? CGSize(width: 1440, height: 900)
+        return preferences.snapshot.displayContentSize(visible: visible, edgeIsVertical: edge.isVertical)
     }
 
     private func dragHandleRect(in bounds: CGRect, edge: ScreenEdge, expanded: Bool) -> CGRect? {

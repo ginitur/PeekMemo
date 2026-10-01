@@ -52,10 +52,10 @@ public enum LayoutMetrics: Sendable {
     /// Legacy alias used by a few call sites; prefer expand/collapse durations.
     public static let panelAnimationDuration: TimeInterval = expandDuration
 
-    public static let defaultPanelWidth: CGFloat = 280
-    public static let defaultPanelHeight: CGFloat = 360
-    public static let previewPanelWidth: CGFloat = 280
-    public static let previewPanelHeight: CGFloat = 320
+    public static let defaultPanelWidth: CGFloat = PanelSizeMetrics.defaultWidth
+    public static let defaultPanelHeight: CGFloat = PanelSizeMetrics.defaultHeight
+    public static let previewPanelWidth: CGFloat = PanelSizeMetrics.defaultWidth
+    public static let previewPanelHeight: CGFloat = PanelSizeMetrics.defaultHeight
 
     public static let defaultStackLength: CGFloat = 56
     public static let subtaskIndent: CGFloat = 18

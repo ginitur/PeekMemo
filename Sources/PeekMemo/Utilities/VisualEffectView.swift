@@ -12,20 +12,17 @@ struct VisualEffectView: NSViewRepresentable {
         view.material = material
         view.blendingMode = blendingMode
         view.isEmphasized = false
-        if cornerRadius > 0 {
-            view.wantsLayer = true
-            view.layer?.cornerRadius = cornerRadius
-            view.layer?.masksToBounds = true
-        }
+        view.wantsLayer = true
+        view.layer?.cornerRadius = cornerRadius
+        view.layer?.masksToBounds = cornerRadius > 0
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
         view.material = material
         view.blendingMode = blendingMode
-        if cornerRadius > 0 {
-            view.wantsLayer = true
-            view.layer?.cornerRadius = cornerRadius
-        }
+        view.wantsLayer = true
+        view.layer?.cornerRadius = cornerRadius
+        view.layer?.masksToBounds = cornerRadius > 0
     }
 }

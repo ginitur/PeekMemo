@@ -11,6 +11,7 @@ enum HitRegionKind {
     case category
     case editor
     case panelHover
+    case resizeHandle
 }
 
 struct HitRegionOverlay: View {
@@ -44,6 +45,7 @@ struct HitRegionOverlay: View {
         case .category: Color.orange
         case .editor: Color.mint
         case .panelHover: Color.green
+        case .resizeHandle: Color.purple
         }
     }
 
@@ -58,6 +60,7 @@ struct HitRegionOverlay: View {
         case .category: "Category Button"
         case .editor: "Editor"
         case .panelHover: "Panel Hover Region"
+        case .resizeHandle: "Resize Handle"
         }
     }
 }

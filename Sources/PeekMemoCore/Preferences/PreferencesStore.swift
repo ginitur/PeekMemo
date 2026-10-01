@@ -7,6 +7,10 @@ public enum PreferencesKey {
     public static let panelOpacity = prefix + "panelOpacity"
     public static let panelWidthPreset = prefix + "panelWidthPreset"
     public static let panelHeightPreset = prefix + "panelHeightPreset"
+    public static let panelSizeMode = prefix + "panelSizeMode"
+    public static let panelWidth = prefix + "panelWidth"
+    public static let panelHeight = prefix + "panelHeight"
+    public static let layoutMigrationVersion = prefix + "layoutMigrationVersion"
     public static let edgeTabThickness = prefix + "edgeTabThickness"
     public static let edgeTabLength = prefix + "edgeTabLength"
     public static let edgeTabColorMode = prefix + "edgeTabColorMode"
@@ -21,8 +25,9 @@ public enum PreferencesKey {
     public static let appearanceAndBehavior: [String] = [
         theme,
         panelOpacity,
-        panelWidthPreset,
-        panelHeightPreset,
+        panelSizeMode,
+        panelWidth,
+        panelHeight,
         edgeTabThickness,
         edgeTabLength,
         edgeTabColorMode,
@@ -32,6 +37,9 @@ public enum PreferencesKey {
         hoverCloseDelay,
         reduceMotion,
     ]
+
+    /// Phase 7 presets. Reset deletes them so a later migration cannot revive a short panel.
+    public static let legacyLayoutKeys = [panelWidthPreset, panelHeightPreset]
 }
 
 public struct PreferencesStore {
@@ -42,12 +50,14 @@ public struct PreferencesStore {
     }
 
     public func load() -> AppearancePreferences {
+        migrateLayoutIfNeeded()
         let fallback = AppearancePreferences.default
         let loaded = AppearancePreferences(
             theme: enumValue(PreferencesKey.theme, fallback: fallback.theme),
             panelOpacity: double(PreferencesKey.panelOpacity, fallback: fallback.panelOpacity),
-            panelWidthPreset: enumValue(PreferencesKey.panelWidthPreset, fallback: fallback.panelWidthPreset),
-            panelHeightPreset: enumValue(PreferencesKey.panelHeightPreset, fallback: fallback.panelHeightPreset),
+            panelSizeMode: enumValue(PreferencesKey.panelSizeMode, fallback: fallback.panelSizeMode),
+            panelWidth: CGFloat(double(PreferencesKey.panelWidth, fallback: fallback.panelWidth)),
+            panelHeight: CGFloat(double(PreferencesKey.panelHeight, fallback: fallback.panelHeight)),
             edgeTabThickness: CGFloat(double(PreferencesKey.edgeTabThickness, fallback: fallback.edgeTabThickness)),
             edgeTabLength: CGFloat(double(PreferencesKey.edgeTabLength, fallback: fallback.edgeTabLength)),
             edgeTabColorMode: enumValue(PreferencesKey.edgeTabColorMode, fallback: fallback.edgeTabColorMode),
@@ -65,8 +75,10 @@ public struct PreferencesStore {
         let value = preferences.clamped()
         defaults.set(value.theme.rawValue, forKey: PreferencesKey.theme)
         defaults.set(value.panelOpacity, forKey: PreferencesKey.panelOpacity)
-        defaults.set(value.panelWidthPreset.rawValue, forKey: PreferencesKey.panelWidthPreset)
-        defaults.set(value.panelHeightPreset.rawValue, forKey: PreferencesKey.panelHeightPreset)
+        defaults.set(value.panelSizeMode.rawValue, forKey: PreferencesKey.panelSizeMode)
+        defaults.set(Double(value.panelWidth), forKey: PreferencesKey.panelWidth)
+        defaults.set(Double(value.panelHeight), forKey: PreferencesKey.panelHeight)
+        defaults.set(PanelSizeMetrics.layoutMigrationVersion, forKey: PreferencesKey.layoutMigrationVersion)
         defaults.set(Double(value.edgeTabThickness), forKey: PreferencesKey.edgeTabThickness)
         defaults.set(Double(value.edgeTabLength), forKey: PreferencesKey.edgeTabLength)
         defaults.set(value.edgeTabColorMode.rawValue, forKey: PreferencesKey.edgeTabColorMode)
@@ -80,9 +92,33 @@ public struct PreferencesStore {
 
     /// Restores appearance and behavior. Does not write SQLite and keeps Launch at Login.
     public func resetAppearanceAndBehavior() {
-        for key in PreferencesKey.appearanceAndBehavior {
+        for key in PreferencesKey.appearanceAndBehavior + PreferencesKey.legacyLayoutKeys {
             defaults.removeObject(forKey: key)
         }
+    }
+
+    /// Runs once. Later launches, including a custom resize, are left alone.
+    private func migrateLayoutIfNeeded() {
+        guard defaults.integer(forKey: PreferencesKey.layoutMigrationVersion) < PanelSizeMetrics.layoutMigrationVersion else {
+            return
+        }
+        let hasWidth = defaults.object(forKey: PreferencesKey.panelWidth) != nil
+        let hasHeight = defaults.object(forKey: PreferencesKey.panelHeight) != nil
+        if !hasWidth || !hasHeight {
+            let mapped = PanelSizeMigration.map(
+                widthPreset: optionalEnum(PreferencesKey.panelWidthPreset),
+                heightPreset: optionalEnum(PreferencesKey.panelHeightPreset)
+            )
+            defaults.set(Double(mapped.width), forKey: PreferencesKey.panelWidth)
+            defaults.set(Double(mapped.height), forKey: PreferencesKey.panelHeight)
+            defaults.set(mapped.mode.rawValue, forKey: PreferencesKey.panelSizeMode)
+        }
+        defaults.set(PanelSizeMetrics.layoutMigrationVersion, forKey: PreferencesKey.layoutMigrationVersion)
+    }
+
+    private func optionalEnum<T: RawRepresentable>(_ key: String) -> T? where T.RawValue == String {
+        guard let raw = defaults.string(forKey: key) else { return nil }
+        return T(rawValue: raw)
     }
 
     private func double(_ key: String, fallback: Double) -> Double {

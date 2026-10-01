@@ -2,63 +2,52 @@ import AppKit
 import PeekMemoCore
 import SwiftUI
 
-private struct PanelMeasure: Equatable {
-    var header: CGFloat = 0
-    var body: CGFloat = 0
-}
-
-private struct PanelMeasureKey: PreferenceKey {
-    static let defaultValue = PanelMeasure()
-    static func reduce(value: inout PanelMeasure, nextValue: () -> PanelMeasure) {
-        let next = nextValue()
-        if next.header > 0 { value.header = next.header }
-        if next.body > 0 { value.body = next.body }
-    }
-}
-
 struct PreviewPanelView: View {
     @Bindable var state: AppState
+    var edge: ScreenEdge = .right
     var accent: RGBAColor = .accent
-    var bodyViewport: CGFloat = 120
     var showInteractionRegions: Bool = false
     var onBeginEdit: () -> Void
     var onEndEdit: () -> Void
     var onInteractionBegan: () -> Void = {}
     var onInteractionEnded: () -> Void = {}
     var onEditorFrameChange: (CGRect) -> Void = { _ in }
-    var onContentMeasured: (CGFloat, CGFloat) -> Void = { _, _ in }
+    var onResizeBegan: () -> Void = {}
+    var onResizeChanged: () -> Void = {}
+    var onResizeEnded: () -> Void = {}
     @FocusState private var editorFocused: Bool
+
+    private var gripCorner: ResizeGripCorner {
+        PanelResizeGeometry.corner(for: edge)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-                .padding(.horizontal, 12)
+                .padding(.leading, 12)
+                .padding(.trailing, gripCorner == .topRight || gripCorner == .topLeft ? gripClearance : 12)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
-                .background {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: PanelMeasureKey.self,
-                            value: PanelMeasure(header: proxy.size.height)
-                        )
-                    }
-                }
 
             ScrollView {
                 memoBody
                     .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
-                    .background {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: PanelMeasureKey.self,
-                                value: PanelMeasure(body: proxy.size.height)
-                            )
-                        }
-                    }
+                    .padding(.bottom, gripCorner == .bottomLeft || gripCorner == .bottomRight ? gripClearance : 8)
             }
             .textSelection(.disabled)
-            .frame(height: max(bodyViewport, 1))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if state.isComposing, state.composingParentID == nil {
+                editorField(
+                    placeholder: state.composingType == .note ? "New note" : "New task",
+                    isSubtask: false
+                )
+                .padding(.leading, footerLeading)
+                .padding(.trailing, footerTrailing)
+                .padding(.bottom, 12)
+            } else if !state.isEditing {
+                addTaskBar
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .textSelection(.disabled)
@@ -66,15 +55,64 @@ struct PreviewPanelView: View {
             VisualEffectView(
                 material: .hudWindow,
                 blendingMode: .behindWindow,
-                cornerRadius: 10
+                cornerRadius: PanelSizeMetrics.cornerRadius
             )
         }
-        .onPreferenceChange(PanelMeasureKey.self) { measure in
-            let header = measure.header
-            let body = measure.body
-            DispatchQueue.main.async {
-                onContentMeasured(header, body)
-            }
+        .clipShape(RoundedRectangle(cornerRadius: PanelSizeMetrics.cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: PanelSizeMetrics.cornerRadius, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.16), lineWidth: 0.5)
+                .allowsHitTesting(false)
+        }
+        .overlay(alignment: gripAlignment) {
+            PanelResizeGrip(
+                corner: gripCorner,
+                showRegion: showInteractionRegions,
+                onBegan: onResizeBegan,
+                onChanged: onResizeChanged,
+                onEnded: onResizeEnded
+            )
+            .padding(PanelResizeGeometry.gripInset)
+        }
+    }
+
+    private var gripClearance: CGFloat {
+        PanelResizeGeometry.gripInset + PanelResizeGeometry.gripSize + 4
+    }
+
+    private var footerLeading: CGFloat {
+        gripCorner == .bottomLeft ? gripClearance : 12
+    }
+
+    private var footerTrailing: CGFloat {
+        gripCorner == .bottomRight ? gripClearance : 12
+    }
+
+    private var gripAlignment: Alignment {
+        switch gripCorner {
+        case .bottomLeft: .bottomLeading
+        case .bottomRight: .bottomTrailing
+        case .topLeft: .topLeading
+        case .topRight: .topTrailing
+        }
+    }
+
+    private var addTaskBar: some View {
+        Button(action: addRoot) {
+            Text("+ Add Task")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(accent.color)
+                .textSelection(.disabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, footerLeading)
+        .padding(.trailing, footerTrailing)
+        .padding(.bottom, 12)
+        .accessibilityLabel("Add Task")
+        .contextMenu {
+            Button("Add Task") { addRoot() }
+            Button("Add Note") { addNote() }
         }
     }
 
@@ -98,25 +136,6 @@ struct PreviewPanelView: View {
             }
             ForEach(state.visibleDayItems) { item in
                 itemBlock(item)
-            }
-            if state.isComposing, state.composingParentID == nil {
-                editorField(
-                    placeholder: state.composingType == .note ? "New note" : "New task",
-                    isSubtask: false
-                )
-            } else if !state.isEditing {
-                Button(action: addRoot) {
-                    Text("+ Add Task")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(accent.color)
-                        .textSelection(.disabled)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Add Task")
-                .contextMenu {
-                    Button("Add Task") { addRoot() }
-                    Button("Add Note") { addNote() }
-                }
             }
         }
     }

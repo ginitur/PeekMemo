@@ -64,6 +64,22 @@ final class PreferencesModel {
         onChange?()
     }
 
+    /// Live resize. The screen clamp is applied by the caller. Disk write waits until the drag ends.
+    func applyLivePanelSize(width: CGFloat, height: CGFloat) {
+        var next = snapshot
+        next.panelSizeMode = .custom
+        next.panelWidth = width
+        next.panelHeight = height
+        let clamped = next.clamped()
+        guard clamped != snapshot else { return }
+        snapshot = clamped
+        onChange?()
+    }
+
+    func commitPanelSize() {
+        store.save(snapshot)
+    }
+
     func resetAppearanceAndBehavior() {
         store.resetAppearanceAndBehavior()
         snapshot = store.load()
